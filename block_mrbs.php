@@ -39,9 +39,7 @@ class block_mrbs extends block_base {
 
         $cfg_mrbs = get_config('block/mrbs');
 
-        $context = context_system::instance();
-
-        if (has_capability('block/mrbs:viewmrbs', $context) or has_capability('block/mrbs:editmrbs', $context) or has_capability('block/mrbs:administermrbs', $context)) {
+        if (\block_mrbs\local\timetable_access::can_view_personal()) {
             if (isset($CFG->block_mrbs_serverpath)) {
                 $serverpath = $CFG->block_mrbs_serverpath;
             } else {

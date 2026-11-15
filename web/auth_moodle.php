@@ -47,23 +47,25 @@ function authValidateUser($user, $pass) {
 }
 
 function authGetUserLevel($user) {
-    // HACK For Moodle 1.7 With Roles Block...
-    $context = context_system::instance();
-
-    // Set Access leve for users via MRBS block and Moodle 1.7 roles
-    if (has_capability('block/mrbs:administermrbs', $context)) {
+    if (\block_mrbs\local\timetable_access::is_admin()) {
         return 2;
     }
-    // has_capability('block/mrbs:editmrbs', $context)
-    if (has_capability('block/mrbs:editmrbs', $context)) {
-        return 1;
+    return \block_mrbs\local\timetable_access::can_edit() ? 1 : 0;
+}
+
+function mrbsRequireCalendar($day = 0, $month = 0, $year = 0) {
+    if (\block_mrbs\local\timetable_access::personal_only()) {
+        redirect(new moodle_url('/blocks/mrbs/web/timetable.php', compact('day', 'month', 'year')));
     }
-    if (has_capability('block/mrbs:editunconfirmed', $context, null, false)) {
-        return 1; // Can book rooms, but only as 'unconfirmed' (unless they are the room admin)
-    }
-    if (has_capability('block/mrbs:viewmrbs', $context)) {
-        return 0;
-    } else { // Set access level for other users (e.g. people who access url directly)
-        return 0;
-    }
+    \block_mrbs\local\timetable_access::require_calendar();
+}
+
+function mrbsHasAdminCapability($capability) {
+    return \block_mrbs\local\timetable_access::is_admin()
+        || has_capability($capability, context_system::instance());
+}
+
+function mrbsCanOnlyEditUnconfirmed() {
+    return !\block_mrbs\local\timetable_access::is_admin()
+        && has_capability('block/mrbs:editunconfirmed', context_system::instance(), null, false);
 }

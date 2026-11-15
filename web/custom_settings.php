@@ -15,6 +15,9 @@ $PAGE->set_title('MRBS Custom Settings');
 $PAGE->set_heading('MRBS Custom Settings');
 
 require_login();
+if (!\block_mrbs\local\timetable_access::is_admin()) {
+    throw new moodle_exception('accessdenied', 'block_mrbs');
+}
 print_header_mrbs();
 
 $customtimelocked = \block_mrbs\local\settings_manager::has_valid_custom_time_range();

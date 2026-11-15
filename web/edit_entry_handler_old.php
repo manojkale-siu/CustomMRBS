@@ -79,7 +79,7 @@ if (!getAuthorised(1)) {
 $context = context_system::instance();
 
 $roomadmin = false;
-$editunconfirmed = has_capability('block/mrbs:editunconfirmed', $context, null, false);
+$editunconfirmed = mrbsCanOnlyEditUnconfirmed();
 if (!getWritable($create_by, getUserName())) {
     if ($editunconfirmed) {
         foreach ($rooms as $key => $room) {
@@ -290,12 +290,12 @@ foreach ($rooms as $room_id) {
             $hide_title = 1;
         }
     } else {
-        if (has_capability("block/mrbs:forcebook", $context) and $forcebook) {
+        if (mrbsHasAdminCapability('block/mrbs:forcebook') and $forcebook) {
             require_once "force_book.php";
             $forcemoveoutput .= mrbsForceMove($room_id, $starttime, $endtime, $name, $id);
             //do this so that it thinks no clashes were found
             $tmp = '';
-        } else if ($doublebook and has_capability('block/mrbs:doublebook', $context)) {
+        } else if ($doublebook and mrbsHasAdminCapability('block/mrbs:doublebook')) {
             $sql = 'SELECT entry.id AS entryid,
                 entry.name as entryname,
                 entry.create_by,
@@ -443,7 +443,7 @@ if (strlen($err)) {
     }
 
     echo $err;
-    if (has_capability('block/mrbs:doublebook', $context) && $errtype == MRBS_ERR_DOUBLEBOOK) {
+    if (mrbsHasAdminCapability('block/mrbs:doublebook') && $errtype == MRBS_ERR_DOUBLEBOOK) {
         $thisurl = new moodle_url('/blocks/mrbs/web/edit_entry_handler.php');
         echo '<form method="post" action="'.$thisurl.'">';
         echo '<input type="hidden" name="name" value="'.$name.'" />';

@@ -23,7 +23,11 @@
 */
 require_once(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); //for Moodle integration
 include("config.inc.php");
-global $DB;
+require_once(__DIR__ . '/auth_moodle.php');
+global $DB, $PAGE;
+$PAGE->set_url(new moodle_url('/blocks/mrbs/web/index.php'));
+require_login();
+mrbsRequireCalendar();
 
 $day = date("d");
 $month = date("m");

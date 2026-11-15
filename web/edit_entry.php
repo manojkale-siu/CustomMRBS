@@ -257,7 +257,7 @@ $PAGE->set_context($context);
 
 $roomadmin = false;
 if (!getWritable($create_by, getUserName())) {
-    if (has_capability('block/mrbs:editunconfirmed', $context, null, false)) {
+    if (mrbsCanOnlyEditUnconfirmed()) {
         if ($room_id) {
             $dbroom = $DB->get_record('block_mrbs_room', array('id' => $room_id));
             if ($dbroom->room_admin_email == $USER->email) {
@@ -316,7 +316,7 @@ print_header_mrbs($day, $month, $year, $area);
 
     <?php
     echo 'var currentroom='.$room_id.';';
-    if (has_capability("block/mrbs:forcebook", $context)) {
+    if (mrbsHasAdminCapability('block/mrbs:forcebook')) {
         echo 'var canforcebook=true;';
     } else {
         echo 'var canforcebook=false;';
@@ -691,7 +691,7 @@ print_header_mrbs($day, $month, $year, $area);
                     } else {
                         $unconfirmed = false;
                         $unconfirmedonly = false;
-                        if (has_capability('block/mrbs:editunconfirmed', $context, null, false)) {
+                        if (mrbsCanOnlyEditUnconfirmed()) {
                             $unconfirmed = true;
                         }
                         if (authGetUserLevel(getUserName()) < 2 && $unconfirmed) {
@@ -715,7 +715,7 @@ print_header_mrbs($day, $month, $year, $area);
         </TR>
         <tr>
             <td>
-                <?php if (has_capability("block/mrbs:forcebook", $context)) {
+                <?php if (mrbsHasAdminCapability('block/mrbs:forcebook')) {
                     echo '<label for="mrbsforcebook"><b>'.get_string('forciblybook2', 'block_mrbs').':</b></label></td><td><input id="mrbsforcebook" type="checkbox" name="forcebook" value="TRUE"';
                     if ($force) {
                         echo ' checked="CHECKED"';

@@ -16,15 +16,14 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 require_once(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php');
+require_once(__DIR__ . '/auth_moodle.php');
 global $PAGE, $DB, $USER;
 
 $dayurl = new moodle_url('/blocks/mrbs/web/day.php');
 $PAGE->set_url($dayurl); // Hopefully will never be needed
 require_login();
 
-$context = context_system::instance();
-
-if (!has_capability('block/mrbs:editmrbs', $context) && !has_capability('block/mrbs:administermrbs', $context)) {
+if (!\block_mrbs\local\timetable_access::can_edit()) {
     redirect($dayurl);
 }
 

@@ -55,14 +55,15 @@ if ($pview) {
 
 $PAGE->set_url($thisurl);
 require_login();
+\block_mrbs\local\timetable_access::require_calendar();
 $context = context_system::instance();
 $PAGE->set_context($context);
 
 // If the booking belongs to the user looking at it, they probably want to edit it.
 if ($record = $DB->get_record('block_mrbs_entry', array('id' => $id))) {
-    if (strtolower($record->create_by) == strtolower($USER->username)) {
+    if (authGetUserLevel($USER->username) >= 1 && strcasecmp($record->create_by, $USER->username) === 0) {
         $redirect = true;
-        if (has_capability('block/mrbs:editunconfirmed', $context, null, false)) {
+        if (mrbsCanOnlyEditUnconfirmed()) {
             if ($USER->email != $DB->get_field('block_mrbs_room', 'room_admin_email', array('id' => $record->room_id))) {
                 if ($record->type != 'U') {
                     $redirect = false;  // Do not redirect to edit screen if the booking is confirmed.
@@ -208,7 +209,7 @@ $enable_periods ? toPeriodString($start_period, $duration, $dur_units) : toTimeS
 $repeat_key = "rep_type_".$rep_type;
 
 $roomadmin = false;
-if (has_capability('block/mrbs:editunconfirmed', $context, null, false)) {
+if (mrbsCanOnlyEditUnconfirmed()) {
     $adminemail = $DB->get_field('block_mrbs_room', 'room_admin_email', array('id' => $booking->room_id));
     if ($adminemail == $USER->email) {
         $roomadmin = true;

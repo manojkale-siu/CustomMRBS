@@ -399,3 +399,10 @@ $string['previous'] = 'Previous';
 $string['next'] = 'Next';
 $string['description'] = 'Description';
 $string['view'] = 'View';
+
+$string['mytimetable'] = 'My timetable';
+$string['notimetableentries'] = 'You have no classes scheduled for this week.';
+$string['timetablecourse'] = 'Programme / Batch / Semester / Course';
+$string['timetableallgroups'] = 'All groups';
+$string['timetablestart'] = 'Starts';
+$string['timetableend'] = 'Ends';

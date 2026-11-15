@@ -107,13 +107,12 @@ if ($user) {
 
 $PAGE->set_url($thisurl);
 require_login();
+mrbsRequireCalendar($day, $month, $year);
 
 // print the page header
 print_user_header_mrbs($day, $month, $year, $area);
 
-$context = context_system::instance();
-
-if (!$user || !has_capability('block/mrbs:viewalltt', $context)) {
+if (!$user || !\block_mrbs\local\timetable_access::can_view_other_timetables()) {
     $user = $USER->id;
 }
 $TTUSER = $DB->get_record('user', array('id' => $user));

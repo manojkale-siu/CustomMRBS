@@ -22,6 +22,7 @@ include "functions.php";
 require_once('mrbs_auth.php');
 
 require_login();
+\block_mrbs\local\timetable_access::require_calendar();
 $day = optional_param('day', 0, PARAM_INT);
 $month = optional_param('month', 0, PARAM_INT);
 $year = optional_param('year', 0, PARAM_INT);

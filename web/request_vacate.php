@@ -32,9 +32,7 @@ $messagelang->href = $url->out();
 
 $message = "$USER->firstname $USER->lastname requests that you move $description from room $room_name, $start_date. Please contact them to discuss this.\n\n[Give a reason]";
 
-$context = context_system::instance();
-
-if (has_capability('block/mrbs:editmrbs', $context) or has_capability('block/mrbs:administermrbs', $context)) {
+if (\block_mrbs\local\timetable_access::can_edit()) {
     echo '<br><br><a href=# onClick="requestVacate.style.visibility=\'visible\';">'.get_string('requestvacate', 'block_mrbs').'</a>
         <form id="editing" method="post" action="request_vacate_send.php">
         <div id="request_vacate">

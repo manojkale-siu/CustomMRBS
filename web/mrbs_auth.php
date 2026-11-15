@@ -57,17 +57,8 @@ function getAuthorised($level) {
  *   non-zero - The user has the required access
  */
 function getWritable($creator, $user) {
-    // Always allowed to modify your own stuff
-    if (strcasecmp($creator, $user) == 0) {
-        return 1;
-    }
-
-    if (authGetUserLevel($user) >= 2) {
-        return 1;
-    }
-
-    // Unathorised access
-    return 0;
+    $level = authGetUserLevel($user);
+    return $level >= 2 || ($level >= 1 && strcasecmp($creator, $user) === 0);
 }
 
 /* showAccessDenied()

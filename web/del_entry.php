@@ -41,7 +41,7 @@ if (getAuthorised(1) && ($info = mrbsGetEntryInfo($id))) {
     }
     $roomadmin = false;
     $context = context_system::instance();
-    if (has_capability('block/mrbs:editunconfirmed', $context, null, false)) {
+    if (mrbsCanOnlyEditUnconfirmed()) {
         $adminemail = $DB->get_field('block_mrbs_room', 'room_admin_email', array('id' => $info->room_id));
         if ($adminemail == $USER->email) {
             $roomadmin = true;

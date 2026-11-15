@@ -72,6 +72,7 @@ if ($timetohighlight >= 0) {
 
 $PAGE->set_url($thisurl);
 require_login();
+mrbsRequireCalendar($day, $month, $year);
 
 $prerequisites = block_mrbs_require_prerequisites($day, $month, $year, $area);
 $area = $prerequisites->areaid;

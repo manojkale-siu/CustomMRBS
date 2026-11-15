@@ -40,8 +40,7 @@ function print_header_mrbs($day = null, $month = null, $year = null, $area = nul
         redirect(new moodle_url('/admin/index.php'));
     }
 
-    $context = context_system::instance();
-    require_capability('block/mrbs:viewmrbs', $context);
+    \block_mrbs\local\timetable_access::require_calendar();
 
     // If we dont know the right date then make it up
     if (!$day) {
@@ -161,7 +160,7 @@ HTML1END;
               </TD>
 HTML2END;
         if (!$userview) {
-            if (has_capability("block/mrbs:forcebook", $context)
+            if (mrbsHasAdminCapability('block/mrbs:forcebook')
                     && \block_mrbs\local\booking_prerequisites::can_create_bookings()) {
                 echo '<TD CLASS="banner" BGCOLOR="#C0E0FF" ALIGN=CENTER>
                   <a href="edit_entry.php?force=TRUE">'.get_string('forciblybook', 'block_mrbs').'</a>
@@ -178,7 +177,9 @@ HTML2END;
         echo '<TD CLASS="banner" BGCOLOR="#C0E0FF" ALIGN=CENTER><A HREF="'.$helpurl.'">'.$helpstr.'</A></TD>';
         
         //Added after the HELP tab
-        echo '<TD CLASS="banner" BGCOLOR="#C0E0FF" ALIGN=CENTER><A HREF="'.$custom_settings_url.'">'.$custom_settings_str.'</A></TD>';
+        if (\block_mrbs\local\timetable_access::is_admin()) {
+            echo '<TD CLASS="banner" BGCOLOR="#C0E0FF" ALIGN=CENTER><A HREF="'.$custom_settings_url.'">'.$custom_settings_str.'</A></TD>';
+        }
         //end here
 
         if (!$userview) {
@@ -1434,8 +1435,7 @@ function check_max_advance_days_internal(DateTime $checkdate) {
         return true;
     }
 
-    $syscontext = context_system::instance();
-    if (has_capability('block/mrbs:ignoremaxadvancedays', $syscontext)) {
+    if (mrbsHasAdminCapability('block/mrbs:ignoremaxadvancedays')) {
         return true;
     }
 

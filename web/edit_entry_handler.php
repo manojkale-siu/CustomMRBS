@@ -157,7 +157,7 @@ $prerequisites = block_mrbs_require_prerequisites($day, $month, $year, $area, 0,
 $area = $prerequisites->areaid;
 
 $roomadmin = false;
-$editunconfirmed = has_capability('block/mrbs:editunconfirmed', $context, null, false);
+$editunconfirmed = mrbsCanOnlyEditUnconfirmed();
 if (!getWritable($create_by, getUserName())) {
     if ($editunconfirmed) {
         foreach ($rooms as $key => $room) {
@@ -585,14 +585,14 @@ foreach ($rooms as $room_id) {
         // }
     } else {
         // echo "I am in first else part <br>";
-        if (has_capability("block/mrbs:forcebook", $context) and $forcebook) {
+        if (mrbsHasAdminCapability('block/mrbs:forcebook') and $forcebook) {
             // echo "I am inner else-if. <br>";
             
             require_once "force_book.php";
             $forcemoveoutput .= mrbsForceMove($room_id, $starttime, $endtime, $name, $id);
             //do this so that it thinks no clashes were found
             $tmp = '';
-        } else if ($doublebook and has_capability('block/mrbs:doublebook', $context)) {
+        } else if ($doublebook and mrbsHasAdminCapability('block/mrbs:doublebook')) {
             // echo "I am inner else else-if . <br>";
             
             $sql = 'SELECT entry.id AS entryid,
@@ -886,7 +886,7 @@ if (strlen($err)) {
     }
 
     echo $err;
-    if (has_capability('block/mrbs:doublebook', $context) && $errtype == MRBS_ERR_DOUBLEBOOK) {
+    if (mrbsHasAdminCapability('block/mrbs:doublebook') && $errtype == MRBS_ERR_DOUBLEBOOK) {
         $thisurl = new moodle_url('/blocks/mrbs/web/edit_entry_handler.php');
         echo '<form method="post" action="'.$thisurl.'">';
         echo '<input type="hidden" name="name" value="'.s($name).'" />';
