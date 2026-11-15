@@ -161,7 +161,8 @@ HTML1END;
               </TD>
 HTML2END;
         if (!$userview) {
-            if (has_capability("block/mrbs:forcebook", $context)) {
+            if (has_capability("block/mrbs:forcebook", $context)
+                    && \block_mrbs\local\booking_prerequisites::can_create_bookings()) {
                 echo '<TD CLASS="banner" BGCOLOR="#C0E0FF" ALIGN=CENTER>
                   <a href="edit_entry.php?force=TRUE">'.get_string('forciblybook', 'block_mrbs').'</a>
               </TD>';
@@ -237,8 +238,31 @@ function toTimeString(&$dur, &$units) {
 function toPeriodString($start_period, &$dur, &$units) {
     global $periods;
 
-    $max_periods = count($periods);
+    if (\block_mrbs\local\settings_manager::has_valid_custom_time_range()) {
+        $interval = \block_mrbs\local\settings_manager::get_period_interval_seconds();
+        $periodcount = \block_mrbs\local\settings_manager::get_period_count();
+        if ($interval > 0) {
+            if ($dur % 86400 === 0 && $dur >= 86400) {
+                $dur = (int)($dur / 86400);
+                $units = get_string('days');
+                return;
+            }
 
+            if ($dur % $interval === 0) {
+                $dur = (int)($dur / $interval);
+                if ($start_period == 0 && $periodcount > 0 && $dur == $periodcount) {
+                    $dur = 1;
+                    $units = get_string('days');
+                    return;
+                }
+
+                $units = get_string('periods', 'block_mrbs');
+                return;
+            }
+        }
+    }
+
+    $max_periods = count($periods);
     $dur /= 60;
 
     if ($dur >= $max_periods || $start_period == 0) {
@@ -357,6 +381,46 @@ function block_mrbs_print_user_error($day, $month, $year, $area, $message, $debu
     echo $OUTPUT->footer();
 }
 
+function block_mrbs_print_prerequisite_errors($day, $month, $year, $area, array $errors) {
+    global $OUTPUT;
+
+    print_header_mrbs($day, $month, $year, $area);
+    echo $OUTPUT->heading(get_string('invalid_booking', 'block_mrbs'), 2);
+    foreach ($errors as $error) {
+        echo $OUTPUT->notification($error, 'notifyproblem');
+    }
+
+    if (authGetUserLevel(getUserName()) >= 2) {
+        $adminurl = new moodle_url('/blocks/mrbs/web/admin.php', ['day' => $day, 'month' => $month, 'year' => $year]);
+        $settingsurl = new moodle_url('/blocks/mrbs/web/custom_settings.php');
+        echo html_writer::div(
+            html_writer::link($adminurl, get_string('admin')) . ' | ' .
+            html_writer::link($settingsurl, get_string('settings')),
+            'mrbs-prerequisite-actions'
+        );
+    }
+}
+
+function block_mrbs_require_prerequisites($day, $month, $year, $area = 0, $room = 0, $requireroom = false,
+                                          $requiretime = false) {
+    $result = \block_mrbs\local\booking_prerequisites::validate($area, $room, $requireroom, $requiretime);
+    if (!empty($result->errors)) {
+        block_mrbs_print_prerequisite_errors($day, $month, $year, $result->areaid, $result->errors);
+        include "trailer.php";
+        exit;
+    }
+
+    return $result;
+}
+
+function block_mrbs_show_booking_configuration_warning() {
+    global $OUTPUT;
+
+    if (!\block_mrbs\local\settings_manager::has_valid_custom_time_range()) {
+        echo $OUTPUT->notification(get_string('mrbscustomtimerangerequired', 'block_mrbs'), 'notifyproblem');
+    }
+}
+
 // Error handler - this is used to display serious errors such as database
 // errors without sending incomplete HTML pages. This is only used for
 // errors which "should never happen", not those caused by bad inputs.
@@ -420,6 +484,17 @@ function hour_min_format() {
 function period_date_string($t, $mod_time = 0) {
     global $periods;
 
+    if (\block_mrbs\local\settings_manager::has_valid_custom_time_range()) {
+        $p_num = \block_mrbs\local\settings_manager::get_period_index_from_timestamp($t) + (int)$mod_time;
+        if ($p_num < 0) {
+            $p_num = 0;
+        }
+        if ($p_num >= count($periods)) {
+            $p_num = count($periods) - 1;
+        }
+        return array($p_num, $periods[$p_num].userdate($t, ", %A %d %B %Y"));
+    }
+
     $time = getdate($t);
     $p_num = $time["minutes"] + $mod_time;
     if ($p_num < 0) {
@@ -435,6 +510,17 @@ function period_date_string($t, $mod_time = 0) {
 
 function period_time_string($t, $mod_time = 0) {
     global $periods;
+
+    if (\block_mrbs\local\settings_manager::has_valid_custom_time_range()) {
+        $p_num = \block_mrbs\local\settings_manager::get_period_index_from_timestamp($t) + (int)$mod_time;
+        if ($p_num < 0) {
+            $p_num = 0;
+        }
+        if ($p_num >= count($periods)) {
+            $p_num = count($periods) - 1;
+        }
+        return $periods[$p_num];
+    }
 
     $time = getdate($t);
     $p_num = $time["minutes"] + $mod_time;
@@ -639,6 +725,15 @@ function removeMailUnicode($string) {
 function getMailPeriodDateString($t, $mod_time = 0) {
     global $periods;
     //
+    if (\block_mrbs\local\settings_manager::has_valid_custom_time_range()) {
+        $p_num = \block_mrbs\local\settings_manager::get_period_index_from_timestamp($t) + (int)$mod_time;
+        ($p_num < 0) ? $p_num = 0 : '';
+        ($p_num >= count($periods)) ? $p_num = count($periods) - 1 : '';
+        // I have made the separater a ',' as a '-' leads to an ambiguious
+        // display in report.php when showing end times.
+        return array($p_num, $periods[$p_num].userdate($t, ", %A %d %B %Y"));
+    }
+
     $time = getdate($t);
     $p_num = $time['minutes'] + $mod_time;
     ($p_num < 0) ? $p_num = 0 : '';

@@ -22,17 +22,17 @@ define([], function() {
         select.disabled = true;
     }
 
-    function fillSelect(select, items, placeholder, selected, emptyLabel) {
+    function fillSelect(select, items, placeholder, selected, allGroupsLabel) {
         select.innerHTML = '';
         select.appendChild(option('', placeholder, false));
 
-        if (!items.length && emptyLabel) {
-            select.appendChild(option('0', emptyLabel, selected === 0 || selected === '0'));
-        } else {
-            items.forEach(function(item) {
-                select.appendChild(option(String(item.id), item.label, String(item.id) === String(selected)));
-            });
+        if (select && select.name === 'groupid' && allGroupsLabel) {
+            select.appendChild(option('0', allGroupsLabel, selected === 0 || selected === '0'));
         }
+
+        items.forEach(function(item) {
+            select.appendChild(option(String(item.id), item.label, String(item.id) === String(selected)));
+        });
         select.disabled = false;
     }
 
@@ -71,7 +71,19 @@ define([], function() {
     function updateReservationName() {
         var course = selectedText(elements.course);
         var faculty = selectedText(elements.faculty);
-        var label = course && faculty ? course + ' - ' + faculty : '';
+        var group = '';
+        var label = '';
+
+        if (elements.group && elements.group.value && elements.group.value !== '0') {
+            group = selectedText(elements.group);
+        }
+
+        if (course && faculty) {
+            label = course + ' - ' + faculty;
+            if (group) {
+                label += ' - ' + group;
+            }
+        }
 
         if (elements.name) {
             elements.name.value = label;
@@ -99,7 +111,7 @@ define([], function() {
         clearSelect(elements.semester, config.semesterPlaceholder);
         clearSelect(elements.course, config.coursePlaceholder);
         clearSelect(elements.faculty, config.facultyPlaceholder);
-        fillSelect(elements.group, [], config.groupPlaceholder, 0, config.allStudentsLabel);
+        fillSelect(elements.group, [], config.groupPlaceholder, 0, config.allGroupsLabel);
         updateReservationName();
 
         if (!elements.programme.value) {
@@ -115,7 +127,7 @@ define([], function() {
         clearSelect(elements.semester, config.semesterPlaceholder);
         clearSelect(elements.course, config.coursePlaceholder);
         clearSelect(elements.faculty, config.facultyPlaceholder);
-        fillSelect(elements.group, [], config.groupPlaceholder, 0, config.allStudentsLabel);
+        fillSelect(elements.group, [], config.groupPlaceholder, 0, config.allGroupsLabel);
         updateReservationName();
 
         if (!elements.batch.value) {
@@ -130,7 +142,7 @@ define([], function() {
     function loadCourses(selected) {
         clearSelect(elements.course, config.coursePlaceholder);
         clearSelect(elements.faculty, config.facultyPlaceholder);
-        fillSelect(elements.group, [], config.groupPlaceholder, 0, config.allStudentsLabel);
+        fillSelect(elements.group, [], config.groupPlaceholder, 0, config.allGroupsLabel);
         updateReservationName();
 
         if (!elements.semester.value) {
@@ -160,12 +172,12 @@ define([], function() {
         clearSelect(elements.group, config.groupPlaceholder);
 
         if (!elements.course.value) {
-            fillSelect(elements.group, [], config.groupPlaceholder, 0, config.allStudentsLabel);
+            fillSelect(elements.group, [], config.groupPlaceholder, 0, config.allGroupsLabel);
             return Promise.resolve();
         }
 
         return request('groups', {courseid: elements.course.value}).then(function(items) {
-            fillSelect(elements.group, items, config.groupPlaceholder, selected || 0, config.allStudentsLabel);
+            fillSelect(elements.group, items, config.groupPlaceholder, selected || 0, config.allGroupsLabel);
         });
     }
 
@@ -195,6 +207,7 @@ define([], function() {
             });
         });
         elements.faculty.addEventListener('change', updateReservationName);
+        elements.group.addEventListener('change', updateReservationName);
     }
 
     function init(initConfig) {

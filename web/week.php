@@ -54,11 +54,20 @@ if (($day == 0) or ($month == 0) or ($year == 0)) {
 $format = "Gi";
 if ($enable_periods) {
     $format = "i";
-    $resolution = 60;
-    $morningstarts = 12;
-    $morningstarts_minutes = 0;
-    $eveningends = 12;
-    $eveningends_minutes = count($periods) - 1;
+    if (\block_mrbs\local\settings_manager::has_valid_custom_time_range()) {
+        $schedule = \block_mrbs\local\settings_manager::get_period_schedule();
+        $resolution = \block_mrbs\local\settings_manager::get_period_interval_seconds();
+        $morningstarts = (int)floor($schedule['fromminutes'] / 60);
+        $morningstarts_minutes = (int)($schedule['fromminutes'] % 60);
+        $eveningends = (int)floor($schedule['tominutes'] / 60);
+        $eveningends_minutes = (int)($schedule['tominutes'] % 60);
+    } else {
+        $resolution = 60;
+        $morningstarts = 12;
+        $morningstarts_minutes = 0;
+        $eveningends = 12;
+        $eveningends_minutes = count($periods) - 1;
+    }
 }
 
 // Set the date back to the previous $weekstarts day (Sunday, if 0):
@@ -80,7 +89,7 @@ if ($area > 0) {
     $area = get_default_area();
 }
 if ($room > 0) {
-    $thisurl->param('room', $area);
+    $thisurl->param('room', $room);
 } else {
     $room = get_default_room($area);
     // Note $room will be 0 if there are no rooms; this is checked for below.
@@ -92,8 +101,14 @@ if ($morningstarts_minutes > 0) {
 $PAGE->set_url($thisurl);
 require_login();
 
+$prerequisites = block_mrbs_require_prerequisites($day, $month, $year, $area, $room, true);
+$area = $prerequisites->areaid;
+$room = $prerequisites->roomid;
+$bookingcreationallowed = \block_mrbs\local\settings_manager::has_valid_custom_time_range();
+
 // print the page header
 print_header_mrbs($day, $month, $year, $area);
+block_mrbs_show_booking_configuration_warning();
 
 // Define the start and end of each day of the week in a way which is not
 // affected by daylight saving...
@@ -218,6 +233,7 @@ if ($pview != 1) {
 
 $roomdata = $DB->get_record('block_mrbs_room', array('id' => $room));
 $allowedtobook = allowed_to_book($USER, $roomdata);
+$d = array();
 
 //Get all appointments for this week in the room that we care about
 // This data will be retrieved day-by-day
@@ -264,21 +280,30 @@ for ($j = 0; $j <= ($num_of_days - 1); $j++) {
         $start_t = max(round_t_down($entry->start_time, $resolution, $am7[$j]), $am7[$j]);
         $end_t = min(round_t_up($entry->end_time, $resolution, $am7[$j]) - $resolution, $pm7[$j]);
         for ($t = $start_t; $t <= $end_t; $t += $resolution) {
-            $d[$j][date($format, $t)]["id"] = $entry->id;
-            $d[$j][date($format, $t)]["color"] = $entry->type;
-            $d[$j][date($format, $t)]["data"] = "";
-            $d[$j][date($format, $t)]["long_descr"] = "";
+            $slotkey = $enable_periods && \block_mrbs\local\settings_manager::has_valid_custom_time_range()
+                ? \block_mrbs\local\settings_manager::get_period_index_from_timestamp($t)
+                : date($format, $t);
+            $d[$j][$slotkey]["id"] = $entry->id;
+            $d[$j][$slotkey]["color"] = $entry->type;
+            $d[$j][$slotkey]["data"] = "";
+            $d[$j][$slotkey]["long_descr"] = "";
         }
 
         // Show the name of the booker in the first segment that the booking
         // happens in, or at the start of the day if it started before today.
         $entryname = \block_mrbs\local\reservation::get_display_name($entry);
         if ($entry->end_time < $am7[$j]) {
-            $d[$j][date($format, $am7[$j])]["data"] = $entryname;
-            $d[$j][date($format, $am7[$j])]["long_descr"] = $entry->description;
+            $startslot = $enable_periods && \block_mrbs\local\settings_manager::has_valid_custom_time_range()
+                ? \block_mrbs\local\settings_manager::get_period_index_from_timestamp($am7[$j])
+                : date($format, $am7[$j]);
+            $d[$j][$startslot]["data"] = $entryname;
+            $d[$j][$startslot]["long_descr"] = $entry->description;
         } else {
-            $d[$j][date($format, $start_t)]["data"] = $entryname;
-            $d[$j][date($format, $start_t)]["long_descr"] = $entry->description;
+            $startslot = $enable_periods && \block_mrbs\local\settings_manager::has_valid_custom_time_range()
+                ? \block_mrbs\local\settings_manager::get_period_index_from_timestamp($start_t)
+                : date($format, $start_t);
+            $d[$j][$startslot]["data"] = $entryname;
+            $d[$j][$startslot]["long_descr"] = $entry->description;
         }
     }
 }
@@ -370,16 +395,18 @@ $starttime = mktime($morningstarts, $morningstarts_minutes, 0, $month, $day + $j
 $endtime = mktime($eveningends, $eveningends_minutes, 0, $month, $day + $j, $year);
 for ($t = $starttime; $t <= $endtime; $t += $resolution) {
     $row_class = ($row_class == "even_row") ? "odd_row" : "even_row";
-    // use hour:minute format
-    $time_t = date($format, $t);
+    if ($enable_periods && \block_mrbs\local\settings_manager::has_valid_custom_time_range()) {
+        $time_t = \block_mrbs\local\settings_manager::get_period_index_from_timestamp($t);
+    } else {
+        $time_t = date($format, $t);
+    }
     $hiliteurl->param('timetohighlight', $time_t);
     // Show the time linked to the URL for highlighting that time:
     echo "<tr>";
     tdcell("red");
     if ($enable_periods) {
-        $time_t_stripped = preg_replace("/^0/", "", $time_t);
         echo '<a href="'.$hiliteurl.'"  title="'.get_string('highlight_line', 'block_mrbs').'">';
-        echo $periods[$time_t_stripped]."</a></td>";
+        echo (isset($periods[$time_t]) ? $periods[$time_t] : '')."</a></td>";
     } else {
         echo '<a href="'.$hiliteurl.'" title="'.get_string('highlight_line', 'block_mrbs').'">';
         echo userdate($t, hour_min_format())."</a></td>";
@@ -440,6 +467,11 @@ for ($t = $starttime; $t <= $endtime; $t += $resolution) {
                     $title = get_string('notallowedbook', 'block_mrbs', $max_advance_days);
                     echo '<img src="'.(string)$OUTPUT->image_url('toofaradvance', 'block_mrbs').'" width="10" height="10" border="0" alt="'.$title.'" title="'.$title.'" />';
                     echo '</center>';
+                } else if (!$bookingcreationallowed) {
+                    echo '<center>';
+                    $title = get_string('mrbscustomtimerangerequired', 'block_mrbs');
+                    echo '<img src="'.(string)$OUTPUT->image_url('toofaradvance', 'block_mrbs').'" width="10" height="10" border="0" alt="'.s($title).'" title="'.s($title).'" />';
+                    echo '</center>';
                 } else if (!check_max_advance_days($wday, $wmonth, $wyear)) {
                     // Too far in advance to edit
                     echo '<center>';
@@ -459,7 +491,7 @@ for ($t = $starttime; $t <= $endtime; $t += $resolution) {
                                                     'month' => $wmonth, 'day' => $wday
                                                 ));
                     if ($enable_periods) {
-                        echo '<a href="'.($editentry->out(true, array('period' => $time_t_stripped))).'">';
+                        echo '<a href="'.($editentry->out(true, array('period' => $time_t))).'">';
                     } else {
                         echo '<a href="'.($editentry->out(true, array('hour' => $hour, 'minute' => $minute))).'">';
                     }
@@ -493,9 +525,8 @@ for ($t = $starttime; $t <= $endtime; $t += $resolution) {
     if (false != $times_right_side) {
         if ($enable_periods) {
             tdcell("red");
-            $time_t_stripped = preg_replace("/^0/", "", $time_t);
             echo '<a href="'.$hiliteurl.'" title="'.get_string('highlight_line', 'block_mrbs').'">';
-            echo $periods[$time_t_stripped]."</a></td>";
+            echo (isset($periods[$time_t]) ? $periods[$time_t] : '')."</a></td>";
         } else {
             tdcell("red");
             echo '<a href="'.$hiliteurl.'" title="'.get_string('highlight_line', 'block_mrbs').'">';

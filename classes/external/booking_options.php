@@ -39,6 +39,15 @@ class booking_options {
             case 'groups':
                 return ['results' => \block_mrbs\local\booking_options::get_groups($params['courseid'] ?? 0)];
 
+            case 'capacity':
+                return [
+                    'results' => \block_mrbs\local\booking_validator::check_room_capacity(
+                        $params['courseid'] ?? 0,
+                        $params['groupid'] ?? 0,
+                        $params['rooms'] ?? []
+                    ),
+                ];
+
             default:
                 throw new \moodle_exception('invalidrequest', 'error');
         }

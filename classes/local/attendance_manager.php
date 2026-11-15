@@ -64,6 +64,11 @@ class attendance_manager {
         } else {
             $session = self::build_session($entry, $facultyid, $groupid);
             $sessionid = $att->add_session($session);
+            self::normalise_session_record($sessionid, $facultyid);
+            $updated = $DB->get_record('attendance_sessions', ['id' => $sessionid], '*', IGNORE_MISSING);
+            if ($updated && !empty($updated->caleventid) && function_exists('attendance_update_calendar_event')) {
+                attendance_update_calendar_event($updated);
+            }
         }
 
         $DB->set_field('block_mrbs_entry', 'attendancesessionid', $sessionid, ['id' => $entryid]);
@@ -174,7 +179,7 @@ class attendance_manager {
         $session->duration = max(0, (int)$entry->end_time - (int)$entry->start_time);
         $session->descriptionitemid = file_get_unused_draft_itemid();
         $session->description = self::build_description($facultyid);
-        $session->descriptionformat = FORMAT_PLAIN;
+        $session->descriptionformat = FORMAT_MOODLE;
         $session->calendarevent = isset($config->calendarevent_default) ? (int)$config->calendarevent_default : 1;
         $session->timemodified = $now;
         $session->absenteereport = isset($config->absenteereport_default) ? (int)$config->absenteereport_default : 1;
@@ -211,52 +216,50 @@ class attendance_manager {
         global $DB;
 
         $session = $DB->get_record('attendance_sessions', ['id' => (int)$sessionid], '*', MUST_EXIST);
-        $start = usergetdate((int)$entry->start_time);
-        $end = usergetdate((int)$entry->end_time);
+        $groupchanged = ((int)$session->groupid !== (int)$groupid);
+        $session->sessdate = (int)$entry->start_time;
+        $session->duration = max(0, (int)$entry->end_time - (int)$entry->start_time);
+        $session->description = self::build_description($facultyid);
+        $session->descriptionformat = FORMAT_MOODLE;
+        $session->groupid = (int)$groupid;
+        $session->timemodified = time();
+        $DB->update_record('attendance_sessions', $session);
 
-        $formdata = new \stdClass();
-        $formdata->sessiondate = usergetmidnight((int)$entry->start_time);
-        $formdata->sestime = [
-            'starthour' => (int)$start['hours'],
-            'startminute' => (int)$start['minutes'],
-            'endhour' => (int)$end['hours'],
-            'endminute' => (int)$end['minutes'],
-        ];
-        $formdata->sdescription = [
-            'itemid' => file_get_unused_draft_itemid(),
-            'text' => self::build_description($facultyid),
-            'format' => FORMAT_PLAIN,
-        ];
-        $formdata->calendarevent = empty($session->calendarevent) ? 0 : 1;
-        $formdata->absenteereport = empty($session->absenteereport) ? 0 : 1;
-        $formdata->studentscanmark = empty($session->studentscanmark) ? 0 : 1;
-        $formdata->allowupdatestatus = empty($session->allowupdatestatus) ? 0 : 1;
-        $formdata->autoassignstatus = empty($session->autoassignstatus) ? 0 : 1;
-        $formdata->studentpassword = (string)$session->studentpassword;
-        $formdata->usedefaultsubnet = empty($session->subnet) ? 1 : 0;
-        $formdata->subnet = (string)$session->subnet;
-        $formdata->automark = (int)$session->automark;
-        $formdata->automarkcmid = (int)$session->automarkcmid;
-        $formdata->studentsearlyopentime = (int)$session->studentsearlyopentime;
-        $formdata->preventsharedip = (int)$session->preventsharedip;
-        $formdata->preventsharediptime = empty($session->preventsharediptime) ? 0 : (int)$session->preventsharediptime;
-        $formdata->includeqrcode = empty($session->includeqrcode) ? 0 : 1;
-        $formdata->rotateqrcode = empty($session->rotateqrcode) ? 0 : 1;
-
-        $att->update_session_from_form_data($formdata, (int)$sessionid);
+        if (empty($session->caleventid)) {
+            if (function_exists('attendance_create_calendar_event')) {
+                attendance_create_calendar_event($session);
+            }
+        } else {
+            if ($groupchanged) {
+                if (function_exists('attendance_delete_calendar_events')) {
+                    attendance_delete_calendar_events([(int)$sessionid]);
+                }
+                $session->caleventid = 0;
+                $DB->set_field('attendance_sessions', 'caleventid', 0, ['id' => $sessionid]);
+                if (function_exists('attendance_create_calendar_event')) {
+                    attendance_create_calendar_event($session);
+                }
+            } else {
+                if (function_exists('attendance_update_calendar_event')) {
+                    attendance_update_calendar_event($session);
+                }
+            }
+        }
 
         $updated = $DB->get_record('attendance_sessions', ['id' => (int)$sessionid], '*', MUST_EXIST);
-        $groupchanged = ((int)$updated->groupid !== (int)$groupid);
-        $updated->groupid = (int)$groupid;
-        $updated->statusset = isset($session->statusset) ? (int)$session->statusset : 0;
-        $DB->update_record('attendance_sessions', $updated);
-
-        if ($groupchanged && !empty($updated->caleventid) && function_exists('attendance_delete_calendar_events')
-                && function_exists('attendance_create_calendar_event')) {
-            attendance_delete_calendar_events([(int)$sessionid]);
-            $updated->caleventid = 0;
-            attendance_create_calendar_event($updated);
-        }
+        $info = construct_session_full_date_time($updated->sessdate, $updated->duration);
+        $event = \mod_attendance\event\session_updated::create([
+            'objectid' => $att->id,
+            'context' => $att->context,
+            'other' => [
+                'info' => $info,
+                'sessionid' => (int)$sessionid,
+                'action' => mod_attendance_sessions_page_params::ACTION_UPDATE,
+            ],
+        ]);
+        $event->add_record_snapshot('course_modules', $att->cm);
+        $event->add_record_snapshot('attendance_sessions', $updated);
+        $event->trigger();
     }
 
     /**
@@ -292,5 +295,24 @@ class attendance_manager {
             'description' => '',
             'takenby' => (int)$facultyid,
         ], JSON_UNESCAPED_SLASHES);
+    }
+
+    /**
+     * Force the final persisted Attendance session payload to match native records.
+     *
+     * @param int $sessionid
+     * @param int $facultyid
+     * @return void
+     */
+    private static function normalise_session_record($sessionid, $facultyid) {
+        global $DB;
+
+        $sessionid = (int)$sessionid;
+        if (!$sessionid) {
+            return;
+        }
+
+        $DB->set_field('attendance_sessions', 'description', self::build_description($facultyid), ['id' => $sessionid]);
+        $DB->set_field('attendance_sessions', 'descriptionformat', FORMAT_MOODLE, ['id' => $sessionid]);
     }
 }

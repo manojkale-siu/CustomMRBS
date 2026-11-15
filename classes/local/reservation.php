@@ -19,7 +19,31 @@ class reservation {
      * @return string
      */
     public static function user_name_fields_sql($prefix = '') {
-        return get_all_user_name_fields(true, $prefix);
+        global $CFG, $DB;
+
+        if (!function_exists('get_all_user_name_fields') && !empty($CFG->dirroot)
+                && file_exists($CFG->dirroot . '/user/lib.php')) {
+            require_once($CFG->dirroot . '/user/lib.php');
+        }
+
+        if (function_exists('get_all_user_name_fields')) {
+            return \get_all_user_name_fields(true, $prefix);
+        }
+
+        $columns = $DB->get_columns('user');
+        $fields = array_filter(
+            ['firstname', 'lastname', 'firstnamephonetic', 'lastnamephonetic', 'middlename', 'alternatename'],
+            function($field) use ($columns) {
+                return isset($columns[$field]);
+            }
+        );
+
+        $fieldsql = [];
+        foreach ($fields as $field) {
+            $fieldsql[] = ($prefix === '' ? '' : $prefix . '.') . $field;
+        }
+
+        return implode(', ', $fieldsql);
     }
 
     /**
@@ -72,16 +96,54 @@ class reservation {
     }
 
     /**
+     * Get a formatted Moodle group name.
+     *
+     * @param int $groupid
+     * @param int $courseid
+     * @return string
+     */
+    public static function get_group_name($groupid, $courseid = 0) {
+        global $DB;
+
+        $groupid = (int)$groupid;
+        if (empty($groupid)) {
+            return '';
+        }
+
+        $group = $DB->get_record('groups', ['id' => $groupid], 'id, courseid, name', IGNORE_MISSING);
+        if (!$group) {
+            return '';
+        }
+
+        $context = null;
+        $courseid = (int)$courseid;
+        if (!$courseid && !empty($group->courseid)) {
+            $courseid = (int)$group->courseid;
+        }
+        if ($courseid) {
+            $context = \context_course::instance($courseid);
+        }
+
+        if ($context) {
+            return format_string($group->name, true, ['context' => $context]);
+        }
+
+        return format_string($group->name);
+    }
+
+    /**
      * Build the canonical reservation name stored on MRBS entries.
      *
      * @param int $courseid
      * @param int $facultyid
+     * @param int $groupid
      * @return string
      */
-    public static function build_name($courseid, $facultyid) {
+    public static function build_name($courseid, $facultyid, $groupid = 0) {
         $parts = array_filter([
             self::get_course_fullname($courseid),
             self::get_user_fullname($facultyid),
+            self::get_group_name($groupid, $courseid),
         ]);
 
         return \core_text::substr(implode(' - ', $parts), 0, 255);
@@ -96,9 +158,10 @@ class reservation {
     public static function get_display_name(\stdClass $booking) {
         $courseid = empty($booking->courseid) ? 0 : (int)$booking->courseid;
         $facultyid = empty($booking->facultyid) ? 0 : (int)$booking->facultyid;
+        $groupid = empty($booking->groupid) ? 0 : (int)$booking->groupid;
 
         if ($courseid && $facultyid) {
-            $name = self::build_name($courseid, $facultyid);
+            $name = self::build_name($courseid, $facultyid, $groupid);
             if ($name !== '') {
                 return $name;
             }

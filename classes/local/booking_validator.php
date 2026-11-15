@@ -12,6 +12,12 @@ defined('MOODLE_INTERNAL') || die();
  */
 class booking_validator {
 
+    /** @var array<int,int> Cached participant counts keyed by course and group. */
+    private static $participantcountcache = [];
+
+    /** @var array<int,array> Cached room details keyed by room id. */
+    private static $roomcache = [];
+
     /**
      * Find overlapping bookings for a faculty member.
      *
@@ -78,5 +84,120 @@ class booking_validator {
         }
 
         return get_string('facultybookingconflict', 'block_mrbs') . \html_writer::alist($items);
+    }
+
+    /**
+     * Count active participants for a course or course group.
+     *
+     * @param int $courseid
+     * @param int $groupid
+     * @return int
+     */
+    public static function count_participants($courseid, $groupid = 0) {
+        global $DB;
+
+        $courseid = (int)$courseid;
+        $groupid = (int)$groupid;
+        if (!$courseid) {
+            return 0;
+        }
+
+        $cachekey = $courseid . ':' . $groupid;
+        if (isset(self::$participantcountcache[$cachekey])) {
+            return self::$participantcountcache[$cachekey];
+        }
+
+        $from = '{user} u
+                 JOIN {user_enrolments} ue ON ue.userid = u.id
+                 JOIN {enrol} e ON e.id = ue.enrolid';
+        $params = [
+            'courseid' => $courseid,
+            'enrolstatus' => ENROL_INSTANCE_ENABLED,
+            'userstatus' => ENROL_USER_ACTIVE,
+        ];
+
+        if ($groupid > 0) {
+            $from .= '
+                 JOIN {groups_members} gm ON gm.userid = u.id AND gm.groupid = :groupid';
+            $params['groupid'] = $groupid;
+        }
+
+        $sql = "SELECT COUNT(DISTINCT u.id)
+                  FROM $from
+                 WHERE e.courseid = :courseid
+                   AND e.status = :enrolstatus
+                   AND ue.status = :userstatus
+                   AND u.deleted = 0
+                   AND u.suspended = 0";
+
+        $count = (int)$DB->count_records_sql($sql, $params);
+        self::$participantcountcache[$cachekey] = $count;
+
+        return $count;
+    }
+
+    /**
+     * Return room capacity information for the supplied room ids.
+     *
+     * @param array $roomids
+     * @return array<int,array{id:int,name:string,capacity:int}>
+     */
+    public static function get_room_capacity_details(array $roomids) {
+        global $DB;
+
+        $roomids = array_values(array_unique(array_filter(array_map('intval', $roomids))));
+        if (empty($roomids)) {
+            return [];
+        }
+
+        $results = [];
+        $missingids = [];
+        foreach ($roomids as $roomid) {
+            if (isset(self::$roomcache[$roomid])) {
+                $results[$roomid] = self::$roomcache[$roomid];
+            } else {
+                $missingids[] = $roomid;
+            }
+        }
+
+        if (!empty($missingids)) {
+            $rooms = $DB->get_records_list('block_mrbs_room', 'id', $missingids, '', 'id, room_name, capacity');
+            foreach ($rooms as $room) {
+                $results[(int)$room->id] = self::$roomcache[(int)$room->id] = [
+                    'id' => (int)$room->id,
+                    'name' => format_string($room->room_name),
+                    'capacity' => max(0, (int)$room->capacity),
+                ];
+            }
+        }
+
+        return array_values($results);
+    }
+
+    /**
+     * Check whether the selected rooms can hold the selected participants.
+     *
+     * @param int $courseid
+     * @param int $groupid
+     * @param array $roomids
+     * @return array
+     */
+    public static function check_room_capacity($courseid, $groupid, array $roomids) {
+        $participantcount = self::count_participants($courseid, $groupid);
+        $rooms = self::get_room_capacity_details($roomids);
+
+        $blockingrooms = [];
+        foreach ($rooms as $room) {
+            if (!empty($room['capacity']) && $participantcount > $room['capacity']) {
+                $blockingrooms[] = $room;
+            }
+        }
+
+        return [
+            'participantcount' => $participantcount,
+            'blocked' => !empty($blockingrooms),
+            'blockingrooms' => $blockingrooms,
+            'rooms' => $rooms,
+        ];
     }
 }

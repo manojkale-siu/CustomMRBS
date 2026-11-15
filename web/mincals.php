@@ -204,18 +204,22 @@ function minicals($year, $month, $day, $area, $room, $dmy, $usertt = false) {
     $thismonth = mktime(12, 0, 0, $month, $day, $year);
     $nextmonth = mktime(12, 0, 0, $month + 1, 1, $year);
 
-    echo "<td>";
-    $cal = new Calendar(date("d", $lastmonth), date("m", $lastmonth), date("Y", $lastmonth), 0, $area, $room, $dmy, $usertt);
-    echo $cal->getHTML();
-    echo "</td>";
+    $calendars = array(
+        array($lastmonth, 0),
+        array($thismonth, 1),
+        array($nextmonth, 0),
+    );
 
-    echo "<td>";
-    $cal = new Calendar(date("d", $thismonth), date("m", $thismonth), date("Y", $thismonth), 1, $area, $room, $dmy, $usertt);
-    echo $cal->getHTML();
-    echo "</td>";
+    if ($dmy === 'day') {
+        $calendars = array(array($thismonth, 1));
+    }
 
-    echo "<td>";
-    $cal = new Calendar(date("d", $nextmonth), date("m", $nextmonth), date("Y", $nextmonth), 0, $area, $room, $dmy, $usertt);
-    echo $cal->getHTML();
-    echo "</td>";
+    foreach ($calendars as $calendar) {
+        echo "<td>";
+        $time = $calendar[0];
+        $highlight = $calendar[1];
+        $cal = new Calendar(date("d", $time), date("m", $time), date("Y", $time), $highlight, $area, $room, $dmy, $usertt);
+        echo $cal->getHTML();
+        echo "</td>";
+    }
 }

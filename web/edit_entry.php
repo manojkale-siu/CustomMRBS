@@ -177,13 +177,15 @@ if ($id > 0) {
     // Avoid notices for $hour and $minute if periods is enabled
     $start_hour = $hour;
     $start_min = $minute;
-    $duration = ($enable_periods ? 60 : 60 * 60);
+    $duration = ($enable_periods && \block_mrbs\local\settings_manager::has_valid_custom_time_range())
+        ? \block_mrbs\local\settings_manager::get_period_interval_seconds()
+        : 60 * 60;
     $type = "I";
     $room_id = $room;
     $courseid = 0;
     $facultyid = 0;
     $groupid = 0;
-    $start_time = mktime(12, $period, 00, $start_month, $start_day, $start_year);
+    $start_time = \block_mrbs\local\settings_manager::get_period_start_timestamp($start_year, $start_month, $start_day, $period);
     $end_time = $start_time;
     $rep_id = 0;
     $rep_type = 0;
@@ -206,6 +208,14 @@ if ($room_id == 0) {
     }
 }
 
+$roomarea = $room_id ? $DB->get_field('block_mrbs_room', 'area_id', array('id' => $room_id), IGNORE_MISSING) : 0;
+if ($roomarea) {
+    $area = (int)$roomarea;
+}
+$prerequisites = block_mrbs_require_prerequisites($day, $month, $year, $area, $room_id, true, true);
+$area = $prerequisites->areaid;
+$room_id = $prerequisites->roomid;
+
 // If we have not been provided with starting time
 if (empty($start_hour) && $morningstarts < 10) {
     $start_hour = "0$morningstarts";
@@ -224,11 +234,15 @@ if (empty($rep_num_weeks)) {
     $rep_num_weeks = "";
 }
 
+if ($enable_periods && \block_mrbs\local\settings_manager::has_valid_custom_time_range()) {
+    $start_min = \block_mrbs\local\settings_manager::get_period_index_from_timestamp($start_time);
+}
+
 $hierarchy = \block_mrbs\local\booking_options::get_course_hierarchy($courseid);
 $programmeid = $hierarchy['programmeid'];
 $batchid = $hierarchy['batchid'];
 $semesterid = $hierarchy['semesterid'];
-$reservationname = \block_mrbs\local\reservation::build_name($courseid, $facultyid);
+$reservationname = \block_mrbs\local\reservation::build_name($courseid, $facultyid, $groupid);
 if ($reservationname === '') {
     $reservationname = $name;
 }
@@ -276,10 +290,24 @@ $PAGE->requires->js_call_amd('block_mrbs/booking_selectors', 'init', [[
     'coursePlaceholder' => get_string('selectcourse', 'block_mrbs'),
     'facultyPlaceholder' => get_string('selectfaculty', 'block_mrbs'),
     'groupPlaceholder' => get_string('selectgroup', 'block_mrbs'),
-    'allStudentsLabel' => get_string('allstudents', 'block_mrbs'),
+    'allGroupsLabel' => get_string('allgroups', 'block_mrbs'),
     'emptyReservationText' => get_string('reservationnotselected', 'block_mrbs'),
     'failureMessage' => get_string('searchfailed', 'block_mrbs'),
 ]]);
+$PAGE->requires->js_call_amd('block_mrbs/capacity_warning', 'init', [[
+    'formName' => 'main',
+    'endpoint' => $ajaxurl->out(false),
+    'title' => get_string('capacitywarningtitle', 'block_mrbs'),
+    'message' => get_string('capacitywarningmessage', 'block_mrbs'),
+    'yesLabel' => get_string('yes', 'moodle'),
+    'noLabel' => get_string('no', 'moodle'),
+    'redirectUrl' => (new moodle_url('/blocks/mrbs/web/day.php', [
+        'day' => $day,
+        'month' => $month,
+        'year' => $year,
+        'area' => $area,
+    ]))->out(false),
+]]); 
 
 print_header_mrbs($day, $month, $year, $area);
 
@@ -387,6 +415,20 @@ print_header_mrbs($day, $month, $year, $area);
         // it is clicked.
         form.save_button.disabled = true;
 
+        if (window.MRBSCapacityWarning && typeof window.MRBSCapacityWarning.check === 'function') {
+            window.MRBSCapacityWarning.check().then(function(allow) {
+                if (allow) {
+                    form.submit();
+                }
+            }).catch(function(error) {
+                if (window.console) {
+                    window.console.error(error);
+                }
+                form.submit();
+            });
+            return false;
+        }
+
         // would be nice to also check date to not allow Feb 31, etc...
         form.submit();
 
@@ -421,6 +463,7 @@ print_header_mrbs($day, $month, $year, $area);
 
 <FORM NAME="main" ACTION="edit_entry_handler.php" METHOD="POST">
     <input type="hidden" name="sesskey" value="<?php echo sesskey(); ?>">
+    <input type="hidden" name="area" value="<?php echo (int)$area; ?>">
 
     <TABLE BORDER=0>
 

@@ -2,12 +2,12 @@
 require_once(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php');
 
 global $PAGE, $DB, $OUTPUT;
-include "config.inc.php";
-include "functions.php";
+include 'config.inc.php';
+include 'functions.php';
 require_once('mrbs_auth.php');
-include "mrbs_sql.php";
+include 'mrbs_sql.php';
 
-// Required by Moodle before $OUTPUT->header()
+// Required by Moodle before $OUTPUT->header().
 $PAGE->set_context(context_system::instance());
 $PAGE->set_url(new moodle_url('/blocks/mrbs/web/custom_settings.php'));
 $PAGE->set_pagelayout('admin');
@@ -16,21 +16,22 @@ $PAGE->set_heading('MRBS Custom Settings');
 
 require_login();
 print_header_mrbs();
-// echo $OUTPUT->header();
 
-echo "<h2>MRBS Custom Settings</h2>";
+$customtimelocked = \block_mrbs\local\settings_manager::has_valid_custom_time_range();
+$currentsettings = \block_mrbs\local\settings_manager::get_time_settings();
 
-// if (isset($_POST['submit'])) {
-//     echo "SUBMIT BUTTON IS CLICKED <br>";
-// }
+echo '<h2>MRBS Custom Settings</h2>';
 
-// if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 if (data_submitted()) {
     require_sesskey();
 
-    $setting_type = optional_param('setting_type', '', PARAM_ALPHA);
-
     try {
+        if ($customtimelocked) {
+            throw new \moodle_exception('customtiminglocked', 'block_mrbs');
+        }
+
+        $setting_type = optional_param('setting_type', '', PARAM_ALPHA);
+
         if ($setting_type === 'periods') {
             \block_mrbs\local\settings_manager::save_default_periods();
             echo $OUTPUT->notification(get_string('settingssaved', 'block_mrbs'), 'notifysuccess');
@@ -55,6 +56,13 @@ if (data_submitted()) {
                 echo $OUTPUT->notification(get_string('settingssaved', 'block_mrbs'), 'notifysuccess');
             }
         }
+    } catch (\moodle_exception $e) {
+        if ($e->errorcode === 'customtiminglocked') {
+            echo $OUTPUT->notification(get_string('customtiminglocked', 'block_mrbs'), 'notifyproblem');
+        } else {
+            debugging('MRBS custom settings exception: '.$e->getMessage(), DEBUG_DEVELOPER);
+            echo $OUTPUT->notification(get_string('settingssavefailed', 'block_mrbs'), 'notifyproblem');
+        }
     } catch (dml_exception $e) {
         debugging('MRBS custom settings DB error: '.$e->getMessage(), DEBUG_DEVELOPER);
         echo $OUTPUT->notification(get_string('settingssavefailed', 'block_mrbs'), 'notifyproblem');
@@ -62,9 +70,6 @@ if (data_submitted()) {
         debugging('MRBS custom settings error: '.$e->getMessage(), DEBUG_DEVELOPER);
         echo $OUTPUT->notification(get_string('settingssavefailed', 'block_mrbs'), 'notifyproblem');
     }
-
-} else {
-    // echo "<br> No post data found <br>";
 }
 ?>
 
@@ -76,97 +81,103 @@ if (data_submitted()) {
     width: 60%;
     margin-bottom: 20px;
 }
+.readonly-settings {
+    background: #f8f9fa;
+}
 </style>
 
 <script>
 function showTimeBox(type) {
-    document.getElementById("timeBox").style.display = (type === 'time') ? "block" : "none";
+    document.getElementById('timeBox').style.display = (type === 'time') ? 'block' : 'none';
 }
 </script>
 
-<div class="box">
+<div class="box <?php echo $customtimelocked ? 'readonly-settings' : ''; ?>">
     <h3>Time Settings</h3>
 
-    <form method="POST">
-        <input type="hidden" name="sesskey" value="<?php echo sesskey(); ?>">
+    <?php if ($customtimelocked): ?>
+        <?php echo $OUTPUT->notification(get_string('customtiminglocked', 'block_mrbs'), 'notifyproblem'); ?>
+        <p><strong><?php echo s(get_string('from', 'block_mrbs')); ?>:</strong> <?php echo s($currentsettings['from'] ?? ''); ?></p>
+        <p><strong><?php echo s(get_string('to', 'block_mrbs')); ?>:</strong> <?php echo s($currentsettings['to'] ?? ''); ?></p>
+        <p><strong><?php echo s(get_string('duration', 'block_mrbs')); ?>:</strong> <?php echo s(($currentsettings['interval'] ?? '') . ' ' . get_string('minutes', 'block_mrbs')); ?></p>
+    <?php else: ?>
+        <form method="POST">
+            <input type="hidden" name="sesskey" value="<?php echo sesskey(); ?>">
 
-        <label>
-            <input type="radio" name="setting_type" value="periods" onclick="showTimeBox('periods')" required>
-            Use Default MRBS Periods
-        </label>
+            <label>
+                <input type="radio" name="setting_type" value="periods" onclick="showTimeBox('periods')" required>
+                Use Default MRBS Periods
+            </label>
 
-        <!-- Hidden field to detect default mode -->
-        <input type="hidden" name="default_flag" id="default_flag" value=""> 
-
-        <br><br>
-
-        <label>
-            <input type="radio" name="setting_type" value="time" onclick="showTimeBox('time')" required>
-            Use Custom Time Slots
-        </label>
-
-        <div id="timeBox" style="display:none; margin-top:20px;">
-            <h4>Define Time Range</h4>
-
-            <strong>From:</strong><br>
-            <select name="from_hour">
-                <?php for ($i=1; $i<=12; $i++): ?>
-                <option value="<?= $i ?>"><?= $i ?></option>
-                <?php endfor; ?>
-            </select>
-
-            <select name="from_min">
-                <option value="00">00</option>
-                <option value="15">15</option>
-                <option value="30">30</option>
-                <option value="45">45</option>
-            </select>
-
-            <select name="from_ampm">
-                <option value="AM">AM</option>
-                <option value="PM">PM</option>
-            </select>
+            <input type="hidden" name="default_flag" id="default_flag" value="">
 
             <br><br>
 
-            <strong>To:</strong><br>
-            <select name="to_hour">
-                <?php for ($i=1; $i<=12; $i++): ?>
-                <option value="<?= $i ?>"><?= $i ?></option>
-                <?php endfor; ?>
-            </select>
+            <label>
+                <input type="radio" name="setting_type" value="time" onclick="showTimeBox('time')" required>
+                Use Custom Time Slots
+            </label>
 
-            <select name="to_min">
-                <option value="00">00</option>
-                <option value="15">15</option>
-                <option value="30">30</option>
-                <option value="45">45</option>
-            </select>
+            <div id="timeBox" style="display:none; margin-top:20px;">
+                <h4>Define Time Range</h4>
 
-            <select name="to_ampm">
-                <option value="AM">AM</option>
-                <option value="PM">PM</option>
-            </select>
+                <strong>From:</strong><br>
+                <select name="from_hour">
+                    <?php for ($i = 1; $i <= 12; $i++): ?>
+                    <option value="<?php echo $i; ?>"><?php echo $i; ?></option>
+                    <?php endfor; ?>
+                </select>
+
+                <select name="from_min">
+                    <option value="00">00</option>
+                    <option value="15">15</option>
+                    <option value="30">30</option>
+                    <option value="45">45</option>
+                </select>
+
+                <select name="from_ampm">
+                    <option value="AM">AM</option>
+                    <option value="PM">PM</option>
+                </select>
+
+                <br><br>
+
+                <strong>To:</strong><br>
+                <select name="to_hour">
+                    <?php for ($i = 1; $i <= 12; $i++): ?>
+                    <option value="<?php echo $i; ?>"><?php echo $i; ?></option>
+                    <?php endfor; ?>
+                </select>
+
+                <select name="to_min">
+                    <option value="00">00</option>
+                    <option value="15">15</option>
+                    <option value="30">30</option>
+                    <option value="45">45</option>
+                </select>
+
+                <select name="to_ampm">
+                    <option value="AM">AM</option>
+                    <option value="PM">PM</option>
+                </select>
+
+                <br><br>
+
+                <strong>Slot Interval (Minutes):</strong><br>
+                <input type="number" name="interval" min="1">
+            </div>
 
             <br><br>
+            <button type="submit" name="submit">Save</button>
+        </form>
+        <script>
+        document.querySelector("input[value='periods']").addEventListener('change', function() {
+            document.getElementById('default_flag').value = 'yes';
+        });
 
-            <strong>Slot Interval (Minutes):</strong><br>
-            <input type="number" name="interval" min="1">
-        </div>
-
-        <br><br>
-        <button type="submit" name="submit">Save</button>
-    </form>
+        document.querySelector("input[value='time']").addEventListener('change', function() {
+            document.getElementById('default_flag').value = '';
+        });
+        </script>
+    <?php endif; ?>
 </div>
-
-<script>
-// SET DEFAULT FLAG ONLY IF PERIODS SELECTED
-document.querySelector("input[value='periods']").addEventListener('change', function() {
-    document.getElementById("default_flag").value = "yes";
-});
-
-// CLEAR DEFAULT FLAG IF CUSTOM TIME SELECTED
-document.querySelector("input[value='time']").addEventListener('change', function() {
-    document.getElementById("default_flag").value = "";
-});
-</script>

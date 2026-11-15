@@ -57,11 +57,20 @@ if (($day == 0) or ($month == 0) or ($year == 0)) //I think we should separate t
 $format = "Gi";
 if ($enable_periods) {
     $format = "i";
-    $resolution = 60;
-    $morningstarts = 12;
-    $morningstarts_minutes = 0;
-    $eveningends = 12;
-    $eveningends_minutes = count($periods) - 1;
+    if (\block_mrbs\local\settings_manager::has_valid_custom_time_range()) {
+        $schedule = \block_mrbs\local\settings_manager::get_period_schedule();
+        $resolution = \block_mrbs\local\settings_manager::get_period_interval_seconds();
+        $morningstarts = (int)floor($schedule['fromminutes'] / 60);
+        $morningstarts_minutes = (int)($schedule['fromminutes'] % 60);
+        $eveningends = (int)floor($schedule['tominutes'] / 60);
+        $eveningends_minutes = (int)($schedule['tominutes'] % 60);
+    } else {
+        $resolution = 60;
+        $morningstarts = 12;
+        $morningstarts_minutes = 0;
+        $eveningends = 12;
+        $eveningends_minutes = count($periods) - 1;
+    }
 
 }
 
@@ -300,18 +309,20 @@ $starttime = mktime($morningstarts, $morningstarts_minutes, 0, $month, $day + $j
 $endtime = mktime($eveningends, $eveningends_minutes, 0, $month, $day + $j, $year);
 for ($t = $starttime; $t <= $endtime; $t += $resolution) {
     $row_class = ($row_class == "even_row") ? "odd_row" : "even_row";
-    // use hour:minute format
-    $time_t = date($format, $t);
+    if ($enable_periods && \block_mrbs\local\settings_manager::has_valid_custom_time_range()) {
+        $time_t = \block_mrbs\local\settings_manager::get_period_index_from_timestamp($t);
+    } else {
+        $time_t = date($format, $t);
+    }
     $hiliteurl->param('timetohighlight', $time_t);
     // Show the time linked to the URL for highlighting that time:
     echo "<tr>";
     tdcell("red");
     if ($enable_periods) {
-        $time_t_stripped = preg_replace("/^0/", "", $time_t);
         echo '<a href="'.$hiliteurl.'"  title="'.get_string('highlight_line', 'block_mrbs').'">';
-        echo $periods[$time_t_stripped]."</a></td>";
+        echo (isset($periods[$time_t]) ? $periods[$time_t] : '')."</a></td>";
     } else {
-        echo '<a href="'.$hilite_url.'" title="'.get_string('highlight_line', 'block_mrbs').'">';
+        echo '<a href="'.$hiliteurl.'" title="'.get_string('highlight_line', 'block_mrbs').'">';
         echo userdate($t, hour_min_format())."</a></td>";
     }
 
@@ -417,9 +428,8 @@ for ($t = $starttime; $t <= $endtime; $t += $resolution) {
     if (false != $times_right_side) {
         if ($enable_periods) {
             tdcell("red");
-            $time_t_stripped = preg_replace("/^0/", "", $time_t);
             echo '<a href="'.$hiliteurl.'" title="'.get_string('highlight_line', 'block_mrbs').'">';
-            echo $periods[$time_t_stripped]."</a></td>";
+            echo (isset($periods[$time_t]) ? $periods[$time_t] : '')."</a></td>";
         } else {
             tdcell("red");
             echo '<a href="'.$hiliteurl.'" title="'.get_string('highlight_line', 'block_mrbs').'">';

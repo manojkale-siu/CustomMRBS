@@ -340,9 +340,7 @@ class booking_options {
         if (!$facultyid || !self::is_faculty_for_course($facultyid, $courseid)) {
             $errors[] = get_string('invalidfacultycourse', 'block_mrbs');
         }
-        if ($courseid && $groupid === 0 && !empty(self::get_groups($courseid))) {
-            $errors[] = get_string('invalidgroup', 'block_mrbs');
-        } else if (!self::group_belongs_to_course($groupid, $courseid)) {
+        if (!self::group_belongs_to_course($groupid, $courseid)) {
             $errors[] = get_string('invalidgroup', 'block_mrbs');
         }
 

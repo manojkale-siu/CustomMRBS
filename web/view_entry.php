@@ -75,7 +75,7 @@ if ($record = $DB->get_record('block_mrbs_entry', array('id' => $id))) {
     }
 }
 
-$namefields = get_all_user_name_fields(true, 'u');
+$namefields = \block_mrbs\local\reservation::user_name_fields_sql('u');
 if ($series) {
     $sql = "SELECT re.name,
             re.description,
@@ -125,8 +125,12 @@ if ($series) {
             AND e.id= ?";
 }
 
-$booking = $DB->get_record_sql($sql, array($id), MUST_EXIST);
-$booking->fullname = fullname($booking);
+$booking = $DB->get_record_sql($sql, array($id), IGNORE_MISSING);
+if (!$booking) {
+    block_mrbs_print_user_error($day, $month, $year, $area, get_string('mrbsinvalidroom', 'block_mrbs'));
+    exit;
+}
+$booking->fullname = empty($booking->userid) ? $booking->create_by : fullname($booking);
 
 // Note: Removed stripslashes() calls from name and description. Previous
 // versions of MRBS mistakenly had the backslash-escapes in the actual database
@@ -134,8 +138,12 @@ $booking->fullname = fullname($booking);
 // leave this code alone, please.
 $name = s(\block_mrbs\local\reservation::get_display_name($booking));
 $description = s($booking->description);
-$userurl = new moodle_url('/user/view.php', array('id' => $booking->userid));
-$create_by = '<a href="'.$userurl.'">'.s($booking->fullname).'</a>';
+if (empty($booking->userid)) {
+    $create_by = s($booking->fullname);
+} else {
+    $userurl = new moodle_url('/user/view.php', array('id' => $booking->userid));
+    $create_by = '<a href="'.$userurl.'">'.s($booking->fullname).'</a>';
+}
 $room_name = s($booking->room_name);
 $area_name = s($booking->area_name);
 $type = $booking->type;

@@ -57,6 +57,10 @@ $thisurl = new moodle_url('/blocks/mrbs/web/roomsearch.php', array(
 $PAGE->set_url($thisurl);
 require_login();
 $PAGE->set_context(context_system::instance());
+
+$prerequisites = block_mrbs_require_prerequisites($day, $month, $year, $area, 0, false, true);
+$area = $prerequisites->areaid;
+
 $PAGE->requires->js('/blocks/mrbs/web/roomsearch.js', true);
 print_header_mrbs($day, $month, $year, $area);
 

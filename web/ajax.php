@@ -33,11 +33,18 @@ if (!getAuthorised(1)) {
     block_mrbs_ajax_response(['error' => get_string('accessdenied')], 403);
 }
 
+$prerequisites = \block_mrbs\local\booking_prerequisites::validate(0, 0, true, true);
+if (!empty($prerequisites->errors)) {
+    block_mrbs_ajax_response(['error' => implode(' ', $prerequisites->errors)], 400);
+}
+
 $params = [
     'programmeid' => optional_param('programmeid', 0, PARAM_INT),
     'batchid' => optional_param('batchid', 0, PARAM_INT),
     'semesterid' => optional_param('semesterid', 0, PARAM_INT),
     'courseid' => optional_param('courseid', 0, PARAM_INT),
+    'groupid' => optional_param('groupid', 0, PARAM_INT),
+    'rooms' => optional_param_array('rooms', [], PARAM_INT),
 ];
 
 try {

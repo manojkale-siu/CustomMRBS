@@ -65,8 +65,14 @@ if ($room > 0) {
 $PAGE->set_url($thisurl);
 require_login();
 
+$prerequisites = block_mrbs_require_prerequisites($day, $month, $year, $area, $room, true);
+$area = $prerequisites->areaid;
+$room = $prerequisites->roomid;
+$bookingcreationallowed = \block_mrbs\local\settings_manager::has_valid_custom_time_range();
+
 // print the page header
 print_header_mrbs($day, $month, $year, $area);
+block_mrbs_show_booking_configuration_warning();
 
 // Month view start time. This ignores morningstarts/eveningends because it
 // doesn't make sense to not show all entries for the day, and it messes
@@ -81,10 +87,19 @@ $days_in_month = date("t", $month_start);
 $month_end = mktime(23, 59, 59, $month, $days_in_month, $year);
 
 if ($enable_periods) {
-    $resolution = 60;
-    $morningstarts = 12;
-    $eveningends = 12;
-    $eveningends_minutes = count($periods) - 1;
+    if (\block_mrbs\local\settings_manager::has_valid_custom_time_range()) {
+        $schedule = \block_mrbs\local\settings_manager::get_period_schedule();
+        $resolution = \block_mrbs\local\settings_manager::get_period_interval_seconds();
+        $morningstarts = (int)floor($schedule['fromminutes'] / 60);
+        $morningstarts_minutes = (int)($schedule['fromminutes'] % 60);
+        $eveningends = (int)floor($schedule['tominutes'] / 60);
+        $eveningends_minutes = (int)($schedule['tominutes'] % 60);
+    } else {
+        $resolution = 60;
+        $morningstarts = 12;
+        $eveningends = 12;
+        $eveningends_minutes = count($periods) - 1;
+    }
 }
 
 // Define the start and end of each day of the month in a way which is not
@@ -99,6 +114,8 @@ for ($j = 1; $j <= $days_in_month; $j++) {
     if (empty($enable_periods)) {
         $midnight[$j] = mktime(0, 0, 0, $month, $j, $year);
         $midnight_tonight[$j] = mktime(23, 59, 59, $month, $j, $year);
+    } else if (\block_mrbs\local\settings_manager::has_valid_custom_time_range()) {
+        [$midnight[$j], $midnight_tonight[$j]] = \block_mrbs\local\settings_manager::get_period_day_bounds($year, $month, $j);
     } else {
         $midnight[$j] = mktime(12, 0, 0, $month, $j, $year);
         $midnight_tonight[$j] = mktime(12, count($periods), 59, $month, $j, $year);
@@ -218,6 +235,7 @@ $all_day = str_replace(" ", "&nbsp;", get_string('all_day', 'block_mrbs'));
 
 //Get all meetings for this month in the room that we care about
 // This data will be retrieved day-by-day fo the whole month
+$d = array();
 for ($day_num = 1; $day_num <= $days_in_month; $day_num++) {
     // Build an array of information about each day in the month.
     // The information is stored as:
@@ -422,6 +440,9 @@ for ($cday = 1; $cday <= $days_in_month; $cday++) {
             $title = get_string('notallowedbook', 'block_mrbs');
             echo '<img src="'.(string)$OUTPUT->image_url('toofaradvance', 'block_mrbs').'" width="10" height="10" border="0" alt="'.$title.'" title="'.$title.'" />';
 
+        } else if (!$bookingcreationallowed) {
+            $title = get_string('mrbscustomtimerangerequired', 'block_mrbs');
+            echo '<img src="'.(string)$OUTPUT->image_url('toofaradvance', 'block_mrbs').'" width="10" height="10" border="0" alt="'.s($title).'" title="'.s($title).'" />';
         } else if (!check_max_advance_days($cday, $month, $year)) {
             // Too far in advance to edit
             $title = get_string('toofaradvance', 'block_mrbs', $max_advance_days);

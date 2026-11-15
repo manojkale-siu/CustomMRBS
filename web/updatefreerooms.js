@@ -132,6 +132,14 @@ function updateFreeRooms() {
                 roomsInput.options[roomsInput.length - 1].selected = true;
             }
         }
+
+        if (typeof window.CustomEvent === 'function') {
+            document.dispatchEvent(new CustomEvent('block-mrbs:roomsupdated', {
+                detail: {
+                    form: form
+                }
+            }));
+        }
     };
 
     xmlHttp.onerror = function () {

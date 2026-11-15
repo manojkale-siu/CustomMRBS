@@ -16,7 +16,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 require_once(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); //for Moodle integration
-global $USER, $DB;
+global $USER, $DB, $PAGE;
 include "config.inc.php";
 include "functions.php";
 require_once('mrbs_auth.php');
@@ -35,8 +35,27 @@ $area = optional_param('area', 0, PARAM_ALPHANUMEXT);
 $currentroom = optional_param('currentroom', 0, PARAM_INT);
 $all_day = optional_param('all_day', '', PARAM_ALPHA);
 
+$PAGE->set_url(new moodle_url('/blocks/mrbs/web/updatefreerooms.php'));
+$PAGE->set_context(context_system::instance());
+
 if (!$area) {
     $area = get_default_area();
+}
+
+if (!\block_mrbs\local\settings_manager::has_valid_custom_time_range()) {
+    http_response_code(400);
+    echo '';
+    exit;
+}
+
+if ($area !== 'IT') {
+    $prerequisites = \block_mrbs\local\booking_prerequisites::validate((int)$area);
+    if (!empty($prerequisites->errors)) {
+        http_response_code(400);
+        echo '';
+        exit;
+    }
+    $area = $prerequisites->areaid;
 }
 
 global $tbl_room;
@@ -49,17 +68,9 @@ $duration = (float)$duration;
 
 try {
 if ($enable_periods) {
-    $resolution = 60;
-    $hour = 12;
-    $minute = $period;
-    $max_periods = count($periods);
-    if ($dur_units == "periods" && ($minute + $duration) > $max_periods) {
-        $duration = (24 * 60 * floor($duration / $max_periods)) + ($duration % $max_periods);
-    }
-    if ($dur_units == "days" && $minute == 0) {
-        $dur_units = "periods";
-        $duration = $max_periods + ($duration - 1) * 60 * 24;
-    }
+    $schedulevalid = \block_mrbs\local\settings_manager::has_valid_custom_time_range();
+    $resolution = $schedulevalid ? \block_mrbs\local\settings_manager::get_period_interval_seconds() : 60;
+    $max_periods = $schedulevalid ? \block_mrbs\local\settings_manager::get_period_count() : count($periods);
 }
 
 // Units start in seconds
@@ -85,8 +96,12 @@ switch ($dur_units) {
 
 if ($all_day == "yes") {
     if ($enable_periods) {
-        $starttime = mktime(12, 0, 0, $month, $day, $year);
-        $endtime = mktime(12, $max_periods, 0, $month, $day, $year);
+        if ($schedulevalid) {
+            [$starttime, $endtime] = \block_mrbs\local\settings_manager::get_period_day_bounds($year, $month, $day);
+        } else {
+            $starttime = mktime(12, 0, 0, $month, $day, $year);
+            $endtime = mktime(12, $max_periods, 0, $month, $day, $year);
+        }
     } else {
         $starttime = mktime($morningstarts, 0, 0, $month, $day, $year);
         $end_minutes = $eveningends_minutes + $morningstarts_minutes;
@@ -94,6 +109,28 @@ if ($all_day == "yes") {
         $endtime = mktime($eveningends, $end_minutes, 0, $month, $day, $year);
     }
 } else {
+    if ($enable_periods && $schedulevalid) {
+        $periodindex = max(0, (int)$period);
+        if ($periodindex >= $max_periods) {
+            $periodindex = $max_periods - 1;
+        }
+
+        $starttime = \block_mrbs\local\settings_manager::get_period_start_timestamp($year, $month, $day, $periodindex);
+        if ($dur_units == "periods") {
+            $periodduration = max(1, (int)round($duration));
+            $endtime = $starttime + ($periodduration * $resolution);
+        } else if ($dur_units == "days") {
+            $endtime = $starttime + (max(1, (int)round($duration)) * 86400);
+        } else {
+            $endtime = $starttime + ($units * $duration);
+            $diff = $endtime - $starttime;
+            if (($tmp = $diff % $resolution) != 0 || $diff == 0) {
+                $endtime += $resolution - $tmp;
+            }
+        }
+
+        $endtime += cross_dst($starttime, $endtime);
+    } else {
     if (!$twentyfourhour_format) {
         if (($ampm == "pm") && ($hour < 12)) {
             $hour += 12;
@@ -113,6 +150,7 @@ if ($all_day == "yes") {
     }
 
     $endtime += cross_dst($starttime, $endtime);
+    }
 }
 
 $sql = 'SELECT r.id, r.room_name, r.description, r.capacity, a.area_name, r.area_id, r.booking_users ';

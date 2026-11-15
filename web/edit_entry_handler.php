@@ -127,6 +127,14 @@ if (($day == 0) or ($month == 0) or ($year == 0)) {
     $year = date("Y");
 }
 
+if (!$area && !empty($rooms)) {
+    $firstroom = reset($rooms);
+    $roomarea = $DB->get_field('block_mrbs_room', 'area_id', array('id' => (int)$firstroom), IGNORE_MISSING);
+    if ($roomarea) {
+        $area = (int)$roomarea;
+    }
+}
+
 if (!$area) {
     $area = get_default_area();
 }
@@ -145,6 +153,8 @@ $context = context_system::instance();
 $PAGE->set_context($context);
 //echo "102";
 
+$prerequisites = block_mrbs_require_prerequisites($day, $month, $year, $area, 0, false, true);
+$area = $prerequisites->areaid;
 
 $roomadmin = false;
 $editunconfirmed = has_capability('block/mrbs:editunconfirmed', $context, null, false);
@@ -194,6 +204,18 @@ if (empty($rooms)) {
     exit;
 }
 
+$roomdetails = $DB->get_records_list('block_mrbs_room', 'id', $rooms);
+if (count($roomdetails) !== count($rooms)) {
+    block_mrbs_print_user_error($day, $month, $year, $area, get_string('mrbsinvalidroom', 'block_mrbs'));
+    exit;
+}
+foreach ($roomdetails as $roomdetail) {
+    if ((int)$roomdetail->area_id !== (int)$area) {
+        block_mrbs_print_user_error($day, $month, $year, $area, get_string('mrbsinvalidroom', 'block_mrbs'));
+        exit;
+    }
+}
+
 if (count($rooms) > 1 && !empty($facultyid)) {
     block_mrbs_print_user_error($day, $month, $year, $area, get_string('facultymultiroomnotallowed', 'block_mrbs'));
     exit;
@@ -212,7 +234,7 @@ if (!empty($selectionerrors)) {
     exit;
 }
 
-$name = \block_mrbs\local\reservation::build_name($courseid, $facultyid);
+$name = \block_mrbs\local\reservation::build_name($courseid, $facultyid, $groupid);
 if ($name === '') {
     block_mrbs_print_user_error($day, $month, $year, $area, get_string('must_set_name', 'block_mrbs'));
     exit;
@@ -229,7 +251,6 @@ if (!check_max_advance_days($day, $month, $year)) {
 // echo "<pre><br>179";
 
 
-$roomdetails = $DB->get_records_list('block_mrbs_room', 'id', $rooms);
 foreach ($roomdetails as $room) {
     if (!allowed_to_book($USER, $room)) {
         // TODO: Should admin users be allowed to override this?
@@ -237,7 +258,20 @@ foreach ($roomdetails as $room) {
         echo('<h1>'.get_string('invalid_booking', 'block_mrbs').'<h1>');
         echo get_string('notallowedbook', 'block_mrbs', $max_advance_days);
         echo $OUTPUT->footer();
+        exit;
     }
+}
+
+$capacitycheck = \block_mrbs\local\booking_validator::check_room_capacity($courseid, $groupid, $rooms);
+if (!empty($capacitycheck['blocked'])) {
+    block_mrbs_print_user_error(
+        $day,
+        $month,
+        $year,
+        $area,
+        get_string('capacitywarningmessage', 'block_mrbs')
+    );
+    exit;
 }
 
 // echo "<br>193";
@@ -251,17 +285,9 @@ if ($dur_units == 'hours' && count($durationparts) == 2) {
 }
 
 if ($enable_periods) {
-    $resolution = 60;
-    $hour = 12;
-    $minute = $period;
-    $max_periods = count($periods);
-    if ($dur_units == "periods" && ($minute + $duration) > $max_periods) {
-        $duration = (24 * 60 * floor($duration / $max_periods)) + ($duration % $max_periods);
-    }
-    if ($dur_units == "days" && $minute == 0) {
-        $dur_units = "periods";
-        $duration = $max_periods + ($duration - 1) * 60 * 24;
-    }
+    $schedulevalid = \block_mrbs\local\settings_manager::has_valid_custom_time_range();
+    $resolution = $schedulevalid ? \block_mrbs\local\settings_manager::get_period_interval_seconds() : 60;
+    $max_periods = $schedulevalid ? \block_mrbs\local\settings_manager::get_period_count() : count($periods);
 }
 
 // Units start in seconds
@@ -291,8 +317,12 @@ switch ($dur_units) {
 
 if ($all_day) {
     if ($enable_periods) {
-        $starttime = mktime(12, 0, 0, $month, $day, $year);
-        $endtime = mktime(12, $max_periods, 0, $month, $day, $year);
+        if ($schedulevalid) {
+            [$starttime, $endtime] = \block_mrbs\local\settings_manager::get_period_day_bounds($year, $month, $day);
+        } else {
+            $starttime = mktime(12, 0, 0, $month, $day, $year);
+            $endtime = mktime(12, $max_periods, 0, $month, $day, $year);
+        }
     } else {
         $starttime = mktime($morningstarts, 0, 0, $month, $day, $year);
         $end_minutes = $eveningends_minutes + $morningstarts_minutes;
@@ -300,6 +330,28 @@ if ($all_day) {
         $endtime = mktime($eveningends, $end_minutes, 0, $month, $day, $year);
     }
 } else {
+    if ($enable_periods && $schedulevalid) {
+        $periodindex = max(0, (int)$period);
+        if ($periodindex >= $max_periods) {
+            $periodindex = $max_periods - 1;
+        }
+
+        $starttime = \block_mrbs\local\settings_manager::get_period_start_timestamp($year, $month, $day, $periodindex);
+        if ($dur_units == 'periods') {
+            $periodduration = max(1, (int)round($duration));
+            $endtime = $starttime + ($periodduration * $resolution);
+        } else if ($dur_units == 'days') {
+            $endtime = $starttime + (max(1, (int)round($duration)) * 86400);
+        } else {
+            $endtime = $starttime + ((int)$units * $duration);
+            $diff = $endtime - $starttime;
+            if (($tmp = $diff % $resolution) != 0 || $diff == 0) {
+                $endtime += $resolution - $tmp;
+            }
+        }
+
+        $endtime += cross_dst($starttime, $endtime);
+    } else {
     if (!$twentyfourhour_format) {
         if (!is_null($ampm) && ($ampm == "pm") && ($hour < 12)) {
             $hour += 12;
@@ -320,6 +372,7 @@ if ($all_day) {
     }
 
     $endtime += cross_dst($starttime, $endtime);
+    }
 }
 
 // if (isset($rep_type) && isset($rep_end_month) && isset($rep_end_day) && isset($rep_end_year)) {

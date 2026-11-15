@@ -26,6 +26,14 @@ function mrbsForceMove($room_id, $starttime, $endtime, $name, $id = null) {
 
     $output = '';
 
+    if (!\block_mrbs\local\settings_manager::has_valid_custom_time_range()) {
+        return '<br>'.s(get_string('mrbscustomtimerangerequired', 'block_mrbs'));
+    }
+
+    if (!$DB->record_exists('block_mrbs_room', ['id' => (int)$room_id])) {
+        return '<br>'.s(get_string('mrbsinvalidroom', 'block_mrbs'));
+    }
+
     // Select any meetings which overlap ($starttime,$endtime) for this room:
     $sql = 'SELECT e.id AS entryid,
         e.name as entryname,

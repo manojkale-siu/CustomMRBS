@@ -73,8 +73,17 @@ if ($timetohighlight >= 0) {
 $PAGE->set_url($thisurl);
 require_login();
 
+$prerequisites = block_mrbs_require_prerequisites($day, $month, $year, $area);
+$area = $prerequisites->areaid;
+$bookingcreationallowed = \block_mrbs\local\settings_manager::has_valid_custom_time_range();
+$customperiodschedule = null;
+if ($enable_periods && $bookingcreationallowed) {
+    $customperiodschedule = \block_mrbs\local\settings_manager::get_period_schedule();
+}
+
 // print the page header
 print_header_mrbs($day, $month, $year, $area);
+block_mrbs_show_booking_configuration_warning();
 
 // Define the start and end of each day in a way which is not affected by
 // daylight saving...
@@ -85,6 +94,16 @@ print_header_mrbs($day, $month, $year, $area);
 $dst_change = is_dst($month, $day, $year);
 $am7 = mktime($morningstarts, $morningstarts_minutes, 0, $month, $day, $year);
 $pm7 = mktime($eveningends, $eveningends_minutes, 0, $month, $day, $year);
+if ($enable_periods && !empty($customperiodschedule)) {
+    $schedule = $customperiodschedule;
+    $resolution = \block_mrbs\local\settings_manager::get_period_interval_seconds();
+    $morningstarts = (int)floor($schedule['fromminutes'] / 60);
+    $morningstarts_minutes = (int)($schedule['fromminutes'] % 60);
+    $eveningends = (int)floor($schedule['tominutes'] / 60);
+    $eveningends_minutes = (int)($schedule['tominutes'] % 60);
+    $am7 = mktime((int)floor($schedule['fromminutes'] / 60), (int)($schedule['fromminutes'] % 60), 0, $month, $day, $year);
+    $pm7 = mktime((int)floor($schedule['tominutes'] / 60), (int)($schedule['tominutes'] % 60), 0, $month, $day, $year);
+}
 
 if ($pview != 1) {
     echo "<table width=\"100%\"><tr><td width=\"40%\">";
@@ -165,6 +184,8 @@ if ($area <= 0) {
 }
 
 if (!empty($area)) {
+    $today = array();
+
     $sql = "SELECT e.id AS eid, r.id AS rid, e.start_time, e.end_time, e.name, e.courseid, e.facultyid, e.type,
             e.description
             FROM {block_mrbs_entry} e, {block_mrbs_room} r
@@ -194,18 +215,21 @@ if (!empty($area)) {
         $start_t = max(round_t_down($entry->start_time, $resolution, $am7), $am7);
         $end_t = min(round_t_up($entry->end_time, $resolution, $am7) - $resolution, $pm7);
         for ($t = $start_t; $t <= $end_t; $t += $resolution) {
+            $slotkey = $enable_periods && !empty($customperiodschedule)
+                ? \block_mrbs\local\settings_manager::get_period_index_from_timestamp($t)
+                : (int)date($format, $t);
             //checks for double bookings
-            if (empty($today[$entry->rid][date($format, $t)])) {
-                $today[$entry->rid][date($format, $t)]["id"] = $entry->eid;
-                $today[$entry->rid][date($format, $t)]["color"] = $entry->type;
-                $today[$entry->rid][date($format, $t)]["data"] = "";
-                $today[$entry->rid][date($format, $t)]["long_descr"] = "";
-                $today[$entry->rid][date($format, $t)]["double_booked"] = false;
+            if (empty($today[$entry->rid][$slotkey])) {
+                $today[$entry->rid][$slotkey]["id"] = $entry->eid;
+                $today[$entry->rid][$slotkey]["color"] = $entry->type;
+                $today[$entry->rid][$slotkey]["data"] = "";
+                $today[$entry->rid][$slotkey]["long_descr"] = "";
+                $today[$entry->rid][$slotkey]["double_booked"] = false;
             } else {
-                $today[$entry->rid][date($format, $t)]["id"] .= ','.$entry->eid;
-                $today[$entry->rid][date($format, $t)]["data"] .= "\n";
-                $today[$entry->rid][date($format, $t)]["long_descr"] .= ",";
-                $today[$entry->rid][date($format, $t)]["double_booked"] = true;
+                $today[$entry->rid][$slotkey]["id"] .= ','.$entry->eid;
+                $today[$entry->rid][$slotkey]["data"] .= "\n";
+                $today[$entry->rid][$slotkey]["long_descr"] .= ",";
+                $today[$entry->rid][$slotkey]["double_booked"] = true;
             }
         }
 
@@ -213,19 +237,25 @@ if (!empty($area)) {
         // happens in, or at the start of the day if it started before today.
         $entryname = \block_mrbs\local\reservation::get_display_name($entry);
         if ($entry->start_time < $am7) {
-            $today[$entry->rid][date($format, $am7)]["data"] .= $entryname;
-            $today[$entry->rid][date($format, $am7)]["long_descr"] .= $entry->description;
+            $startslot = $enable_periods && !empty($customperiodschedule)
+                ? \block_mrbs\local\settings_manager::get_period_index_from_timestamp($am7)
+                : (int)date($format, $am7);
+            $today[$entry->rid][$startslot]["data"] .= $entryname;
+            $today[$entry->rid][$startslot]["long_descr"] .= $entry->description;
         } else {
-            $today[$entry->rid][date($format, $start_t)]["data"] .= $entryname;
-            $today[$entry->rid][date($format, $start_t)]["long_descr"] .= $entry->description;
+            $startslot = $enable_periods && !empty($customperiodschedule)
+                ? \block_mrbs\local\settings_manager::get_period_index_from_timestamp($start_t)
+                : (int)date($format, $start_t);
+            $today[$entry->rid][$startslot]["data"] .= $entryname;
+            $today[$entry->rid][$startslot]["long_descr"] .= $entry->description;
         }
     }
 
     if ($debug_flag) {
         echo "<p>DEBUG:<pre>\n";
-        echo "\$dst_change = $dst_change\n";
-        echo "\$am7 = $am7 or ".date($format, $am7)."\n";
-        echo "\$pm7 = $pm7 or ".date($format, $pm7)."\n";
+            echo "\$dst_change = $dst_change\n";
+            echo "\$am7 = $am7 or ".date($format, $am7)."\n";
+            echo "\$pm7 = $pm7 or ".date($format, $pm7)."\n";
         if (is_array($today)) {
             foreach ($today as $w_k => $w_v) {
                 foreach ($w_v as $t_k => $t_v) {
@@ -320,27 +350,43 @@ if (!empty($area)) {
         $advanceok = check_max_advance_days($day, $month, $year);
 
         $row_class = "even_row";
-        $starttime = mktime($morningstarts, $morningstarts_minutes, 0, $month, $day + $j, $year);
-        $endtime = mktime($eveningends, $eveningends_minutes, 0, $month, $day + $j, $year);
-        for ($t = $starttime; $t <= $endtime; $t += $resolution) {
+        $displayrows = array();
+        if ($enable_periods && !empty($customperiodschedule['periods'])) {
+            foreach ($customperiodschedule['periods'] as $periodrow) {
+                $displayrows[] = array(
+                    't' => \block_mrbs\local\settings_manager::get_period_start_timestamp($year, $month, $day + $j, $periodrow['index']),
+                    'time_t' => (int)$periodrow['index'],
+                    'label' => $periodrow['label'],
+                );
+            }
+        } else {
+            $starttime = mktime($morningstarts, $morningstarts_minutes, 0, $month, $day + $j, $year);
+            $endtime = mktime($eveningends, $eveningends_minutes, 0, $month, $day + $j, $year);
+            for ($t = $starttime; $t <= $endtime; $t += $resolution) {
+                $displayrows[] = array(
+                    't' => $t,
+                    'time_t' => (int)date($format, $t),
+                    'label' => null,
+                );
+            }
+        }
+        foreach ($displayrows as $displayrow) {
+            $t = $displayrow['t'];
+            $time_t = $displayrow['time_t'];
             if ($row_class == 'even_row') {
                 $row_class = 'odd_row';
             } else {
                 $row_class = 'even_row';
             }
-
-            // convert timestamps to HHMM format without leading zeros
-            $time_t = date($format, $t);
             $hiliteurl->param('timetohighlight', $time_t);
 
             // Show the time linked to the URL for highlighting that time
             echo "<tr>";
             tdcell("red");
             if ($enable_periods) {
-                $time_t_stripped = preg_replace("/^0/", "", $time_t);
                 echo "<a href=\"".$hiliteurl."\"  title=\""
                     .get_string('highlight_line', 'block_mrbs')."\">"
-                    .$periods[$time_t_stripped]."</a></td>\n";
+                    .($displayrow['label'] !== null ? $displayrow['label'] : (isset($periods[$time_t]) ? $periods[$time_t] : ''))."</a></td>\n";
             } else {
                 echo "<a href=\"".$hiliteurl."\" title=\""
                     .get_string('highlight_line', 'block_mrbs')."\">"
@@ -388,6 +434,11 @@ if (!empty($area)) {
                             // echo '<img src="'.$OUTPUT->pix_url('toofaradvance', 'block_mrbs').'" width="10" height="10" border="0" alt="'.$title.'" title="'.$title.'" />';
                             echo '<img src="' . $OUTPUT->image_url('toofaradvance', 'block_mrbs') . '" width="10" height="10" border="0" alt="' . s($title) . '" title="' . s($title) . '" />';
                             echo '</center>';
+                        } else if (!$bookingcreationallowed) {
+                            echo '<center>';
+                            $title = get_string('mrbscustomtimerangerequired', 'block_mrbs');
+                            echo '<img src="' . $OUTPUT->image_url('toofaradvance', 'block_mrbs') . '" width="10" height="10" border="0" alt="' . s($title) . '" title="' . s($title) . '" />';
+                            echo '</center>';
                         } else if (!$advanceok) {
                             // Too far in advance to edit
                             echo '<center>';
@@ -408,7 +459,7 @@ if (!empty($area)) {
                                                           'day' => $day
                                                       ));
                             if ($enable_periods) {
-                                echo "<a href=\"".($editurl->out(true, array('period' => $time_t_stripped)))."\">";
+                                echo "<a href=\"".($editurl->out(true, array('period' => $time_t)))."\">";
                             } else {
                                 echo "<a href=\"".($editurl->out(true, array('hour' => $hour, 'minute' => $minute)))."\">";
                             }
@@ -457,10 +508,9 @@ if (!empty($area)) {
             if (false != $times_right_side) {
                 if ($enable_periods) {
                     tdcell("red");
-                    $time_t_stripped = preg_replace("/^0/", "", $time_t);
                     echo "<a href=\"".$hiliteurl."\"  title=\""
                         .get_string('highlight_line', 'block_mrbs')."\">"
-                        .$periods[$time_t_stripped]."</a></td>\n";
+                        .(isset($periods[$time_t]) ? $periods[$time_t] : '')."</a></td>\n";
                 } else {
                     tdcell("red");
                     echo "<a href=\"".$hiliteurl."\" title=\""
