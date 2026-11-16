@@ -419,6 +419,8 @@ print_header_mrbs($day, $month, $year, $area);
             window.MRBSCapacityWarning.check().then(function(allow) {
                 if (allow) {
                     form.submit();
+                } else {
+                    form.save_button.disabled = false;
                 }
             }).catch(function(error) {
                 if (window.console) {
