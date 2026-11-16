@@ -388,6 +388,7 @@ $string['selectsemester'] = 'Select Semester';
 $string['sessioncreatefailed'] = 'The booking was saved, but the attendance session could not be created.';
 $string['semester'] = 'Semester';
 $string['from'] = 'From';
+$string['to'] = 'To';
 $string['frombeforeto'] = 'From time must be earlier than To time.';
 $string['invalidinterval'] = 'Interval must be greater than zero.';
 $string['search'] = 'Search';
