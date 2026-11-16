@@ -426,3 +426,7 @@ $string['timetablestartto'] = 'Starts at or before';
 $string['timetableinvalidrange'] = 'The start-time range must end at or after it begins.';
 $string['timetableclearfilters'] = 'Clear filters';
 $string['timetablenofiltermatches'] = 'No sessions match these filters.';
+
+$string['forcebookkeepentry'] = 'Keep this booking and move conflicting bookings';
+$string['forcebookconfirmedtype'] = 'Select a confirmed booking type before moving conflicting bookings.';
+$string['forcebooknoroom'] = 'A conflicting booking could not be moved to a suitable available room. No bookings were changed.';

@@ -478,6 +478,15 @@ if ($id > 0) {
     $ignore_id = 0;
 }
 
+$forcebook = $forcebook && mrbsHasAdminCapability('block/mrbs:forcebook') && !mrbsCanOnlyEditUnconfirmed();
+$seriesignore = $edit_type === 'series' && $rep_type != 0 ? $repeat_id : 0;
+$bookinglock = \core\lock\lock_config::get_lock_factory('block_mrbs')->get_lock('save_booking', 10);
+if (!$bookinglock) {
+    block_mrbs_print_user_error($day, $month, $year, $area, get_string('failed_to_acquire', 'block_mrbs'));
+    exit;
+}
+register_shutdown_function([$bookinglock, 'release']);
+
 if ($facultyid) {
     $facultyconflicts = array();
     if ($rep_type != 0 && !empty($reps)) {
@@ -489,7 +498,7 @@ if ($facultyid) {
                 $reptime,
                 $reptime + $diff,
                 $ignore_id,
-                $repeat_id
+                $seriesignore
             );
         }
     } else {
@@ -498,7 +507,7 @@ if ($facultyid) {
             $starttime,
             $endtime,
             $ignore_id,
-            $repeat_id
+            $seriesignore
         );
     }
 
@@ -530,8 +539,34 @@ if ($rep_type != 0 && count($reps) >= $max_rep_entrys) {
     $hide_title = 1;
 }
 
+$forcemoves = [];
+if ($forcebook && !$err) {
+    if ($type === 'U') {
+        block_mrbs_print_user_error($day, $month, $year, $area, get_string('forcebookconfirmedtype', 'block_mrbs'));
+        exit;
+    }
+
+    $slots = [[$starttime, $endtime]];
+    if ($rep_type != 0 && !empty($reps)) {
+        $slots = [];
+        foreach ($reps as $reptime) {
+            if (!check_max_advance_days_timestamp($reptime)) {
+                break;
+            }
+            $duration = $endtime - $starttime;
+            $slots[] = [$reptime, $reptime + $duration + cross_dst($reptime, $reptime + $duration)];
+        }
+    }
+    require_once(__DIR__ . '/force_book.php');
+    $forcemoves = mrbsPlanForceMoves($rooms, $slots, $ignore_id, $seriesignore);
+    if ($forcemoves === null) {
+        block_mrbs_print_user_error($day, $month, $year, $area, get_string('forcebooknoroom', 'block_mrbs'));
+        exit;
+    }
+}
+
 foreach ($rooms as $room_id) {
-    if ($errtype == MRBS_ERR_TOOMANY) {
+    if ($forcebook || $errtype == MRBS_ERR_TOOMANY) {
         break;
     }
 
@@ -541,7 +576,7 @@ foreach ($rooms as $room_id) {
             // cross DST
             $diff = $endtime - $starttime;
             $diff += cross_dst($reptime, $reptime + $diff);
-            $tmp = mrbsCheckFree($room_id, $reptime, $reptime + $diff, $ignore_id, $repeat_id);
+            $tmp = mrbsCheckFree($room_id, $reptime, $reptime + $diff, $ignore_id, $seriesignore);
             if (!empty($tmp)) {
                 $err = $err.$tmp;
                 $errtype = MRBS_ERR_DOUBLEBOOK;
@@ -573,14 +608,7 @@ foreach ($rooms as $room_id) {
         // }
     } else {
         // echo "I am in first else part <br>";
-        if (mrbsHasAdminCapability('block/mrbs:forcebook') and $forcebook) {
-            // echo "I am inner else-if. <br>";
-            
-            require_once "force_book.php";
-            $forcemoveoutput .= mrbsForceMove($room_id, $starttime, $endtime, $name, $id);
-            //do this so that it thinks no clashes were found
-            $tmp = '';
-        } else if ($doublebook and mrbsHasAdminCapability('block/mrbs:doublebook')) {
+        if ($doublebook and mrbsHasAdminCapability('block/mrbs:doublebook')) {
             // echo "I am inner else else-if . <br>";
             
             $sql = 'SELECT entry.id AS entryid,
@@ -617,7 +645,7 @@ foreach ($rooms as $room_id) {
         } else {
             // echo "<br> I am inner else-else. <br> vardump : ";
             // If the user hasn't confirmed they want to double book, check the room is free.
-            $err .= mrbsCheckFree($room_id, $starttime, $endtime - 1, $ignore_id, 0);
+            $err .= mrbsCheckFree($room_id, $starttime, $endtime, $ignore_id, 0);
             
             // var_dump($err);
             // echo "<br></pre>";
@@ -640,213 +668,171 @@ if (empty($err)) {
     
     
     
-    foreach ($rooms as $room_id) {
-        
-        if ($edit_type == "series" && isset($rep_type) && $rep_type != 0) {
-            // echo "I am in If part (series)<br> ";
-            // exit;
-            
-            // echo "<pre>";
-            // echo "================ DEBUG VARIABLES ================\n";
-            // echo "starttime: " . var_export($starttime, true) . "\n";
-            // echo "endtime: " . var_export($endtime, true) . "\n";
-            // echo "rep_type: " . var_export($rep_type, true) . "\n";
-            // echo "rep_enddate: " . var_export($rep_enddate, true) . "\n";
-            // echo "rep_opt: " . var_export($rep_opt, true) . "\n";
-            // echo "room_id: " . var_export($room_id, true) . "\n";
-            // echo "create_by: " . var_export($create_by, true) . "\n";
-            // echo "name: " . var_export($name, true) . "\n";
-            // echo "type: " . var_export($type, true) . "\n";
-            // echo "description: " . var_export($description, true) . "\n";
-            // echo "rep_num_weeks: " . var_export(isset($rep_num_weeks) ? $rep_num_weeks : 0, true) . "\n";
-            // echo "roomchange: " . var_export($roomchange, true) . "\n";
-            // echo "id: " . var_export($id, true) . "\n";
-            // echo "=================================================\n";
-            // echo "</pre>";
+    $transaction = $forcebook ? $DB->start_delegated_transaction() : null;
+    try {
+        if ($forcemoves) {
+            mrbsApplyForceMoves($forcemoves);
+        }
+        foreach ($rooms as $room_id) {
 
-            // exit;
-            // $rep_details = mrbsCreateRepeatingEntrys($starttime, $endtime, $rep_type, $rep_enddate, $rep_opt,
-            //                                          $room_id, $create_by, $name, $type, $description,
-            //                                          isset($rep_num_weeks) ? $rep_num_weeks : 0, $roomchange, $id);
-            // $new_id = $rep_details->id;
-            
-            
-            
-            // Validate inputs for repeating creation
-            // if (!isset($rep_type) || $rep_type == 0) {
-            //     // No repeat requested - skip repeating creation
-            //     $rep_details = false;
-            //     $new_id = 0;
-            //     echo "<br> No repeate that is why the mrbsCreateRepeatingEntrys() method is not invoked<br>";
-            // } 
-            
-            // else {
-                $rep_num_weeks = isset($rep_num_weeks) ? (int)$rep_num_weeks : 0;
+            if ($edit_type == "series" && isset($rep_type) && $rep_type != 0) {
+                $rep_num_weeks = (int)$rep_num_weeks;
 
-            try {
-                $rep_details = mrbsCreateRepeatingEntrys($starttime, $endtime, $rep_type, $rep_enddate, $rep_opt,
-                                                         $room_id, $create_by, $name, $type, $description,
-                                                         $rep_num_weeks, $roomchange, $id, $courseid, $facultyid, $groupid);
-            } catch (Exception $e) {
-                debugging('MRBS repeating entry creation failed: '.$e->getMessage(), DEBUG_DEVELOPER);
-                error_log("MRBS repeating entry creation failed - params: start=$starttime end=$endtime rep_type=$rep_type rep_end=$rep_enddate rep_opt=$rep_opt rep_num_weeks=$rep_num_weeks room=$room_id name=$name error=".$e->getMessage());
-                block_mrbs_print_user_error($day, $month, $year, $area, get_string('repeatcreatefailed', 'block_mrbs'));
-                exit;
-            }
-             
-                // Defensive handling of failure modes from mrbsCreateRepeatingEntrys
-                if (!$rep_details) {
-                    debugging('MRBS repeating entry creation returned false', DEBUG_DEVELOPER);
-                    error_log("mrbsCreateRepeatingEntrys failed - params: start=$starttime end=$endtime rep_type=$rep_type rep_end=$rep_enddate rep_opt=$rep_opt rep_num_weeks=$rep_num_weeks room=$room_id name=$name");
+                try {
+                    $rep_details = mrbsCreateRepeatingEntrys($starttime, $endtime, $rep_type, $rep_enddate, $rep_opt,
+                                                             $room_id, $create_by, $name, $type, $description,
+                                                             $rep_num_weeks, $roomchange, $id, $courseid, $facultyid, $groupid);
+                } catch (Exception $e) {
+                    debugging('MRBS repeating entry creation failed: '.$e->getMessage(), DEBUG_DEVELOPER);
+                    error_log("MRBS repeating entry creation failed - params: start=$starttime end=$endtime rep_type=$rep_type rep_end=$rep_enddate rep_opt=$rep_opt rep_num_weeks=$rep_num_weeks room=$room_id name=$name error=".$e->getMessage());
+                    if ($transaction) {
+                        throw new moodle_exception('repeatcreatefailed', 'block_mrbs');
+                    }
                     block_mrbs_print_user_error($day, $month, $year, $area, get_string('repeatcreatefailed', 'block_mrbs'));
                     exit;
-                } else if (!isset($rep_details->id)) {
-                    debugging('MRBS repeating entry creation returned no id', DEBUG_DEVELOPER);
-                    error_log("mrbsCreateRepeatingEntrys returned: " . var_export($rep_details, true));
-                    block_mrbs_print_user_error($day, $month, $year, $area, get_string('repeatcreatefailed', 'block_mrbs'));
-                    exit;
-                } else {
-                    $new_id = $rep_details->id;
                 }
-                if (empty($new_id)) {
+
+                $new_id = $rep_details->id ?? 0;
+                if (!$new_id) {
+                    if ($transaction) {
+                        throw new moodle_exception('repeatcreatefailed', 'block_mrbs');
+                    }
+                    block_mrbs_print_user_error($day, $month, $year, $area, get_string('repeatcreatefailed', 'block_mrbs'));
+                    exit;
+                }
+
+                $enddate = null;
+                if ($rep_details->created && $rep_details->created < $rep_details->requested) {
+                    $forcemoveoutput .= get_string('notallcreated', 'block_mrbs', $rep_details);
+                    $enddate = $rep_details->lasttime;
+                }
+
+                $sql = "SELECT r.id, r.room_name, r.area_id, a.area_name ";
+                $sql .= "FROM {block_mrbs_room} r, {block_mrbs_area} a ";
+                $sql .= "WHERE r.id=? AND r.area_id = a.id";
+                $dbroom = $DB->get_record_sql($sql, array($room_id), MUST_EXIST);
+                $room_name = $dbroom->room_name;
+                $area_name = $dbroom->area_name;
+
+                //Add to moodle logs
+                $params = array(
+                    'objectid' => $new_id,
+                    'context' => $context,
+                    'other' => array('name' => $name, 'room' => $room_name),
+                );
+                $eventclass = $id > 0 ? '\block_mrbs\event\booking_updated' : '\block_mrbs\event\booking_created';
+                $event = $eventclass::create($params);
+                $event->trigger();
+
+                try {
+                    if (!empty($new_id)) {
+                        \block_mrbs\local\attendance_manager::sync_for_repeat($new_id, $courseid, $facultyid, $groupid);
+                    }
+                } catch (Exception $e) {
+                    debugging('MRBS attendance session sync failed: '.$e->getMessage(), DEBUG_DEVELOPER);
+                    error_log('MRBS attendance session sync failed for repeat '.$new_id.': '.$e->getMessage());
+                    $forcemoveoutput .= ' '.get_string('sessioncreatefailed', 'block_mrbs');
+                }
+
+                // Send a mail to the Administrator
+                if (MAIL_ADMIN_ON_BOOKINGS or MAIL_AREA_ADMIN_ON_BOOKINGS or MAIL_ROOM_ADMIN_ON_BOOKINGS or MAIL_BOOKER) {
+                    // Send a mail only if this a new entry, or if this is an
+                    // edited entry but we have to send mail on every change,
+                    // and if mrbsCreateRepeatingEntrys is successful
+                    if (((($id > 0) && MAIL_ADMIN_ALL) or ($id == 0)) && (0 != $new_id)) {
+                        // If this is a modified entry then call
+                        // getPreviousEntryData to prepare entry comparison.
+                        if ($id > 0) {
+                            $mail_previous = getPreviousEntryData($id, $rep_details->repeating);
+                        }
+                        $result = notifyAdminOnBooking(($id == 0), $new_id, $enddate);
+                    }
+                }
+            } else {
+                // Mark changed entry in a series with entry_type 2:
+                if ($repeat_id > 0) {
+                    $entry_type = 2;
+                } else {
+                    $entry_type = 0;
+                }
+                try {
+                    // Create / update the entry:
+                    $new_id = mrbsCreateSingleEntry($starttime, $endtime, $entry_type, $repeat_id, $room_id,
+                                                    $create_by, $name, $type, $description, $id, $roomchange,
+                                                    $courseid, $facultyid, $groupid);
+                } catch (Exception $e) {
+                    debugging('MRBS single entry creation failed: '.$e->getMessage(), DEBUG_DEVELOPER);
+                    error_log('MRBS single entry creation failed: '.$e->getMessage());
+                    if ($transaction) {
+                        throw new moodle_exception('bookingcreatefailed', 'block_mrbs');
+                    }
                     block_mrbs_print_user_error($day, $month, $year, $area, get_string('bookingcreatefailed', 'block_mrbs'));
                     exit;
                 }
-            // }
-
-            
-            
-            
-            // echo "Rep Details : ";
-            // var_dump($rep_details);
-            // echo "<br> Rep id : " . $new_id;
-            // echo "<br> Error : " . $err . "<br>";
-            // exit;
-
-            $enddate = null;
-            if ($rep_details->created && $rep_details->created < $rep_details->requested) {
-                $forcemoveoutput .= get_string('notallcreated', 'block_mrbs', $rep_details);
-                $enddate = $rep_details->lasttime;
-            }
-
-            $sql = "SELECT r.id, r.room_name, r.area_id, a.area_name ";
-            $sql .= "FROM {block_mrbs_room} r, {block_mrbs_area} a ";
-            $sql .= "WHERE r.id=? AND r.area_id = a.id";
-            $dbroom = $DB->get_record_sql($sql, array($room_id), MUST_EXIST);
-            $room_name = $dbroom->room_name;
-            $area_name = $dbroom->area_name;
-
-            //Add to moodle logs
-            $params = array(
-                'objectid' => $new_id,
-                'context' => $context,
-                'other' => array('name' => $name, 'room' => $room_name),
-            );
-            $eventclass = $id > 0 ? '\block_mrbs\event\booking_updated' : '\block_mrbs\event\booking_created';
-            $event = $eventclass::create($params);
-            $event->trigger();
-
-            try {
-                if (!empty($new_id)) {
-                    \block_mrbs\local\attendance_manager::sync_for_repeat($new_id, $courseid, $facultyid, $groupid);
-                }
-            } catch (Exception $e) {
-                debugging('MRBS attendance session sync failed: '.$e->getMessage(), DEBUG_DEVELOPER);
-                error_log('MRBS attendance session sync failed for repeat '.$new_id.': '.$e->getMessage());
-                $forcemoveoutput .= ' '.get_string('sessioncreatefailed', 'block_mrbs');
-            }
-             
-            // echo "<br>The Event has been triggerd <br>";
-            
-            // Send a mail to the Administrator
-            if (MAIL_ADMIN_ON_BOOKINGS or MAIL_AREA_ADMIN_ON_BOOKINGS or MAIL_ROOM_ADMIN_ON_BOOKINGS or MAIL_BOOKER) {
-                // Send a mail only if this a new entry, or if this is an
-                // edited entry but we have to send mail on every change,
-                // and if mrbsCreateRepeatingEntrys is successful
-                if (((($id > 0) && MAIL_ADMIN_ALL) or ($id == 0)) && (0 != $new_id)) {
-                    // If this is a modified entry then call
-                    // getPreviousEntryData to prepare entry comparison.
-                    if ($id > 0) {
-                        $mail_previous = getPreviousEntryData($id, $rep_details->repeating);
+                if (empty($new_id)) {
+                    if ($transaction) {
+                        throw new moodle_exception('bookingcreatefailed', 'block_mrbs');
                     }
-                    $result = notifyAdminOnBooking(($id == 0), $new_id, $enddate);
+                    block_mrbs_print_user_error($day, $month, $year, $area, get_string('bookingcreatefailed', 'block_mrbs'));
+                    exit;
                 }
-            }
-            
-            // echo "<br> If executed perfectly. <br>";
-            // exit;
-        } else {
-            // echo "I am in series-else part <br>";
-            // exit; 
-            // Mark changed entry in a series with entry_type 2:
-            if ($repeat_id > 0) {
-                $entry_type = 2;
-            } else {
-                $entry_type = 0;
-            }
 
-            // echo "<br>mrbsCreateSingleEntry is getting invoked.";
-            try {
-                // Create / update the entry:
-                $new_id = mrbsCreateSingleEntry($starttime, $endtime, $entry_type, $repeat_id, $room_id,
-                                                $create_by, $name, $type, $description, $id, $roomchange,
-                                                $courseid, $facultyid, $groupid);
-            } catch (Exception $e) {
-                debugging('MRBS single entry creation failed: '.$e->getMessage(), DEBUG_DEVELOPER);
-                error_log('MRBS single entry creation failed: '.$e->getMessage());
-                block_mrbs_print_user_error($day, $month, $year, $area, get_string('bookingcreatefailed', 'block_mrbs'));
-                exit;
-            }
-            if (empty($new_id)) {
-                block_mrbs_print_user_error($day, $month, $year, $area, get_string('bookingcreatefailed', 'block_mrbs'));
-                exit;
-            }
-            // echo "<br>mrbsCreateSingleEntry is getting invoked (DONE)<br>";
-            // exit;
-             
-            $sql = "SELECT r.id, r.room_name, r.area_id, a.area_name ";
-            $sql .= "FROM {block_mrbs_room} r, {block_mrbs_area} a ";
-            $sql .= "WHERE r.id=? AND r.area_id = a.id";
-            $dbroom = $DB->get_record_sql($sql, array($room_id), MUST_EXIST);
-            $room_name = $dbroom->room_name;
-            $area_name = $dbroom->area_name;
+                $sql = "SELECT r.id, r.room_name, r.area_id, a.area_name ";
+                $sql .= "FROM {block_mrbs_room} r, {block_mrbs_area} a ";
+                $sql .= "WHERE r.id=? AND r.area_id = a.id";
+                $dbroom = $DB->get_record_sql($sql, array($room_id), MUST_EXIST);
+                $room_name = $dbroom->room_name;
+                $area_name = $dbroom->area_name;
 
-            //Add to moodle logs
-            $params = array(
-                'objectid' => $new_id,
-                'context' => $context,
-                'other' => array('name' => $name, 'room' => $room_name),
-            );
-            $eventclass = $id > 0 ? '\block_mrbs\event\booking_updated' : '\block_mrbs\event\booking_created';
-            $event = $eventclass::create($params);
-            $event->trigger();
+                //Add to moodle logs
+                $params = array(
+                    'objectid' => $new_id,
+                    'context' => $context,
+                    'other' => array('name' => $name, 'room' => $room_name),
+                );
+                $eventclass = $id > 0 ? '\block_mrbs\event\booking_updated' : '\block_mrbs\event\booking_created';
+                $event = $eventclass::create($params);
+                $event->trigger();
 
-            try {
-                if (!empty($new_id)) {
-                    \block_mrbs\local\attendance_manager::sync_for_entry($new_id, $courseid, $facultyid, $groupid);
-                }
-            } catch (Exception $e) {
-                debugging('MRBS attendance session sync failed: '.$e->getMessage(), DEBUG_DEVELOPER);
-                error_log('MRBS attendance session sync failed for entry '.$new_id.': '.$e->getMessage());
-                $forcemoveoutput .= ' '.get_string('sessioncreatefailed', 'block_mrbs');
-            }
-
-            // Send a mail to the Administrator
-            if (MAIL_ADMIN_ON_BOOKINGS or MAIL_AREA_ADMIN_ON_BOOKINGS or MAIL_ROOM_ADMIN_ON_BOOKINGS or MAIL_BOOKER) {
-                // Send a mail only if this a new entry, or if this is an
-                // edited entry but we have to send mail on every change,
-                // and if mrbsCreateRepeatingEntrys is successful
-                if (((($id > 0) && MAIL_ADMIN_ALL) or ($id == 0)) && (0 != $new_id)) {
-                    // If this is a modified entry then call
-                    // getPreviousEntryData to prepare entry comparison.
-                    if ($id > 0) {
-                        $mail_previous = getPreviousEntryData($id, 0);
+                try {
+                    if (!empty($new_id)) {
+                        \block_mrbs\local\attendance_manager::sync_for_entry($new_id, $courseid, $facultyid, $groupid);
                     }
-                    $result = notifyAdminOnBooking(($id == 0), $new_id);
+                } catch (Exception $e) {
+                    debugging('MRBS attendance session sync failed: '.$e->getMessage(), DEBUG_DEVELOPER);
+                    error_log('MRBS attendance session sync failed for entry '.$new_id.': '.$e->getMessage());
+                    $forcemoveoutput .= ' '.get_string('sessioncreatefailed', 'block_mrbs');
+                }
+
+                // Send a mail to the Administrator
+                if (MAIL_ADMIN_ON_BOOKINGS or MAIL_AREA_ADMIN_ON_BOOKINGS or MAIL_ROOM_ADMIN_ON_BOOKINGS or MAIL_BOOKER) {
+                    // Send a mail only if this a new entry, or if this is an
+                    // edited entry but we have to send mail on every change,
+                    // and if mrbsCreateRepeatingEntrys is successful
+                    if (((($id > 0) && MAIL_ADMIN_ALL) or ($id == 0)) && (0 != $new_id)) {
+                        // If this is a modified entry then call
+                        // getPreviousEntryData to prepare entry comparison.
+                        if ($id > 0) {
+                            $mail_previous = getPreviousEntryData($id, 0);
+                        }
+                        $result = notifyAdminOnBooking(($id == 0), $new_id);
+                    }
                 }
             }
         }
-    } // end foreach $rooms
+        if ($transaction) {
+            $transaction->allow_commit();
+        }
+    } catch (Throwable $error) {
+        if ($transaction) {
+            $transaction->rollback($error);
+        }
+        throw $error;
+    }
+
+    if ($forcemoves) {
+        $forcemoveoutput .= mrbsNotifyForceMoves($forcemoves, $name);
+    }
 
     //    sql_mutex_unlock("$tbl_entry");
 
@@ -874,6 +860,15 @@ if (strlen($err)) {
     }
 
     echo $err;
+    if (!isset($hide_title)) {
+        echo "</UL>";
+    }
+    if (!isset($hide_title) && $id && mrbsHasAdminCapability('block/mrbs:forcebook') && !mrbsCanOnlyEditUnconfirmed()) {
+        $keepurl = new moodle_url('/blocks/mrbs/web/edit_entry.php', [
+            'id' => $id, 'edit_type' => $edit_type, 'force' => 1,
+        ]);
+        echo html_writer::div(html_writer::link($keepurl, get_string('forcebookkeepentry', 'block_mrbs')), 'my-3');
+    }
     if (mrbsHasAdminCapability('block/mrbs:doublebook') && $errtype == MRBS_ERR_DOUBLEBOOK) {
         $thisurl = new moodle_url('/blocks/mrbs/web/edit_entry_handler.php');
         echo '<form method="post" action="'.$thisurl.'">';
@@ -914,10 +909,6 @@ if (strlen($err)) {
         echo '<input type="hidden" name="sesskey" value="'.sesskey().'" />';
         echo '<input type="submit" name="submit" value="'.get_string('idontcare', 'block_mrbs').'" />';
         echo '</form>';
-    }
-
-    if (!isset($hide_title)) {
-        echo "</UL>";
     }
 }
 

@@ -176,3 +176,141 @@ function mrbsForceMove($room_id, $starttime, $endtime, $name, $id = null) {
 
     return $output;
 }
+
+
+/**
+ * Plan room changes for the bookings displaced by the requested slots.
+ *
+ * @return array|null Planned moves, or null if a conflict cannot be relocated.
+ */
+function mrbsPlanForceMoves(array $roomids, array $slots, $ignoreid, $ignorerepeatid) {
+    global $DB, $USER;
+
+    [$roomsql, $roomparams] = $DB->get_in_or_equal($roomids);
+    $conflicts = [];
+    foreach ($slots as [$start, $end]) {
+        $select = "room_id $roomsql AND start_time < ? AND end_time > ? AND id <> ?";
+        $params = array_merge($roomparams, [$end, $start, $ignoreid]);
+        if ($ignorerepeatid > 0) {
+            $select .= ' AND repeat_id <> ?';
+            $params[] = $ignorerepeatid;
+        }
+        $conflicts += $DB->get_records_select('block_mrbs_entry', $select, $params, 'start_time, id');
+    }
+
+    if (!$conflicts) {
+        return [];
+    }
+
+    $rooms = $DB->get_records_sql("SELECT r.*, a.area_name
+                                   FROM {block_mrbs_room} r
+                                   JOIN {block_mrbs_area} a ON a.id = r.area_id
+                               ORDER BY r.room_name, r.id");
+    $planned = [];
+    foreach ($conflicts as $entry) {
+        if (!isset($rooms[$entry->room_id])) {
+            return null;
+        }
+        $original = $rooms[$entry->room_id];
+        $originaldescription = strtolower((string)$original->description);
+        $originalispecial = strpos($originaldescription, 'special') !== false;
+        $originalisit = strpos($originaldescription, 'teaching it') === 0;
+        $owner = $DB->get_record('user', ['username' => $entry->create_by, 'deleted' => 0], '*', IGNORE_MISSING);
+        $size = \block_mrbs\local\booking_validator::count_participants($entry->courseid, $entry->groupid);
+        $candidates = $rooms;
+        uasort($candidates, static function ($a, $b) use ($original) {
+            return [
+                $a->description !== $original->description, $a->area_id != $original->area_id,
+            ] <=> [
+                $b->description !== $original->description, $b->area_id != $original->area_id,
+            ];
+        });
+
+        $destination = null;
+        foreach ($candidates as $candidate) {
+            if (in_array((int)$candidate->id, $roomids, true) || (int)$candidate->capacity < $size) {
+                continue;
+            }
+            if (!allowed_to_book($USER, $candidate)
+                    || (!empty($candidate->booking_users) && (!$owner || !allowed_to_book($owner, $candidate)))) {
+                continue;
+            }
+            // Preserve specialist or IT requirements when specified by the original room.
+            $description = strtolower((string)$candidate->description);
+            if (($originalisit && strpos($description, 'teaching it') !== 0)
+                    || ($description !== $originaldescription && ($originalispecial || strpos($description, 'special') !== false))) {
+                continue;
+            }
+            if ($DB->record_exists_select('block_mrbs_entry', 'room_id = ? AND start_time < ? AND end_time > ?', [
+                $candidate->id, $entry->end_time, $entry->start_time,
+            ])) {
+                continue;
+            }
+            foreach ($planned as $move) {
+                if ($move['room']->id == $candidate->id && $move['entry']->start_time < $entry->end_time
+                        && $move['entry']->end_time > $entry->start_time) {
+                    continue 2;
+                }
+            }
+            $destination = $candidate;
+            break;
+        }
+        if (!$destination) {
+            return null;
+        }
+        $planned[] = ['entry' => $entry, 'room' => $destination, 'original' => $original, 'owner' => $owner];
+    }
+    return $planned;
+}
+
+/**
+ * Apply the planned relocations inside the booking transaction.
+ */
+function mrbsApplyForceMoves(array $moves) {
+    global $DB;
+
+    foreach ($moves as $move) {
+        $entry = $move['entry'];
+        $update = (object)[
+            'id' => $entry->id,
+            'room_id' => $move['room']->id,
+            'roomchange' => 1,
+            'timestamp' => time(),
+        ];
+        if ($entry->repeat_id > 0) {
+            $update->entry_type = 2;
+        }
+        if ($entry->type === 'K') {
+            $update->type = 'L';
+        }
+        $DB->update_record('block_mrbs_entry', $update);
+    }
+}
+
+/**
+ * Notify displaced booking owners after the database transaction has committed.
+ */
+function mrbsNotifyForceMoves(array $moves, $name) {
+    global $USER;
+
+    $output = '';
+    foreach ($moves as $move) {
+        $entry = $move['entry'];
+        $room = $move['room'];
+        $details = (object)[
+            'name' => $entry->name,
+            'oldroom' => $move['original']->room_name,
+            'newroom' => $room->room_name,
+            'area' => $room->area_name,
+            'date' => userdate($entry->start_time, get_string('strftimedate', 'langconfig')),
+            'starttime' => userdate($entry->start_time, get_string('strftimetime', 'langconfig')),
+            'newbookingname' => $name,
+        ];
+        $output .= '<br>' . s(get_string('bookingmovedshort', 'block_mrbs', $details));
+        if ($move['owner']) {
+            email_to_user($move['owner'], $USER, get_string('bookingmoved', 'block_mrbs'),
+                get_string('bookingmovedmessage', 'block_mrbs', $details));
+        }
+    }
+    return $output;
+}

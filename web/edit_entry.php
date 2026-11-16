@@ -688,7 +688,7 @@ print_header_mrbs($day, $month, $year, $area);
                 <input class="form-check-input" id="mrbsforcebook" type="checkbox" name="forcebook" value="TRUE"
                     <?php echo $force ? 'checked' : ''; ?>
                     onclick="document.getElementById('nooccupied').checked = !this.checked; updateFreeRooms();">
-                <label class="form-check-label" for="mrbsforcebook"><?php echo get_string('forciblybook2', 'block_mrbs'); ?></label>
+                <label class="form-check-label" for="mrbsforcebook"><?php echo get_string($id ? 'forcebookkeepentry' : 'forciblybook2', 'block_mrbs'); ?></label>
             </div>
         <?php } ?>
         <hr>
