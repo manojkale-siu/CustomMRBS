@@ -16,7 +16,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 require_once(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); //for Moodle integration
-global $CFG, $PAGE, $DB, $OUTPUT;
+global $CFG, $PAGE, $DB, $OUTPUT, $USER;
 require "config.inc.php";
 require "functions.php";
 require_once("mrbs_auth.php");
@@ -65,6 +65,7 @@ if ($type == "area") {
 
     $newarea = new stdClass;
     $newarea->area_name = $name;
+    $newarea->creatoruserid = (int)$USER->id;
     $area = $DB->insert_record('block_mrbs_area', $newarea);
 }
 
@@ -82,6 +83,7 @@ if ($type == "room") {
     $newroom->description = $description;
     $newroom->capacity = $capacity;
     $newroom->area_id = $area;
+    $newroom->creatoruserid = (int)$USER->id;
     $DB->insert_record('block_mrbs_room', $newroom);
 }
 

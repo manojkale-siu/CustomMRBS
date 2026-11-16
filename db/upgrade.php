@@ -265,5 +265,17 @@ function xmldb_block_mrbs_upgrade($oldversion=0) {
         upgrade_block_savepoint(true, 2026052900, 'mrbs');
     }
 
+    if ($oldversion < 2026111600) {
+        foreach (['block_mrbs_area', 'block_mrbs_room', 'block_mrbs_settings'] as $tablename) {
+            $table = new xmldb_table($tablename);
+            $field = new xmldb_field('creatoruserid', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+            if (!$dbman->field_exists($table, $field)) {
+                $dbman->add_field($table, $field);
+            }
+        }
+
+        upgrade_block_savepoint(true, 2026111600, 'mrbs');
+    }
+
     return true;
 }

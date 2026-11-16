@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="blocks/mrbs/db" VERSION="20120213" COMMENT="XMLDB file for Moodle blocks/mrbs"
+<XMLDB PATH="blocks/mrbs/db" VERSION="20261116" COMMENT="XMLDB file for Moodle blocks/mrbs"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -9,6 +9,7 @@
         <FIELD NAME="id" TYPE="int" LENGTH="11" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="area_name" TYPE="char" LENGTH="30" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="area_admin_email" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="creatoruserid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Moodle user who created this record"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
@@ -73,6 +74,7 @@
         <FIELD NAME="capacity" TYPE="int" LENGTH="11" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="room_admin_email" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="booking_users" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="A comma-separated list of the users who are allowed to book this room (empty=anyone can book)"/>
+        <FIELD NAME="creatoruserid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Moodle user who created this record"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
@@ -86,6 +88,7 @@
         <FIELD NAME="setting_value" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="created_at" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="updated_at" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="creatoruserid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Moodle user who created this record"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>

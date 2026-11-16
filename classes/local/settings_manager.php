@@ -23,7 +23,7 @@ class settings_manager {
      * @return void
      */
     public static function save_default_periods() {
-        global $DB;
+        global $DB, $USER;
 
         self::require_custom_time_settings_editable();
 
@@ -32,6 +32,7 @@ class settings_manager {
             'setting_group' => 'periods_settings',
             'setting_key' => 'enable_periods',
             'setting_value' => '1',
+            'creatoruserid' => isloggedin() && !isguestuser() ? (int)$USER->id : null,
             'created_at' => time(),
             'updated_at' => time(),
         ]);
@@ -46,7 +47,7 @@ class settings_manager {
      * @return void
      */
     public static function save_time_settings($from, $to, $interval) {
-        global $DB;
+        global $DB, $USER;
 
         self::require_custom_time_settings_editable();
 
@@ -56,11 +57,13 @@ class settings_manager {
 
         self::clear_time_settings();
         $now = time();
+        $creatoruserid = isloggedin() && !isguestuser() ? (int)$USER->id : null;
         foreach (['from' => $from, 'to' => $to, 'interval' => $interval] as $key => $value) {
             $DB->insert_record('block_mrbs_settings', (object)[
                 'setting_group' => 'time_settings',
                 'setting_key' => $key,
                 'setting_value' => (string)$value,
+                'creatoruserid' => $creatoruserid,
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);
