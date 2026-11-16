@@ -143,7 +143,7 @@ class timetable_access {
         }
 
         $visibility = implode(' OR ', $conditions);
-        return $DB->get_records_sql("SELECT e.id, e.courseid, e.groupid, e.start_time, e.end_time, r.room_name
+        return $DB->get_records_sql("SELECT e.id, e.courseid, e.facultyid, e.groupid, e.start_time, e.end_time, r.room_name
                                        FROM {block_mrbs_entry} e
                                        JOIN {block_mrbs_room} r ON r.id = e.room_id
                                       WHERE e.start_time < :endtime AND e.end_time > :starttime

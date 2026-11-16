@@ -107,6 +107,7 @@ if (!$entries) {
 
 $courses = [];
 $groups = [];
+$facultynames = [];
 $currentday = '';
 $timeformat = get_string('strftimetime', 'langconfig');
 $dayformat = get_string('strftimedaydate', 'langconfig');
@@ -173,6 +174,13 @@ foreach ($entries as $entry) {
     echo html_writer::end_div();
     if ($course['path'] !== '') {
         echo html_writer::div($course['path'], 'small text-muted');
+    }
+    if (!empty($entry->facultyid)) {
+        $facultyid = (int)$entry->facultyid;
+        $facultynames[$facultyid] = $facultynames[$facultyid] ?? reservation::get_user_fullname($facultyid);
+        if ($facultynames[$facultyid] !== '') {
+            echo html_writer::div(get_string('faculty', 'block_mrbs') . ': ' . s($facultynames[$facultyid]), 'small mt-2');
+        }
     }
     echo html_writer::div(
         get_string('room', 'block_mrbs') . ': ' . format_string($entry->room_name)
