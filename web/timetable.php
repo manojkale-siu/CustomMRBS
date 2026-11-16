@@ -15,6 +15,10 @@ $view = optional_param('view', 'week', PARAM_ALPHA);
 if (!in_array($view, $views, true)) {
     $view = 'week';
 }
+$coursefilter = max(0, optional_param('course', 0, PARAM_INT));
+$facultyfilter = max(0, optional_param('faculty', 0, PARAM_INT));
+$startfrom = optional_param('startfrom', '', PARAM_RAW_TRIMMED);
+$startto = optional_param('startto', '', PARAM_RAW_TRIMMED);
 $PAGE->set_context(context_system::instance());
 $PAGE->set_url(new moodle_url('/blocks/mrbs/web/timetable.php', compact('day', 'month', 'year', 'view')));
 require_login();
@@ -64,6 +68,40 @@ switch ($view) {
 }
 
 $entries = timetable_access::entries($start->getTimestamp(), $end->getTimestamp());
+$coursenames = [];
+$facultynames = [];
+foreach ($entries as $entry) {
+    $coursenames[$entry->courseid] = $coursenames[$entry->courseid] ?? reservation::get_course_fullname($entry->courseid);
+    if (!empty($entry->facultyid)) {
+        $facultynames[$entry->facultyid] = $facultynames[$entry->facultyid] ?? reservation::get_user_fullname($entry->facultyid);
+    }
+}
+
+$courseoptions = array_filter($coursenames);
+$facultyoptions = array_filter($facultynames);
+asort($courseoptions, SORT_NATURAL | SORT_FLAG_CASE);
+asort($facultyoptions, SORT_NATURAL | SORT_FLAG_CASE);
+$coursefilter = isset($courseoptions[$coursefilter]) ? $coursefilter : 0;
+$facultyfilter = isset($facultyoptions[$facultyfilter]) ? $facultyfilter : 0;
+
+$timepattern = '/^(?:[01][0-9]|2[0-3]):[0-5][0-9]$/D';
+$startfrom = preg_match($timepattern, $startfrom) ? $startfrom : '';
+$startto = preg_match($timepattern, $startto) ? $startto : '';
+$invalidrange = $startfrom !== '' && $startto !== '' && $startfrom > $startto;
+$filteredentries = array_filter($entries, static function ($entry) use (
+    $coursefilter, $facultyfilter, $startfrom, $startto, $invalidrange, $timezone
+) {
+    if (($coursefilter && (int)$entry->courseid !== $coursefilter)
+            || ($facultyfilter && (int)$entry->facultyid !== $facultyfilter)) {
+        return false;
+    }
+    if ($invalidrange || ($startfrom === '' && $startto === '')) {
+        return true;
+    }
+    $localstart = (new DateTimeImmutable('@' . $entry->start_time))->setTimezone($timezone)->format('H:i');
+    return ($startfrom === '' || $localstart >= $startfrom) && ($startto === '' || $localstart <= $startto);
+});
+
 $timetableurl = static function (DateTimeImmutable $date, string $view): moodle_url {
     return new moodle_url('/blocks/mrbs/web/timetable.php', [
         'day' => $date->format('j'),
@@ -105,14 +143,60 @@ if (!$entries) {
     return;
 }
 
+$clearurl = $timetableurl($selected, $view);
+echo html_writer::start_tag('form', [
+    'method' => 'get',
+    'action' => $clearurl->out_omit_querystring(false),
+    'class' => 'border rounded p-3 mt-3 mb-4',
+    'aria-labelledby' => 'mrbs-timetable-filters',
+]);
+foreach ($clearurl->params() as $name => $value) {
+    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => $name, 'value' => $value]);
+}
+echo html_writer::tag('h3', get_string('timetablefilters', 'block_mrbs'), ['id' => 'mrbs-timetable-filters', 'class' => 'h5']);
+echo html_writer::start_div('form-row');
+foreach ([
+    'course' => [$courseoptions, $coursefilter, 'timetableallcourses'],
+    'faculty' => [array_map('s', $facultyoptions), $facultyfilter, 'timetableallfaculty'],
+] as $field => [$options, $value, $placeholder]) {
+    $id = 'mrbs-timetable-' . $field;
+    echo html_writer::start_div('form-group col-12 col-md-3');
+    echo html_writer::label(get_string($field, 'block_mrbs'), $id);
+    echo html_writer::select($options, $field, $value, [0 => get_string($placeholder, 'block_mrbs')], [
+        'id' => $id, 'class' => 'custom-select w-100',
+    ]);
+    echo html_writer::end_div();
+}
+foreach (['startfrom' => $startfrom, 'startto' => $startto] as $field => $value) {
+    $id = 'mrbs-timetable-' . $field;
+    echo html_writer::start_div('form-group col-6 col-md-3');
+    echo html_writer::label(get_string('timetable' . $field, 'block_mrbs'), $id);
+    echo html_writer::empty_tag('input', [
+        'type' => 'time', 'name' => $field, 'value' => $value, 'id' => $id, 'class' => 'form-control',
+    ]);
+    echo html_writer::end_div();
+}
+echo html_writer::end_div();
+if ($invalidrange) {
+    echo html_writer::div(get_string('timetableinvalidrange', 'block_mrbs'), 'alert alert-warning');
+}
+echo html_writer::tag('button', get_string('search', 'block_mrbs'), ['type' => 'submit', 'class' => 'btn btn-primary mr-2']);
+echo html_writer::link($clearurl, get_string('timetableclearfilters', 'block_mrbs'), ['class' => 'btn btn-outline-secondary']);
+echo html_writer::end_tag('form');
+
+if (!$filteredentries) {
+    echo html_writer::div(get_string('timetablenofiltermatches', 'block_mrbs'), 'alert alert-info');
+    echo $OUTPUT->footer();
+    return;
+}
+
 $courses = [];
 $groups = [];
-$facultynames = [];
 $currentday = '';
 $timeformat = get_string('strftimetime', 'langconfig');
 $dayformat = get_string('strftimedaydate', 'langconfig');
 $now = time();
-foreach ($entries as $entry) {
+foreach ($filteredentries as $entry) {
     $entryday = max((int)$entry->start_time, $start->getTimestamp());
     $daykey = (new DateTimeImmutable('@' . $entryday))->setTimezone($timezone)->format('Y-m-d');
     if ($daykey !== $currentday) {
@@ -134,7 +218,7 @@ foreach ($entries as $entry) {
             }
         }
         $courses[$entry->courseid] = [
-            'name' => reservation::get_course_fullname($entry->courseid),
+            'name' => $coursenames[$entry->courseid],
             'path' => implode(' / ', $categories),
         ];
     }
@@ -177,7 +261,6 @@ foreach ($entries as $entry) {
     }
     if (!empty($entry->facultyid)) {
         $facultyid = (int)$entry->facultyid;
-        $facultynames[$facultyid] = $facultynames[$facultyid] ?? reservation::get_user_fullname($facultyid);
         if ($facultynames[$facultyid] !== '') {
             echo html_writer::div(get_string('faculty', 'block_mrbs') . ': ' . s($facultynames[$facultyid]), 'small mt-2');
         }

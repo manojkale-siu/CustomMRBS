@@ -417,3 +417,12 @@ $string['timetablecourse'] = 'Programme / Batch / Semester / Course';
 $string['timetableallgroups'] = 'All groups';
 $string['timetablestart'] = 'Starts';
 $string['timetableend'] = 'Ends';
+
+$string['timetablefilters'] = 'Filter sessions';
+$string['timetableallcourses'] = 'All courses';
+$string['timetableallfaculty'] = 'All faculty';
+$string['timetablestartfrom'] = 'Starts at or after';
+$string['timetablestartto'] = 'Starts at or before';
+$string['timetableinvalidrange'] = 'The start-time range must end at or after it begins.';
+$string['timetableclearfilters'] = 'Clear filters';
+$string['timetablenofiltermatches'] = 'No sessions match these filters.';
