@@ -262,18 +262,6 @@ foreach ($roomdetails as $room) {
     }
 }
 
-$capacitycheck = \block_mrbs\local\booking_validator::check_room_capacity($courseid, $groupid, $rooms);
-if (!empty($capacitycheck['blocked'])) {
-    block_mrbs_print_user_error(
-        $day,
-        $month,
-        $year,
-        $area,
-        get_string('capacitywarningmessage', 'block_mrbs')
-    );
-    exit;
-}
-
 // echo "<br>193";
 
 // Support locales where ',' is used as the decimal point
