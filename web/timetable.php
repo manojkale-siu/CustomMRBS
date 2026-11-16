@@ -110,6 +110,7 @@ $groups = [];
 $currentday = '';
 $timeformat = get_string('strftimetime', 'langconfig');
 $dayformat = get_string('strftimedaydate', 'langconfig');
+$now = time();
 foreach ($entries as $entry) {
     $entryday = max((int)$entry->start_time, $start->getTimestamp());
     $daykey = (new DateTimeImmutable('@' . $entryday))->setTimezone($timezone)->format('Y-m-d');
@@ -151,11 +152,25 @@ foreach ($entries as $entry) {
         $to = userdate($entry->end_time);
     }
 
+    if ($now < (int)$entry->start_time) {
+        $status = 'timetablestatusincoming';
+        $badge = 'badge-info';
+    } else if ($now < (int)$entry->end_time) {
+        $status = 'timetablestatuslive';
+        $badge = 'badge-success';
+    } else {
+        $status = 'timetablestatusdone';
+        $badge = 'badge-secondary';
+    }
+
     echo html_writer::start_tag('li', ['class' => 'list-group-item']);
     echo html_writer::start_div('row');
     echo html_writer::div(s($from . ' – ' . $to), 'col-12 col-md-3 font-weight-bold mb-2 mb-md-0');
     echo html_writer::start_div('col-12 col-md-9');
-    echo html_writer::div($course['name'], 'font-weight-bold');
+    echo html_writer::start_div('d-flex flex-wrap align-items-center justify-content-between');
+    echo html_writer::div($course['name'], 'font-weight-bold mr-2');
+    echo html_writer::span(get_string($status, 'block_mrbs'), 'badge badge-pill ' . $badge);
+    echo html_writer::end_div();
     if ($course['path'] !== '') {
         echo html_writer::div($course['path'], 'small text-muted');
     }
