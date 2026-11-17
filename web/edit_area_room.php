@@ -89,8 +89,6 @@ print_header_mrbs($day, $month, $year, isset($area) ? $area : "");
 
 echo $OUTPUT->heading(get_string('editroomarea', 'block_mrbs'), 2);
 
-echo '<table>';
-
 if ($room > 0) {
     $valid_email = true;
     if (!empty($room_admin_email)) {
@@ -100,7 +98,7 @@ if ($room > 0) {
             // does not return TRUE
             if (!get_user_by_email(trim($email))) {
                 $valid_email = false;
-                echo $OUTPUT->box(get_string('no_user_with_email', 'block_mrbs', $email));
+                echo $OUTPUT->notification(get_string('no_user_with_email', 'block_mrbs', s($email)), 'notifyproblem');
             }
         }
     }
@@ -110,7 +108,7 @@ if ($room > 0) {
         foreach ($booking_emails as $email) {
             if (!get_user_by_email(trim($email))) {
                 $valid_email2 = false;
-                echo $OUTPUT->box(get_string('no_user_with_email', 'block_mrbs', $email));
+                echo $OUTPUT->notification(get_string('no_user_with_email', 'block_mrbs', s($email)), 'notifyproblem');
             }
         }
     }
@@ -138,26 +136,57 @@ if ($room > 0) {
     }
 
     $dbroom = $DB->get_record('block_mrbs_room', array('id' => $room), '*', MUST_EXIST);
-    echo '<h3 ALIGN=CENTER>'.get_string('editroom', 'block_mrbs').'</h3>';
-    echo '<form action="'.$thisurl->out_omit_querystring().'" method="post">';
-    echo '<input type="hidden" name="room" value="'.$dbroom->id.'">';
-    echo '<input type="hidden" name="sesskey" value="'.sesskey().'">';
-    echo '<CENTER><TABLE>';
-    echo '<TR><TD>'.get_string('name').': </TD><TD><input type="text" name="room_name" value="'.s($dbroom->room_name).'" maxlength="25" required pattern=".*\S.*"></TD></TR>';
-    echo '<TR><TD>'.get_string('description').'</TD><TD><input type="text" name="description" value="'.s($dbroom->description).'"></TD></TR>';
-    echo '<TR><TD>'.get_string('capacity', 'block_mrbs').':   </TD><TD><input type="text" name="capacity" value="'.$dbroom->capacity.'"></TD></TR>';
-    echo '<TR><TD>'.get_string('room_admin_email', 'block_mrbs').': </TD><TD><input type="text" name="room_admin_email" MAXLENGTH=75 value="'.s($dbroom->room_admin_email).'"></TD>';
-    if (!$valid_email) {
-        echo("<TD>&nbsp;</TD><TD><STRONG>".get_string('emailmustbereal')."<STRONG></TD>");
-    }
-    echo '<TR><TD>'.get_string('booking_users', 'block_mrbs').': '.$OUTPUT->help_icon('booking_users', 'block_mrbs').'</TD><TD><textarea name="booking_users" cols="25" rows="3">'.s($dbroom->booking_users).'</textarea></TD>';
-    if (!$valid_email2) {
-        echo("<TD>&nbsp;</TD><TD><STRONG>".get_string('emailmustbereal')."<STRONG></TD>");
-    }
-    echo '</TR></TABLE>';
-    echo '<input type="submit" name="change_room" value="'.get_string('savechanges').'">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
-    echo '<input type="submit" name="change_done" value="'.get_string('backadmin', 'block_mrbs').'">';
-    echo '</CENTER></form>';
+    ?>
+    <form class="card my-3" action="<?php echo $thisurl->out_omit_querystring(); ?>" method="post">
+        <div class="card-body">
+            <h3 class="h5"><?php echo get_string('editroom', 'block_mrbs'); ?></h3>
+            <input type="hidden" name="room" value="<?php echo (int)$dbroom->id; ?>">
+            <input type="hidden" name="sesskey" value="<?php echo sesskey(); ?>">
+
+            <div class="form-row">
+                <div class="form-group col-12 col-md-8">
+                    <label for="mrbs-room-name"><?php echo get_string('name'); ?></label>
+                    <input class="form-control" id="mrbs-room-name" name="room_name" maxlength="25" required
+                        pattern=".*\S.*" value="<?php echo s($dbroom->room_name); ?>">
+                </div>
+                <div class="form-group col-12 col-md-4">
+                    <label for="mrbs-room-capacity"><?php echo get_string('capacity', 'block_mrbs'); ?></label>
+                    <input class="form-control" id="mrbs-room-capacity" name="capacity" type="number" min="0"
+                        value="<?php echo (int)$dbroom->capacity; ?>">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="mrbs-room-description"><?php echo get_string('description'); ?></label>
+                <input class="form-control" id="mrbs-room-description" name="description"
+                    value="<?php echo s($dbroom->description); ?>">
+            </div>
+            <div class="form-group">
+                <label for="mrbs-room-email"><?php echo get_string('room_admin_email', 'block_mrbs'); ?></label>
+                <input class="form-control<?php echo $valid_email ? '' : ' is-invalid'; ?>" id="mrbs-room-email"
+                    name="room_admin_email" maxlength="75" value="<?php echo s($dbroom->room_admin_email); ?>">
+                <?php if (!$valid_email) { ?>
+                    <div class="invalid-feedback"><?php echo get_string('emailmustbereal'); ?></div>
+                <?php } ?>
+            </div>
+            <div class="form-group">
+                <label for="mrbs-booking-users"><?php echo get_string('booking_users', 'block_mrbs'); ?></label>
+                <?php echo $OUTPUT->help_icon('booking_users', 'block_mrbs'); ?>
+                <textarea class="form-control<?php echo $valid_email2 ? '' : ' is-invalid'; ?>" id="mrbs-booking-users"
+                    name="booking_users" rows="3"><?php echo s($dbroom->booking_users); ?></textarea>
+                <?php if (!$valid_email2) { ?>
+                    <div class="invalid-feedback"><?php echo get_string('emailmustbereal'); ?></div>
+                <?php } ?>
+            </div>
+
+            <button class="btn btn-primary mr-2" type="submit" name="change_room" value="1">
+                <?php echo get_string('savechanges'); ?>
+            </button>
+            <button class="btn btn-outline-secondary" type="submit" name="change_done" value="1" formnovalidate>
+                <?php echo get_string('backadmin', 'block_mrbs'); ?>
+            </button>
+        </div>
+    </form>
+    <?php
 }
 
 if ($area) {
@@ -169,7 +198,7 @@ if ($area) {
         $email = trim($email);
         if (!get_user_by_email($email) && ('' != $area_admin_email)) {
             $valid_email = false;
-            echo $OUTPUT->box(get_string('no_user_with_email', 'block_mrbs', $email));
+            echo $OUTPUT->notification(get_string('no_user_with_email', 'block_mrbs', s($email)), 'notifyproblem');
         }
     }
 
@@ -192,21 +221,36 @@ if ($area) {
 
     $dbarea = $DB->get_record('block_mrbs_area', array('id' => $area), '*', MUST_EXIST);
 
-    echo '<h3 ALIGN=CENTER>'.get_string('editarea', 'block_mrbs').'</h3>';
-    echo '<form action="'.$thisurl->out_omit_querystring().'" method="post">';
-    echo '<input type="hidden" name="area" value="'.$dbarea->id.'">';
-    echo '<input type="hidden" name="sesskey" value="'.sesskey().'">';
-    echo '<CENTER><TABLE>';
-    echo '<TR><TD>'.get_string('name').':       </TD><TD><input type="text" name="area_name" value="'.s($dbarea->area_name).'" maxlength="30" required pattern=".*\S.*"></TD></TR>';
-    echo '<TR><TD>'.get_string('area_admin_email', 'block_mrbs').':       </TD><TD><input type="text" name="area_admin_email" MAXLENGTH=75 value="'.s($dbarea->area_admin_email).'"></TD>';
-    if (!$valid_email) {
-        echo "<TD>&nbsp;</TD><TD><STRONG>".get_string('emailmustbereal')."</STRONG></TD>";
-    }
-    echo '</TR></TABLE>';
-    echo '<input type=submit name="change_area" value="'.get_string('savechanges').'">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
-    echo '<input type=submit name="change_done" value="'.get_string('backadmin', 'block_mrbs').'">';
-    echo '</CENTER></form>';
+    ?>
+    <form class="card my-3" action="<?php echo $thisurl->out_omit_querystring(); ?>" method="post">
+        <div class="card-body">
+            <h3 class="h5"><?php echo get_string('editarea', 'block_mrbs'); ?></h3>
+            <input type="hidden" name="area" value="<?php echo (int)$dbarea->id; ?>">
+            <input type="hidden" name="sesskey" value="<?php echo sesskey(); ?>">
+
+            <div class="form-group">
+                <label for="mrbs-area-name"><?php echo get_string('name'); ?></label>
+                <input class="form-control" id="mrbs-area-name" name="area_name" maxlength="30" required
+                    pattern=".*\S.*" value="<?php echo s($dbarea->area_name); ?>">
+            </div>
+            <div class="form-group">
+                <label for="mrbs-area-email"><?php echo get_string('area_admin_email', 'block_mrbs'); ?></label>
+                <input class="form-control<?php echo $valid_email ? '' : ' is-invalid'; ?>" id="mrbs-area-email"
+                    name="area_admin_email" maxlength="75" value="<?php echo s($dbarea->area_admin_email); ?>">
+                <?php if (!$valid_email) { ?>
+                    <div class="invalid-feedback"><?php echo get_string('emailmustbereal'); ?></div>
+                <?php } ?>
+            </div>
+
+            <button class="btn btn-primary mr-2" type="submit" name="change_area" value="1">
+                <?php echo get_string('savechanges'); ?>
+            </button>
+            <button class="btn btn-outline-secondary" type="submit" name="change_done" value="1" formnovalidate>
+                <?php echo get_string('backadmin', 'block_mrbs'); ?>
+            </button>
+        </div>
+    </form>
+    <?php
 }
-echo '</TABLE>';
 
 include "trailer.php";
