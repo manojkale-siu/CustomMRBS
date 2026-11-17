@@ -50,16 +50,12 @@ require_login();
 
 print_header_mrbs($day, $month, $year, $area);
 
-echo "<H3>".get_string('about_mrbs', 'block_mrbs')."</H3>\n";
-echo "<P><a href=\"http://mrbs.sourceforge.net\">".get_string('mrbs', 'block_mrbs')."</a> - ".get_mrbs_version()."\n";
-//echo "<BR>" . get_string('database','block_mrbs') . sql_version() . "\n";
-echo "<BR>".get_string('system', 'block_mrbs').php_uname()."\n";
-echo "<BR>PHP: ".phpversion()."\n";
-
-echo "<H3>".get_string('help')."</H3>\n";
-echo get_string('please_contact', 'block_mrbs').'<a href="mailto:'.$mrbs_admin_email
-    .'">'.$mrbs_admin
-    ."</a> ".get_string('for_any_questions', 'block_mrbs')."\n";
+echo $OUTPUT->heading(get_string('help'), 2);
+echo html_writer::start_div('card my-3');
+echo html_writer::start_div('card-body');
+$contact = html_writer::link('mailto:' . $mrbs_admin_email, s($mrbs_admin));
+echo html_writer::tag('p', get_string('please_contact', 'block_mrbs') . $contact
+    . ' ' . get_string('for_any_questions', 'block_mrbs'));
 
 $lang = current_language();
 if (file_exists($CFG->dirroot.'/blocks/mrbs/lang/'.$lang.'/help/site_faq.html')) {
@@ -67,6 +63,17 @@ if (file_exists($CFG->dirroot.'/blocks/mrbs/lang/'.$lang.'/help/site_faq.html'))
 } else {
     include $CFG->dirroot.'/blocks/mrbs/lang/en/help/site_faq.html';
 }
+
+echo html_writer::end_div();
+echo html_writer::end_div();
+
+echo html_writer::start_div('card my-3');
+echo html_writer::start_div('card-body');
+echo $OUTPUT->heading(get_string('about_mrbs', 'block_mrbs'), 3, 'h5');
+echo html_writer::tag('p', html_writer::link('https://mrbs.sourceforge.net', get_string('mrbs', 'block_mrbs'))
+    . ' – ' . s(get_mrbs_version()), ['class' => 'mb-0']);
+echo html_writer::end_div();
+echo html_writer::end_div();
 
 include "trailer.php";
 
