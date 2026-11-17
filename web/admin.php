@@ -59,95 +59,109 @@ if ($area) {
         $area_name = $dbarea->area_name;
     }
 }
-echo '<h2>'.get_string('administration').'</h2>';
-echo '<table border=1>';
-echo '<tr>';
-echo '<th><center><b>'.get_string('areas', 'block_mrbs').'</b></center></th>';
-echo '<th><center><b>'.get_string('rooms', 'block_mrbs').' ';
-if (isset($area_name)) {
-    echo get_string('in', 'block_mrbs')." ".s($area_name);
-}
-echo '</b></center></th></tr><tr><td class="border">';
-
-// This cell has the areas
 $areas = $DB->get_records('block_mrbs_area', null, 'area_name');
+$rooms = $area ? $DB->get_records('block_mrbs_room', ['area_id' => $area], 'room_name') : [];
+$addareaurl = new moodle_url('/blocks/mrbs/web/add.php', [
+    'type' => 'area', 'sesskey' => sesskey(), 'day' => $day, 'month' => $month, 'year' => $year,
+]);
+$addroomurl = new moodle_url($addareaurl, ['type' => 'room', 'area' => $area]);
 
-if (empty($areas)) {
-    echo get_string('noareas', 'block_mrbs');
-} else {
-    echo '<ul>';
-    foreach ($areas as $dbarea) {
-        $area_name_q = urlencode($dbarea->area_name);
-        $adminurl = new moodle_url('/blocks/mrbs/web/admin.php', array(
-            'area' => $dbarea->id, 'area_name' => $area_name_q, 'sesskey' => sesskey()
-        ));
-        $editroomurl = new moodle_url('/blocks/mrbs/web/edit_area_room.php', array('area' => $dbarea->id, 'sesskey' => sesskey()));
-        $delareaurl = new moodle_url('/blocks/mrbs/web/del.php', array(
-            'area' => $dbarea->id, 'type' => 'area', 'sesskey' => sesskey()
-        ));
-        echo '<li><a href="'.$adminurl.'">'.s($dbarea->area_name).'</a> (<a href="'.$editroomurl.'">'.get_string('edit').'</a>) (<a href="'.$delareaurl.'">'.get_string('delete')."</a>)\n";
-    }
-    echo "</ul>";
-}
-echo '</td><td class="border">';
+$listitem = static function ($label, $editurl, $deleteurl) {
+    $actions = html_writer::link($editurl, get_string('edit'), ['class' => 'btn btn-sm btn-outline-secondary mr-2'])
+        . html_writer::link($deleteurl, get_string('delete'), ['class' => 'btn btn-sm btn-outline-danger']);
+    return html_writer::div(
+        html_writer::span($label, 'mr-3') . html_writer::span($actions, 'text-nowrap'),
+        'list-group-item d-flex flex-wrap justify-content-between align-items-center'
+    );
+};
+?>
+<h2><?php echo get_string('administration'); ?></h2>
+<div class="row mt-3">
+    <div class="col-12 col-lg-6 mb-3">
+        <section class="card mb-3">
+            <div class="card-body">
+                <h3 class="h5"><?php echo get_string('areas', 'block_mrbs'); ?></h3>
+                <?php if (!$areas) { ?>
+                    <p class="text-muted mb-0"><?php echo get_string('noareas', 'block_mrbs'); ?></p>
+                <?php } else { ?>
+                    <div class="list-group">
+                        <?php foreach ($areas as $dbarea) {
+                            $params = ['area' => $dbarea->id, 'sesskey' => sesskey()];
+                            $adminurl = new moodle_url($thisurl, ['area' => $dbarea->id]);
+                            $editurl = new moodle_url('/blocks/mrbs/web/edit_area_room.php', $params);
+                            $deleteurl = new moodle_url('/blocks/mrbs/web/del.php', $params + ['type' => 'area']);
+                            $attributes = $dbarea->id == $area
+                                ? ['class' => 'font-weight-bold', 'aria-current' => 'page'] : [];
+                            echo $listitem(html_writer::link($adminurl, s($dbarea->area_name), $attributes), $editurl, $deleteurl);
+                        } ?>
+                    </div>
+                <?php } ?>
+            </div>
+        </section>
 
-// This one has the rooms
-if ($area) {
-    $rooms = $DB->get_records('block_mrbs_room', array('area_id' => $area), 'room_name');
-    if (empty($rooms)) {
-        //    $res = sql_query("select id, room_name, description, capacity from $tbl_room where area_id=$area order by room_name");
-        echo get_string('norooms', 'block_mrbs');
-    } else {
-        echo '<ul>';
-        foreach ($rooms as $dbroom) {
-            $editroomurl = new moodle_url('/blocks/mrbs/web/edit_area_room.php', array(
-                'room' => $dbroom->id, 'sesskey' => sesskey()
-            ));
-            $delroomurl = new moodle_url('/blocks/mrbs/web/del.php', array(
-                'area' => $area, 'room' => $dbroom->id, 'type' => 'room', 'sesskey' => sesskey()
-            ));
-            $info = array();
-            $desc = trim(s($dbroom->description));
-            if ($desc) {
-                $info[] = $desc;
-            }
-            if ($dbroom->capacity) {
-                $info[] = $dbroom->capacity;
-            }
-            if ($info) {
-                $info = '('.implode(', ', $info).') ';
-            } else {
-                $info = '';
-            }
-            echo '<li>'.s($dbroom->room_name).' '.$info.'(<a href="'.$editroomurl.'">'.get_string('edit').'</a>) (<a href="'.$delroomurl.'">'.get_string('delete')."</a>)\n";
-        }
-        echo '</ul>';
-    }
-} else {
-    echo get_string('noarea', 'block_mrbs');
-}
+        <form class="card" method="post" action="<?php echo $addareaurl->out_omit_querystring(); ?>"
+            onsubmit="return this.elements['name'].value.trim().length > 0;">
+            <div class="card-body">
+                <h3 class="h5"><?php echo get_string('addarea', 'block_mrbs'); ?></h3>
+                <?php echo html_writer::input_hidden_params($addareaurl); ?>
+                <div class="form-group">
+                    <label for="mrbs-area-name"><?php echo get_string('name'); ?></label>
+                    <input class="form-control" id="mrbs-area-name" name="name" required maxlength="30" pattern=".*\S.*">
+                </div>
+                <button class="btn btn-primary" type="submit"><?php echo get_string('addarea', 'block_mrbs'); ?></button>
+            </div>
+        </form>
+    </div>
 
-$addareaurl = new moodle_url('/blocks/mrbs/web/add.php', array(
-    'type' => 'area', 'sesskey' => sesskey(), 'day' => $day, 'month' => $month, 'year' => $year
-));
-$addroomurl = new moodle_url($addareaurl, array('type' => 'room', 'area' => $area));
+    <div class="col-12 col-lg-6 mb-3">
+        <section class="card mb-3">
+            <div class="card-body">
+                <h3 class="h5"><?php echo get_string('rooms', 'block_mrbs');
+                    if ($area_name !== '') {
+                        echo ' ' . get_string('in', 'block_mrbs') . ' ' . s($area_name);
+                    } ?></h3>
+                <?php if (!$rooms) { ?>
+                    <p class="text-muted mb-0"><?php echo get_string($area ? 'norooms' : 'noarea', 'block_mrbs'); ?></p>
+                <?php } else { ?>
+                    <div class="list-group">
+                        <?php foreach ($rooms as $dbroom) {
+                            $params = ['room' => $dbroom->id, 'sesskey' => sesskey()];
+                            $editurl = new moodle_url('/blocks/mrbs/web/edit_area_room.php', $params);
+                            $deleteurl = new moodle_url('/blocks/mrbs/web/del.php', $params + ['type' => 'room', 'area' => $area]);
+                            $details = array_filter([trim((string)$dbroom->description), $dbroom->capacity]);
+                            $label = s($dbroom->room_name);
+                            if ($details) {
+                                $label .= ' ' . html_writer::span('(' . s(implode(', ', $details)) . ')', 'text-muted');
+                            }
+                            echo $listitem($label, $editurl, $deleteurl);
+                        } ?>
+                    </div>
+                <?php } ?>
+            </div>
+        </section>
 
-echo '</tr><tr><td class="border"><h3 ALIGN=CENTER>'.get_string('addarea', 'block_mrbs').'</h3>';
-echo '<form action="'.($addareaurl->out_omit_querystring()).'" method="post" onsubmit="return this.elements[\'name\'].value.trim().length > 0;">';
-echo html_writer::input_hidden_params($addareaurl);
-echo '<table><tr><td>'.get_string('name').'</td><td><input type="text" name="name" required maxlength="30" pattern=".*\S.*"></td></tr></table>';
-echo '<input type=submit value="'.get_string('addarea', 'block_mrbs').'"></form></td><td class="border">';
-if (0 != $area) {
-    echo '<h3 align=center>'.get_string('addroom', 'block_mrbs').'</h3>';
-    echo '<form action="'.$addroomurl->out_omit_querystring().'" method="post" onsubmit="return this.elements[\'name\'].value.trim().length > 0;">';
-    echo html_writer::input_hidden_params($addroomurl);
-    echo '<table><tr><td>'.get_string('name').': </td><td><input type="text" name="name" required maxlength="25" pattern=".*\S.*"></td></tr>';
-    echo '<tr><td>'.get_string('description').': </td><td><input type="text" name="description"></td></tr>';
-    echo '<tr><td>'.get_string('capacity', 'block_mrbs').': </td><td><input type="text" name="capacity"></td></tr>';
-    echo '</table><input type=submit value="'.get_string('addroom', 'block_mrbs').'"></form>';
-} else {
-    echo "&nbsp;";
-}
-echo '</td></tr></table>';
-//echo '<br />'.get_string('browserlang','block_mrbs').' '.$HTTP_ACCEPT_LANGUAGE.' '.get_string('postbrowserlang','block_mrbs');
-include 'trailer.php';
+        <?php if ($area) { ?>
+            <form class="card" method="post" action="<?php echo $addroomurl->out_omit_querystring(); ?>"
+                onsubmit="return this.elements['name'].value.trim().length > 0;">
+                <div class="card-body">
+                    <h3 class="h5"><?php echo get_string('addroom', 'block_mrbs'); ?></h3>
+                    <?php echo html_writer::input_hidden_params($addroomurl); ?>
+                    <div class="form-group">
+                        <label for="mrbs-room-name"><?php echo get_string('name'); ?></label>
+                        <input class="form-control" id="mrbs-room-name" name="name" required maxlength="25" pattern=".*\S.*">
+                    </div>
+                    <div class="form-group">
+                        <label for="mrbs-room-description"><?php echo get_string('description'); ?></label>
+                        <input class="form-control" id="mrbs-room-description" name="description">
+                    </div>
+                    <div class="form-group">
+                        <label for="mrbs-room-capacity"><?php echo get_string('capacity', 'block_mrbs'); ?></label>
+                        <input class="form-control" type="number" min="0" id="mrbs-room-capacity" name="capacity">
+                    </div>
+                    <button class="btn btn-primary" type="submit"><?php echo get_string('addroom', 'block_mrbs'); ?></button>
+                </div>
+            </form>
+        <?php } ?>
+    </div>
+</div>
+<?php include 'trailer.php';
