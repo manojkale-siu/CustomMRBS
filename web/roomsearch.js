@@ -72,6 +72,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 const link = document.createElement('a');
                 link.href = room.url;
                 link.textContent = room.name;
+                if (window.opener && !window.opener.closed) {
+                    link.target = '_self';
+                    link.addEventListener('click', function(event) {
+                        if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) {
+                            return;
+                        }
+                        window.opener.location.href = link.href;
+                        event.preventDefault();
+                        window.close();
+                    });
+                }
                 row.insertCell().appendChild(link);
                 row.insertCell().textContent = room.description || '';
                 row.insertCell().textContent = room.capacity;
