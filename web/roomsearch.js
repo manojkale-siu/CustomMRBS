@@ -81,23 +81,32 @@ document.addEventListener('DOMContentLoaded', function() {
             for (const room of result.rooms) {
                 const row = rows.insertRow();
                 row.insertCell().textContent = room.area;
-                const link = document.createElement('a');
-                link.href = room.url;
-                link.textContent = room.name;
-                if (window.opener && !window.opener.closed) {
-                    link.target = '_self';
-                    link.addEventListener('click', function(event) {
-                        if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) {
-                            return;
-                        }
-                        window.opener.location.href = link.href;
-                        event.preventDefault();
-                        window.close();
-                    });
+                const name = row.insertCell();
+                if (room.url) {
+                    const link = document.createElement('a');
+                    link.href = room.url;
+                    link.textContent = room.name;
+                    if (window.opener && !window.opener.closed) {
+                        link.target = '_self';
+                        link.addEventListener('click', function(event) {
+                            if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) {
+                                return;
+                            }
+                            window.opener.location.href = link.href;
+                            event.preventDefault();
+                            window.close();
+                        });
+                    }
+                    name.appendChild(link);
+                } else {
+                    name.textContent = room.name;
                 }
-                row.insertCell().appendChild(link);
                 row.insertCell().textContent = room.description || '';
                 row.insertCell().textContent = room.capacity;
+                const badge = document.createElement('span');
+                badge.className = 'badge badge-pill ' + (room.booked ? 'badge-secondary' : 'badge-success');
+                badge.textContent = room.booked ? form.dataset.booked : form.dataset.available;
+                row.insertCell().appendChild(badge);
             }
             table.hidden = false;
         } catch (error) {

@@ -57,6 +57,8 @@ $endpoint = new moodle_url('/blocks/mrbs/web/roomsearch_ss.php');
 
 <form id="mrbs-room-search" class="card my-3"
     data-endpoint="<?php echo $endpoint->out(); ?>"
+    data-booked="<?php echo s(get_string('roomsearchbooked', 'block_mrbs')); ?>"
+    data-available="<?php echo s(get_string('roomsearchavailable', 'block_mrbs')); ?>"
     data-empty="<?php echo s(get_string('noroomsfound', 'block_mrbs')); ?>"
     data-window="<?php echo s(get_string('roomsearchwindow', 'block_mrbs')); ?>"
     data-error="<?php echo s(get_string('roomsearchfailed', 'block_mrbs')); ?>">
@@ -119,7 +121,7 @@ $endpoint = new moodle_url('/blocks/mrbs/web/roomsearch_ss.php');
 </form>
 
 <section aria-labelledby="mrbs-room-results">
-    <h3 id="mrbs-room-results" class="h5"><?php echo get_string('roomsfree', 'block_mrbs'); ?></h3>
+    <h3 id="mrbs-room-results" class="h5"><?php echo get_string('roomsearchresults', 'block_mrbs'); ?></h3>
     <p id="mrbs-room-window" class="text-muted" aria-live="polite" hidden></p>
     <div id="mrbs-room-status" role="status" aria-live="polite" hidden></div>
     <div id="mrbs-room-table" class="table-responsive" hidden>
@@ -130,6 +132,7 @@ $endpoint = new moodle_url('/blocks/mrbs/web/roomsearch_ss.php');
                     <th scope="col"><?php echo get_string('room', 'block_mrbs'); ?></th>
                     <th scope="col"><?php echo get_string('description'); ?></th>
                     <th scope="col"><?php echo get_string('capacity', 'block_mrbs'); ?></th>
+                    <th scope="col"><?php echo get_string('roomsearchstatus', 'block_mrbs'); ?></th>
                 </tr>
             </thead>
             <tbody id="mrbs-room-rows"></tbody>

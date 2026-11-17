@@ -131,14 +131,15 @@ if ($all_day) {
     }
 }
 
-$sql = "SELECT r.id, r.room_name, r.description, r.capacity, a.area_name
+$sql = "SELECT r.id, r.room_name, r.description, r.capacity, a.area_name,
+               CASE WHEN EXISTS (
+                   SELECT 1 FROM {block_mrbs_entry} e
+                    WHERE e.room_id = r.id AND e.start_time < ? AND e.end_time > ?
+               ) THEN 1 ELSE 0 END AS booked
           FROM {block_mrbs_room} r
           JOIN {block_mrbs_area} a ON a.id = r.area_id
-         WHERE r.capacity >= ? AND NOT EXISTS (
-             SELECT 1 FROM {block_mrbs_entry} e
-              WHERE e.room_id = r.id AND e.start_time < ? AND e.end_time > ?
-         )";
-$params = [max(0, $mincap), $endtime, $starttime];
+         WHERE r.capacity >= ?";
+$params = [$endtime, $starttime, max(0, $mincap)];
 
 if ($computer) {
     $sql .= " AND ".$DB->sql_like('r.description', '?', false);
@@ -174,7 +175,8 @@ foreach ($DB->get_records_sql($sql, $params) as $room) {
         'name' => $room->room_name,
         'description' => $room->description,
         'capacity' => $room->capacity,
-        'url' => $url->out(false),
+        'booked' => (bool)$room->booked,
+        'url' => $room->booked ? null : $url->out(false),
     ];
 }
 header('Content-Type: application/json; charset=utf-8');

@@ -438,3 +438,7 @@ $string['bookingrescheduledshort'] = '{$a->name} moved to {$a->newtime} in {$a->
 $string['bookingrescheduledmessage'] = '{$a->name} was rescheduled from {$a->oldtime} to {$a->newtime} in {$a->newroom}, {$a->area}.';
 
 $string['roomsearchwindow'] = 'Availability checked for';
+$string['roomsearchresults'] = 'Room availability';
+$string['roomsearchstatus'] = 'Status';
+$string['roomsearchbooked'] = 'Booked';
+$string['roomsearchavailable'] = 'Available';
