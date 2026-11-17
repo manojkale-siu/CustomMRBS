@@ -35,6 +35,8 @@ $minute = optional_param('minute', '', PARAM_INT);
 $force = optional_param('force', false, PARAM_BOOL);
 $period = optional_param('period', 0, PARAM_INT);
 $all_day = optional_param('all_day', false, PARAM_BOOL);
+$searchduration = optional_param('searchduration', 0, PARAM_INT);
+$searchunits = optional_param('searchunits', '', PARAM_ALPHA);
 
 //If we dont know the right date then make it up
 if (($day == 0) or ($month == 0) or ($year == 0)) {
@@ -249,6 +251,16 @@ if ($reservationname === '') {
 $ajaxurl = new moodle_url('/blocks/mrbs/web/ajax.php');
 
 $enable_periods ? toPeriodString($start_min, $duration, $dur_units) : toTimeString($duration, $dur_units);
+
+$searchallowedunits = $enable_periods ? ['periods', 'days'] : ['minutes', 'hours', 'days', 'weeks'];
+if (!$id && $searchduration > 0 && in_array($searchunits, $searchallowedunits, true)) {
+    $duration = $searchduration;
+    $dur_units = $searchunits;
+    if (!$enable_periods) {
+        $start_hour = $hour;
+        $start_min = $minute;
+    }
+}
 
 //now that we know all the data to fill the form with we start drawing it
 

@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     const rows = document.getElementById('mrbs-room-rows');
+    const interval = document.getElementById('mrbs-room-window');
     const status = document.getElementById('mrbs-room-status');
     const table = document.getElementById('mrbs-room-table');
     let request;
@@ -29,6 +30,18 @@ document.addEventListener('DOMContentLoaded', function() {
         if (request) {
             request.abort();
         }
+        const allDay = form.elements.namedItem('all_day').checked;
+        for (const name of ['period', 'time', 'duration', 'dur_units']) {
+            const control = form.elements.namedItem(name);
+            if (control) {
+                control.disabled = allDay;
+            }
+        }
+
+        rows.replaceChildren();
+        interval.hidden = true;
+        status.hidden = true;
+        table.hidden = true;
         if (!form.checkValidity()) {
             return;
         }
@@ -47,26 +60,25 @@ document.addEventListener('DOMContentLoaded', function() {
             params.delete('time');
         }
 
-        rows.replaceChildren();
-        status.hidden = true;
-        table.hidden = true;
         try {
             const response = await fetch(form.dataset.endpoint + '?' + params, {signal: current.signal});
             if (!response.ok) {
                 throw new Error('Room search failed');
             }
-            const rooms = await response.json();
+            const result = await response.json();
             if (current !== request) {
                 return;
             }
-            if (rooms.length === 0) {
+            interval.textContent = form.dataset.window + ' ' + result.start + ' – ' + result.end;
+            interval.hidden = false;
+            if (result.rooms.length === 0) {
                 status.textContent = form.dataset.empty;
                 status.className = 'alert alert-info';
                 status.hidden = false;
                 return;
             }
 
-            for (const room of rooms) {
+            for (const room of result.rooms) {
                 const row = rows.insertRow();
                 row.insertCell().textContent = room.area;
                 const link = document.createElement('a');

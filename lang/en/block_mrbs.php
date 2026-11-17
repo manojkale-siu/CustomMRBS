@@ -436,3 +436,5 @@ $string['forcebookreturnselected'] = 'Return to the booking you want to keep';
 
 $string['bookingrescheduledshort'] = '{$a->name} moved to {$a->newtime} in {$a->newroom}.';
 $string['bookingrescheduledmessage'] = '{$a->name} was rescheduled from {$a->oldtime} to {$a->newtime} in {$a->newroom}, {$a->area}.';
+
+$string['roomsearchwindow'] = 'Availability checked for';

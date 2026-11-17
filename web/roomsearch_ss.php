@@ -28,8 +28,9 @@ $day = optional_param('day', 0, PARAM_INT);
 $month = optional_param('month', 0, PARAM_INT);
 $year = optional_param('year', 0, PARAM_INT);
 $period = optional_param('period', 0, PARAM_INT);
-$duration = optional_param('duration', 0, PARAM_INT);
-$dur_units = optional_param('dur_units', 0, PARAM_TEXT);
+$duration = max(1, optional_param('duration', 1, PARAM_INT));
+$unitsallowed = $enable_periods ? ['periods', 'days'] : ['minutes', 'hours', 'days', 'weeks'];
+$dur_units = optional_param('dur_units', $unitsallowed[0], PARAM_ALPHA);
 $all_day = optional_param('all_day', false, PARAM_BOOL);
 $mincap = optional_param('mincap', 0, PARAM_INT);
 $teaching = optional_param('teaching', false, PARAM_BOOL);
@@ -39,7 +40,7 @@ $hour = optional_param('hour', null, PARAM_INT);
 $minute = optional_param('minute', null, PARAM_INT);
 $ampm = optional_param('ampm', null, PARAM_ALPHA);
 
-if ($year < 1970 || $year > 9999 || !checkdate($month, $day, $year)) {
+if ($year < 1970 || $year > 9999 || !checkdate($month, $day, $year) || !in_array($dur_units, $unitsallowed, true)) {
     http_response_code(400);
     exit;
 }
@@ -165,6 +166,8 @@ foreach ($DB->get_records_sql($sql, $params) as $room) {
         'hour' => $hour,
         'minute' => $minute,
         'all_day' => (int)$all_day,
+        'searchduration' => $duration,
+        'searchunits' => $dur_units,
     ]);
     $results[] = [
         'area' => $room->area_name,
@@ -175,4 +178,8 @@ foreach ($DB->get_records_sql($sql, $params) as $room) {
     ];
 }
 header('Content-Type: application/json; charset=utf-8');
-echo json_encode($results);
+echo json_encode([
+    'start' => userdate($starttime),
+    'end' => userdate($endtime),
+    'rooms' => $results,
+]);

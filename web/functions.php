@@ -102,7 +102,7 @@ function print_header_mrbs($day = null, $month = null, $year = null, $area = nul
         }
 
         $roomsearchstr = get_string('roomsearch', 'block_mrbs');
-        $roomsearchurl = new moodle_url('/blocks/mrbs/web/roomsearch.php');
+        $roomsearchurl = new moodle_url('/blocks/mrbs/web/roomsearch.php', compact('day', 'month', 'year', 'area'));
 
         $helpstr = get_string('help');
         $helpurl = new moodle_url('/blocks/mrbs/web/help.php', array('day' => $day, 'month' => $month, 'year' => $year));
