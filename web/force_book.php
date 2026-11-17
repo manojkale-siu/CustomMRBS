@@ -179,12 +179,12 @@ function mrbsForceMove($room_id, $starttime, $endtime, $name, $id = null) {
 
 
 /**
- * Plan room changes for the bookings displaced by the requested slots.
+ * Find bookings displaced by the requested rooms and slots.
  *
- * @return array|null Planned moves, or null if a conflict cannot be relocated.
+ * @return array Conflicting booking records keyed by entry ID.
  */
-function mrbsPlanForceMoves(array $roomids, array $slots, $ignoreid, $ignorerepeatid) {
-    global $DB, $USER;
+function mrbsFindForceConflicts(array $roomids, array $slots, $ignoreid, $ignorerepeatid) {
+    global $DB;
 
     [$roomsql, $roomparams] = $DB->get_in_or_equal($roomids);
     $conflicts = [];
@@ -197,6 +197,17 @@ function mrbsPlanForceMoves(array $roomids, array $slots, $ignoreid, $ignorerepe
         }
         $conflicts += $DB->get_records_select('block_mrbs_entry', $select, $params, 'start_time, id');
     }
+
+    return $conflicts;
+}
+
+/**
+ * Plan room changes for the bookings displaced by the requested slots.
+ *
+ * @return array|null Planned moves, or null if a conflict cannot be relocated.
+ */
+function mrbsPlanForceMoves(array $roomids, array $conflicts) {
+    global $DB, $USER;
 
     if (!$conflicts) {
         return [];

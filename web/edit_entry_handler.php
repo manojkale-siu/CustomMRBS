@@ -558,9 +558,32 @@ if ($forcebook && !$err) {
         }
     }
     require_once(__DIR__ . '/force_book.php');
-    $forcemoves = mrbsPlanForceMoves($rooms, $slots, $ignore_id, $seriesignore);
+    $conflicts = mrbsFindForceConflicts($rooms, $slots, $ignore_id, $seriesignore);
+    $forcemoves = mrbsPlanForceMoves($rooms, $conflicts);
     if ($forcemoves === null) {
-        block_mrbs_print_user_error($day, $month, $year, $area, get_string('forcebooknoroom', 'block_mrbs'));
+        print_header_mrbs($day, $month, $year, $area);
+        echo $OUTPUT->heading(get_string('sched_conflict', 'block_mrbs'));
+        echo $OUTPUT->notification(get_string('forcebooknoroom', 'block_mrbs'), 'warning');
+        echo html_writer::tag('p', get_string('forcebookreschedulehelp', 'block_mrbs'));
+
+        $actions = [];
+        foreach ($conflicts as $entry) {
+            $entryname = \block_mrbs\local\reservation::get_display_name($entry);
+            $label = get_string('forcebookrescheduleentry', 'block_mrbs', (object)[
+                'name' => $entryname,
+                'time' => userdate($entry->start_time),
+            ]);
+            $editurl = new moodle_url('/blocks/mrbs/web/edit_entry.php', ['id' => $entry->id]);
+            $actions[] = html_writer::link($editurl, s($label));
+        }
+        echo html_writer::alist($actions);
+        if ($id) {
+            $editurl = new moodle_url('/blocks/mrbs/web/edit_entry.php', ['id' => $id, 'edit_type' => $edit_type]);
+            echo html_writer::div(html_writer::link($editurl, get_string('forcebookreturnselected', 'block_mrbs')), 'mb-3');
+        }
+        $calendarurl = new moodle_url('/blocks/mrbs/web/day.php', compact('day', 'month', 'year', 'area'));
+        echo html_writer::link($calendarurl, get_string('returncal', 'block_mrbs'));
+        include __DIR__ . '/trailer.php';
         exit;
     }
 }
