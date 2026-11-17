@@ -33,9 +33,6 @@ $unitsallowed = $enable_periods ? ['periods', 'days'] : ['minutes', 'hours', 'da
 $dur_units = optional_param('dur_units', $unitsallowed[0], PARAM_ALPHA);
 $all_day = optional_param('all_day', false, PARAM_BOOL);
 $mincap = optional_param('mincap', 0, PARAM_INT);
-$teaching = optional_param('teaching', false, PARAM_BOOL);
-$special = optional_param('special', false, PARAM_BOOL);
-$computer = optional_param('computer', false, PARAM_BOOL);
 $hour = optional_param('hour', null, PARAM_INT);
 $minute = optional_param('minute', null, PARAM_INT);
 $ampm = optional_param('ampm', null, PARAM_ALPHA);
@@ -140,19 +137,6 @@ $sql = "SELECT r.id, r.room_name, r.description, r.capacity, a.area_name,
           JOIN {block_mrbs_area} a ON a.id = r.area_id
          WHERE r.capacity >= ?";
 $params = [$endtime, $starttime, max(0, $mincap)];
-
-if ($computer) {
-    $sql .= " AND ".$DB->sql_like('r.description', '?', false);
-    $params[] = 'Teaching IT%';
-}
-if ($teaching) {
-    $sql .= " AND ".$DB->sql_like('r.description', '?', false);
-    $params[] = 'Teaching%';
-}
-if ($special) {
-    $sql .= ' AND (r.description IS NULL OR ' . $DB->sql_like('r.description', '?', false, false, true) . ')';
-    $params[] = 'Teaching Specialist%';
-}
 
 $sql .= " ORDER BY a.area_name, r.room_name";
 

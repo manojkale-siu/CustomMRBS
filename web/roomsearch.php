@@ -100,21 +100,10 @@ $endpoint = new moodle_url('/blocks/mrbs/web/roomsearch_ss.php');
             </div>
         </div>
 
-        <div class="d-flex flex-wrap mb-3">
-            <?php foreach ([
-                'all_day' => ['all_day', $all_day],
-                'teaching' => ['teachingroom', false],
-                'special' => ['specialroom', true],
-                'computer' => ['computerroom', false],
-            ] as $field => [$label, $checked]) { ?>
-                <div class="form-check form-check-inline mb-2">
-                    <input class="form-check-input" type="checkbox" id="mrbs-search-<?php echo $field; ?>"
-                        name="<?php echo $field; ?>" value="1" <?php echo $checked ? 'checked' : ''; ?>>
-                    <label class="form-check-label" for="mrbs-search-<?php echo $field; ?>">
-                        <?php echo get_string($label, 'block_mrbs'); ?>
-                    </label>
-                </div>
-            <?php } ?>
+        <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" id="mrbs-search-all_day"
+                name="all_day" value="1" <?php echo $all_day ? 'checked' : ''; ?>>
+            <label class="form-check-label" for="mrbs-search-all_day"><?php echo get_string('all_day', 'block_mrbs'); ?></label>
         </div>
         <button class="btn btn-primary" type="submit"><?php echo get_string('search'); ?></button>
     </div>
