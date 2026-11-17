@@ -13,132 +13,86 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-function RoomSearch() {
-//check for force book- if ticked we should be able to select any room
+document.addEventListener('DOMContentLoaded', function() {
     "use strict";
-    var hasPeriod, dayInput, day, monthInput, month, yearInput, year, periodInput, period, durationInput, duration, dur_unitsInput,
-        dur_units, mincapInput, mincap, teachingInput, teaching, specialInput, special, computerInput, computer, searchstring,
-        hourInput, hour, minuteInput, minute, ampmInput, ampm, i, freeRooms, room, j;
 
-    hasPeriod = !!document.getElementsByName('period').length;
+    const form = document.getElementById('mrbs-room-search');
+    if (!form) {
+        return;
+    }
+    const rows = document.getElementById('mrbs-room-rows');
+    const status = document.getElementById('mrbs-room-status');
+    const table = document.getElementById('mrbs-room-table');
+    let request;
 
-    dayInput = document.getElementsByName('day');
-    day = dayInput[0].selectedIndex + 1;
-
-    monthInput = document.getElementsByName('month');
-    month = monthInput[0].selectedIndex + 1;
-
-    yearInput = document.getElementsByName('year');
-    year = yearInput[0].options[yearInput[0].selectedIndex].value;
-
-    if (hasPeriod) {
-        periodInput = document.getElementsByName('period');
-        period = periodInput[0].selectedIndex;
-    } else {
-        hourInput = document.getElementsByName('hour');
-        hour = parseInt(hourInput[0].value, 10);
-        minuteInput = document.getElementsByName('minute');
-        minute = parseInt(minuteInput[0].value, 10);
-
-        ampmInput = document.getElementsByName('ampm');
-        ampm = 'am';
-        for (i = 0; i<ampmInput.length; i++) {
-            if (ampmInput[i].checked) {
-                ampm = ampmInput[i].value;
-            }
+    async function roomSearch() {
+        if (request) {
+            request.abort();
         }
-    }
+        if (!form.checkValidity()) {
+            return;
+        }
+        request = new AbortController();
+        const current = request;
+        const params = new URLSearchParams(new FormData(form));
+        const [year, month, day] = params.get('date').split('-');
+        params.set('year', year);
+        params.set('month', month);
+        params.set('day', day);
+        params.delete('date');
+        if (params.has('time')) {
+            const [hour, minute] = params.get('time').split(':');
+            params.set('hour', hour);
+            params.set('minute', minute);
+            params.delete('time');
+        }
 
-    durationInput = document.getElementsByName('duration');
-    duration = durationInput[0].value;
-
-    dur_unitsInput = document.getElementsByName('dur_units');
-    dur_units = dur_unitsInput[0].options[dur_unitsInput[0].selectedIndex].value;
-
-    mincapInput = document.getElementsByName('mincap');
-    mincap = mincapInput[0].value;
-
-    teachingInput = document.getElementsByName('teaching');
-    if (teachingInput[0].checked) {
-        teaching = 1;
-    } else {
-        teaching = 0;
-    }
-
-    specialInput = document.getElementsByName('special');
-    if (specialInput[0].checked) {
-        special = 1;
-    } else {
-        special = 0;
-    }
-
-    computerInput = document.getElementsByName('computer');
-    if (computerInput[0].checked) {
-        computer = 1;
-    } else {
-        computer = 0;
-    }
-
-    searchstring = "?day=" + day + "&month=" + month + "&year=" + year + "&duration=" + duration + "&dur_units=" + dur_units + "&mincap=" + mincap + "&teaching=" + teaching + "&special=" + special + "&computer=" + computer;
-    if (hasPeriod) {
-        searchstring += "&period=" + period;
-    } else {
-        searchstring += "&hour=" + hour + "&min=" + minute + "&ampm=" + ampm;
-    }
-
-    //have to trial and error to get right browser code
-    var xmlHttp;
-    try {
-        // Firefox, Opera 8.0+, Safari
-        xmlHttp = new XMLHttpRequest();
-    }
-    catch (e) {
-        // Internet Explorer
+        rows.replaceChildren();
+        status.hidden = true;
+        table.hidden = true;
         try {
-            xmlHttp = new ActiveXObject("Msxml2.XMLHTTP");
-        }
-        catch (e) {
-            try {
-                xmlHttp = new ActiveXObject("Microsoft.XMLHTTP");
+            const response = await fetch(form.dataset.endpoint + '?' + params, {signal: current.signal});
+            if (!response.ok) {
+                throw new Error('Room search failed');
             }
-            catch (e) {
-                window.alert("Your browser does not support AJAX!");
+            const rooms = await response.json();
+            if (current !== request) {
+                return;
+            }
+            if (rooms.length === 0) {
+                status.textContent = form.dataset.empty;
+                status.className = 'alert alert-info';
+                status.hidden = false;
+                return;
+            }
+
+            for (const room of rooms) {
+                const row = rows.insertRow();
+                row.insertCell().textContent = room.area;
+                const link = document.createElement('a');
+                link.href = room.url;
+                link.textContent = room.name;
+                row.insertCell().appendChild(link);
+                row.insertCell().textContent = room.description || '';
+                row.insertCell().textContent = room.capacity;
+            }
+            table.hidden = false;
+        } catch (error) {
+            if (error.name !== 'AbortError' && current === request) {
+                status.textContent = form.dataset.error;
+                status.className = 'alert alert-warning';
+                status.hidden = false;
             }
         }
     }
 
-    xmlHttp.onreadystatechange = function () {
-        if (xmlHttp.readyState === 4) {
-            //We've got a list of rooms from the server
-            freeRooms = xmlHttp.responseText.split("\n");
-            var rooms = document.getElementById('rooms');
-
-            //wipe all the old options
-            while (rooms.childNodes.length>=1) {
-                rooms.removeChild(rooms.firstChild);
-            }
-            if (xmlHttp.responseText !== '') {
-                document.getElementById('results').innerHTML = langRoomsFree;
-                for (i = 0; i<freeRooms.length; i++) {
-                    room = freeRooms[i].split(",");
-                    var newroom = document.createElement('tr');
-                    for (j = 0; j<room.length; j++) {
-                        var cell = document.createElement('td');
-                        cell.innerHTML = room[j];
-                        newroom.appendChild(cell);
-                    }
-                    rooms.appendChild(newroom);
-                }
-
-            } else {
-                document.getElementById('results').innerHTML = langNoRooms;
-            }
-
-        }
-    };
-    xmlHttp.open("GET", "roomsearch_ss.php" + searchstring, true);
-    xmlHttp.send(null);
-}
+    form.addEventListener('submit', function(event) {
+        event.preventDefault();
+        roomSearch();
+    });
+    form.addEventListener('change', roomSearch);
+    roomSearch();
+});
 
 var mrbs_weekdaynames = null;
 
@@ -186,6 +140,6 @@ function ChangeOptionDays(formObj, prefix, updatefreerooms, roomsearch) {
         updateFreeRooms();
     }
     if (roomsearch) {
-        RoomSearch();
+        document.getElementById('mrbs-room-search')?.requestSubmit();
     }
 }

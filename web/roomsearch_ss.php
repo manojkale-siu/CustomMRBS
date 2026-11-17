@@ -30,7 +30,7 @@ $year = optional_param('year', 0, PARAM_INT);
 $period = optional_param('period', 0, PARAM_INT);
 $duration = optional_param('duration', 0, PARAM_INT);
 $dur_units = optional_param('dur_units', 0, PARAM_TEXT);
-$currentroom = optional_param('currentroom', 0, PARAM_INT);
+$all_day = optional_param('all_day', false, PARAM_BOOL);
 $mincap = optional_param('mincap', 0, PARAM_INT);
 $teaching = optional_param('teaching', false, PARAM_BOOL);
 $special = optional_param('special', false, PARAM_BOOL);
@@ -39,12 +39,10 @@ $hour = optional_param('hour', null, PARAM_INT);
 $minute = optional_param('minute', null, PARAM_INT);
 $ampm = optional_param('ampm', null, PARAM_ALPHA);
 
-global $tbl_room;
-global $tbl_entry;
-global $tbl_area;
-
-// Support locales where ',' is used as the decimal point
-$duration = preg_replace('/,/', '.', $duration);
+if ($year < 1970 || $year > 9999 || !checkdate($month, $day, $year)) {
+    http_response_code(400);
+    exit;
+}
 
 if ($enable_periods) {
     $schedulevalid = \block_mrbs\local\settings_manager::has_valid_custom_time_range();
@@ -73,7 +71,7 @@ switch ($dur_units) {
 
 // Units are now in "$dur_units" numbers of seconds
 
-if (isset($all_day) && ($all_day == "yes")) {
+if ($all_day) {
     if ($enable_periods) {
         if ($schedulevalid) {
             [$starttime, $endtime] = \block_mrbs\local\settings_manager::get_period_day_bounds($year, $month, $day);
@@ -132,19 +130,14 @@ if (isset($all_day) && ($all_day == "yes")) {
     }
 }
 
-$sql = "SELECT r.id, r.room_name, r.description, r.capacity, a.area_name, r.area_id";
-$sql .= " FROM {block_mrbs_room} r JOIN {block_mrbs_area} a on r.area_id=a.id WHERE ( SELECT COUNT(*) FROM {block_mrbs_entry} e ";
-
-//old booking fully inside new booking
-$sql .= "WHERE ((e.start_time>= ? AND e.end_time< ? ) ";
-//new start time within old booking
-$sql .= "OR (e.start_time< ? AND e.end_time> ?) ";
-//new end time within old booking
-$sql .= "OR (e.start_time< ? AND e.end_time>= ?)) ";
-
-$sql .= "AND e.room_id = r.id ) < 1  AND r.capacity >= ? ";
-
-$params = array($starttime, $endtime, $starttime, $starttime, $endtime, $endtime, $mincap);
+$sql = "SELECT r.id, r.room_name, r.description, r.capacity, a.area_name
+          FROM {block_mrbs_room} r
+          JOIN {block_mrbs_area} a ON a.id = r.area_id
+         WHERE r.capacity >= ? AND NOT EXISTS (
+             SELECT 1 FROM {block_mrbs_entry} e
+              WHERE e.room_id = r.id AND e.start_time < ? AND e.end_time > ?
+         )";
+$params = [max(0, $mincap), $endtime, $starttime];
 
 if ($computer) {
     $sql .= " AND ".$DB->sql_like('r.description', '?', false);
@@ -155,18 +148,31 @@ if ($teaching) {
     $params[] = 'Teaching%';
 }
 if ($special) {
-    $sql .= " AND ".$DB->sql_like('r.description', '?', false, false, true);
+    $sql .= ' AND (r.description IS NULL OR ' . $DB->sql_like('r.description', '?', false, false, true) . ')';
     $params[] = 'Teaching Specialist%';
 }
 
 $sql .= " ORDER BY a.area_name, r.room_name";
 
-$rooms = $DB->get_records_sql($sql, $params);
-if (!empty($rooms)) {
-    $list = '';
-    foreach ($rooms as $room) {
-        $list .= $room->area_name.',<a href="javascript:openURL(\'edit_entry.php?room='.$room->id.'&period='.$period.'&year='.$year.'&month='.$month.'&day='.$day.'&duration='.$diff.'\')">'.$room->room_name.'</a>,'.$room->description.','.$room->capacity."\n";
-    }
-    //remove last \n to prevent blank row in table
-    echo substr($list, 0, -1);
+$results = [];
+foreach ($DB->get_records_sql($sql, $params) as $room) {
+    $url = new moodle_url('/blocks/mrbs/web/edit_entry.php', [
+        'room' => $room->id,
+        'period' => $enable_periods && !$all_day && isset($periodindex) ? $periodindex : $period,
+        'year' => $year,
+        'month' => $month,
+        'day' => $day,
+        'hour' => $hour,
+        'minute' => $minute,
+        'all_day' => (int)$all_day,
+    ]);
+    $results[] = [
+        'area' => $room->area_name,
+        'name' => $room->room_name,
+        'description' => $room->description,
+        'capacity' => $room->capacity,
+        'url' => $url->out(false),
+    ];
 }
+header('Content-Type: application/json; charset=utf-8');
+echo json_encode($results);
