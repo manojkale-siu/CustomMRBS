@@ -254,7 +254,7 @@ class attendance_manager {
             'other' => [
                 'info' => $info,
                 'sessionid' => (int)$sessionid,
-                'action' => mod_attendance_sessions_page_params::ACTION_UPDATE,
+                'action' => \mod_attendance_sessions_page_params::ACTION_UPDATE,
             ],
         ]);
         $event->add_record_snapshot('course_modules', $att->cm);
