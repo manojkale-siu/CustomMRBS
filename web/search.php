@@ -46,7 +46,7 @@ if ($advanced) {
     $thisurl->param('advanced', $advanced);
 }
 if ($search_str) {
-    $thisurl->param('searchstr', $search_str);
+    $thisurl->param('search_str', $search_str);
 }
 if ($search_pos) {
     $thisurl->param('search_pos', $search_pos);
@@ -56,27 +56,40 @@ require_login();
 
 print_header_mrbs($day, $month, $year, $area);
 
-if ($advanced) {
-    echo "<H3>".get_string('advanced_search', 'block_mrbs')."</H3>";
-    echo "<FORM METHOD=GET ACTION=\"search.php\">";
-    echo get_string('search_for', 'block_mrbs')." <INPUT TYPE=TEXT SIZE=25 NAME=\"search_str\"><br>";
-    echo get_string('from', 'block_mrbs')." ";
-    genDateSelector("", $day, $month, $year);
-    echo "<br><INPUT TYPE=SUBMIT VALUE=\"".get_string('search', 'block_mrbs')."\">";
+if ($advanced || !$search_str) {
+    if (!$advanced) {
+        echo $OUTPUT->notification(get_string('invalid_search', 'block_mrbs'), 'warning');
+    }
+    ?>
+    <h2><?php echo get_string('advanced_search', 'block_mrbs'); ?></h2>
+    <form method="get" action="search.php" class="card my-3">
+        <div class="card-body">
+            <input type="hidden" name="area" value="<?php echo (int)$area; ?>">
+            <div class="form-row">
+                <div class="form-group col-12 col-md-6">
+                    <label class="font-weight-bold" for="mrbs-search-query"><?php echo get_string('search_for', 'block_mrbs'); ?></label>
+                    <input class="form-control" type="text" id="mrbs-search-query" name="search_str" required
+                        value="<?php echo s($search_str ?: ''); ?>">
+                </div>
+                <fieldset class="form-group col-12 col-md-6">
+                    <legend class="h6"><?php echo get_string('from', 'block_mrbs'); ?></legend>
+                    <?php genDateSelector('', $day, $month, $year); ?>
+                </fieldset>
+            </div>
+            <button class="btn btn-primary" type="submit"><?php echo get_string('search', 'block_mrbs'); ?></button>
+        </div>
+    </form>
+    <?php
     include "trailer.php";
-    echo "</BODY>";
-    echo "</HTML>";
     exit;
 }
 
-if (!$search_str) {
-    echo "<H3>".get_string('invalid_search', 'block_mrbs')."</H3>";
-    include "trailer.php";
-    exit;
-}
-
-// now is used so that we only display entries newer than the current time
-echo "<H3>".get_string('search_results', 'block_mrbs')." \"<font color=\"blue\">".s($search_str)."</font>\"</H3>\n";
+echo $OUTPUT->heading(get_string('search_results', 'block_mrbs') . ' “' . s($search_str) . '”', 2);
+$advancedurl = new moodle_url($thisurl, ['advanced' => 1]);
+$advancedurl->remove_params('search_pos', 'total');
+echo html_writer::div(html_writer::link($advancedurl, get_string('advanced_search', 'block_mrbs'), [
+    'class' => 'btn btn-outline-secondary',
+]), 'mb-3');
 
 $now = mktime(0, 0, 0, $month, $day, $year);
 
@@ -96,7 +109,7 @@ if (!$total) {
 }
 
 if ($total <= 0) {
-    echo "<B>".get_string('nothingtodisplay', 'block_mrbs')."</B>\n";
+    echo $OUTPUT->notification(get_string('nothingtodisplay', 'block_mrbs'), 'info');
     include "trailer.php";
     exit;
 }
@@ -104,7 +117,7 @@ if ($total <= 0) {
 if ($search_pos <= 0) {
     $search_pos = 0;
 } else if ($search_pos >= $total) {
-    $search_pos = $total - ($total % $search["count"]);
+    $search_pos = intdiv($total - 1, $search["count"]) * $search["count"];
 }
 
 $sql_pred = str_replace(array('create_by', 'name', 'description'),
@@ -125,38 +138,24 @@ $has_prev = $search_pos > 0;
 $has_next = $search_pos < ($total - $search["count"]);
 
 if ($has_prev || $has_next) {
-    echo "<B>".get_string('records', 'block_mrbs').($search_pos + 1).get_string('through', 'block_mrbs').($search_pos + $num_records).get_string('of', 'block_mrbs').$total."</B><BR>";
-
-    // display a "Previous" button if necessary
-    if ($has_prev) {
-        $pos = max(0, $search_pos - $search["count"]);
-        echo '<A HREF="'.$thisurl->out(true, array('search_pos', $pos)).'">';
+    echo html_writer::start_div('d-flex flex-wrap align-items-center mb-3');
+    echo html_writer::span(get_string('records', 'block_mrbs') . ($search_pos + 1) . get_string('through', 'block_mrbs')
+        . ($search_pos + $num_records) . get_string('of', 'block_mrbs') . $total, 'mr-3');
+    foreach ([
+        'previous' => [$has_prev, max(0, $search_pos - $search['count'])],
+        'next' => [$has_next, $search_pos + $search['count']],
+    ] as $label => [$available, $position]) {
+        if ($available) {
+            $pageurl = new moodle_url($thisurl, ['search_pos' => $position, 'total' => $total]);
+            echo html_writer::link($pageurl, get_string($label, 'block_mrbs'), ['class' => 'btn btn-sm btn-outline-secondary mr-2']);
+        }
     }
-
-    echo "<B>".get_string('previous', 'block_mrbs')."</B>";
-
-    if ($has_prev) {
-        echo "</A>";
-    }
-
-    // print a separator for Next and Previous
-    echo(" | ");
-
-    // display a "Previous" button if necessary
-    if ($has_next) {
-        $pos = max(0, $search_pos + $search["count"]);
-        echo '<a href="'.$thisurl->out(true, array('search_pos', $pos)).'">';
-    }
-
-    echo "<B>".get_string('next', 'block_mrbs')."</B>";
-
-    if ($has_next) {
-        echo "</A>";
-    }
+    echo html_writer::end_div();
 }
 ?>
-    <P>
-    <TABLE BORDER=2 CELLSPACING=0 CELLPADDING=3>
+<div class="table-responsive">
+    <table class="table table-striped table-hover">
+    <thead>
     <TR>
         <TH><?php echo get_string('entry', 'block_mrbs') ?></TH>
         <TH><?php echo get_string('createdby', 'block_mrbs') ?></TH>
@@ -165,6 +164,8 @@ if ($has_prev || $has_next) {
         <TH><?php echo get_string('description', 'block_mrbs') ?></TH>
         <TH><?php echo get_string('start_date', 'block_mrbs') ?></TH>
     </TR>
+    </thead>
+    <tbody>
 <?php
 foreach ($result as $entry) {
     $viewurl = new moodle_url('/blocks/mrbs/web/view_entry.php', array('id' => $entry->id));
@@ -191,5 +192,5 @@ foreach ($result as $entry) {
     echo "</TR>\n";
 }
 
-echo "</TABLE>\n";
+echo "</tbody></table></div>\n";
 include "trailer.php";
