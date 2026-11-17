@@ -172,6 +172,12 @@ HTML2END;
             echo 'onclick="this.target=\'popup\'; return openpopup(\''.$roomsearchurl.'\', \'popup\', \'toolbar=1,location=0,scrollbars,resizable,width=500,height=400\', 0);">';
             echo $roomsearchstr.'</a></TD>';
 
+            if (getAuthorised(1) && in_array(basename($PAGE->url->get_path()), ['day.php', 'week.php', 'month.php'], true)) {
+                $importurl = new moodle_url('/blocks/mrbs/web/session_import.php', compact('day', 'month', 'year', 'area'));
+                echo '<td class="banner">' . html_writer::link($importurl, get_string('sessionimport', 'block_mrbs'), [
+                    'class' => 'btn btn-sm btn-outline-primary',
+                ]) . '</td>';
+            }
         } // !$userview
         
         echo '<TD CLASS="banner" BGCOLOR="#C0E0FF" ALIGN=CENTER><A HREF="'.$helpurl.'">'.$helpstr.'</A></TD>';
