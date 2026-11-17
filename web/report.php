@@ -168,7 +168,7 @@ function reporton(&$item, &$last_area_room, &$last_date, $sortby, $display) {
         }
     }
 
-    echo "<hr><table width=\"100%\">\n";
+    echo '<div class="table-responsive"><table class="table table-sm">';
 
     // Brief Description (title), linked to view_entry:
     $viewurl = new moodle_url('/blocks/mrbs/web/view_entry.php', array('id' => $item->id));
@@ -204,7 +204,7 @@ function reporton(&$item, &$last_area_room, &$last_date, $sortby, $display) {
         s($item->create_by).", <b>".get_string('lastmodified')."</b> ".
         time_date_string($item->timestamp)."</small></td></tr>\n";
 
-    echo "</table>\n";
+    echo "</table></div>\n";
 }
 
 // Collect summary statistics on one entry. See below for columns in $row[].
@@ -278,7 +278,7 @@ function do_summary(&$count, &$hours, &$room_hash, &$name_hash) {
 
     echo "<hr><h1>".
         (empty($enable_periods) ? get_string('summary_header', 'block_mrbs') : get_string('summary_header_per', 'block_mrbs')).
-        "</h1><table border=2 cellspacing=4>\n";
+        "</h1><div class=\"table-responsive\"><table class=\"table table-striped table-sm\">\n";
     echo "<tr><td>&nbsp;</td>\n";
     for ($c = 0; $c < $n_rooms; $c++) {
         echo "<td class=\"BL\" align=left><b>$rooms[$c]</b></td>\n";
@@ -318,7 +318,7 @@ function do_summary(&$count, &$hours, &$room_hash, &$name_hash) {
         cell($col_count_total[$c], $col_hours_total[$c]);
     }
     cell($grand_count_total, $grand_hours_total);
-    echo "</tr></table>\n";
+    echo "</tr></table></div>\n";
 }
 
 //If we dont know the right date then make it up
@@ -432,138 +432,73 @@ if ($submitform) {
 // Upper part: The form.
 if ($pview != 1) {
     ?>
-    <h1><?php echo get_string('report_on', 'block_mrbs'); ?></h1>
-    <form method="get" action="report.php">
-        <table>
-            <tr>
-                <td class="CR"><?php echo get_string('report_start', 'block_mrbs'); ?></td>
-                <td class="CL"><font size="-1">
-                        <?php genDateSelector("From_", $From_day, $From_month, $From_year); ?>
-                    </font></td>
-            </tr>
-            <tr>
-                <td class="CR"><?php echo get_string('report_end', 'block_mrbs'); ?></td>
-                <td class="CL"><font size="-1">
-                        <?php genDateSelector("To_", $To_day, $To_month, $To_year); ?>
-                    </font></td>
-            </tr>
-            <tr>
-                <td class="CR"><?php echo get_string('match_area', 'block_mrbs'); ?></td>
-                <td class="CL"><input type="text" name="areamatch" size="18"
-                                      value="<?php echo $areamatch_default; ?>">
-                </td>
-            </tr>
-            <tr>
-                <td class="CR"><?php echo get_string('match_room', 'block_mrbs'); ?></td>
-                <td class="CL"><input type="text" name="roommatch" size="18"
-                                      value="<?php echo $roommatch_default; ?>">
-                </td>
-            </tr>
-            <tr>
-                <td CLASS=CR><?php echo get_string('match_type', 'block_mrbs') ?></td>
-                <td CLASS=CL valign=top>
-                    <table>
-                        <tr>
-                            <td>
-                                <select name="typematch[]" multiple="yes">
-                                    <?php
-                                    foreach ($typel as $key => $val) {
-                                        if (!empty($val)) {
-                                            echo "<option value=\"$key\"".
-                                                (is_array($typematch_default) && in_array($key, $typematch_default) ? " selected" : "").
-                                                ">$val\n";
-                                        }
-                                    }
-                                    ?></select></td>
-                            <td><?php echo get_string('ctrl_click_type', 'block_mrbs') ?></td>
-                        </tr>
-                    </table>
-                </td>
-            </tr>
-            <tr>
-                <td class="CR"><?php echo get_string('match_entry', 'block_mrbs'); ?></td>
-                <td class="CL"><input type="text" name="namematch" size="18"
-                                      value="<?php echo $namematch_default; ?>">
-                </td>
-            </tr>
-            <tr>
-                <td class="CR"><?php echo get_string('match_descr', 'block_mrbs'); ?></td>
-                <td class="CL"><input type="text" name="descrmatch" size="18"
-                                      value="<?php echo $descrmatch_default; ?>">
-                </td>
-            </tr>
-            <tr>
-                <td class="CR"><?php echo get_string('createdby', 'block_mrbs'); ?></td>
-                <td class="CL"><input type="text" name="creatormatch" size="18"
-                                      value="<?php echo $creatormatch_default; ?>">
-                </td>
-            </tr>
-            <tr>
-                <td class="CR"><?php echo get_string('include', 'block_mrbs'); ?></td>
-                <td class="CL">
-                    <input type="radio" name="summarize" value="1"<?php if ($summarize == 1) {
-                        echo " checked";
-                    }
-                    echo ">".get_string('report_only', 'block_mrbs'); ?>
-                    <input type="radio" name="summarize" value="2"<?php if ($summarize == 2) {
-                        echo " checked";
-                    }
-                    echo ">".get_string('summary_only', 'block_mrbs'); ?>
-                    <input type="radio" name="summarize" value="3"<?php if ($summarize == 3) {
-                        echo " checked";
-                    }
-                    echo ">".get_string('report_and_summary', 'block_mrbs'); ?>
-                </td>
-            </tr>
-            <tr>
-                <td class="CR"><?php echo get_string('sort_rep', 'block_mrbs'); ?></td>
-                <td class="CL">
-                    <input type="radio" name="sortby" value="r"<?php if ($sortby == "r") {
-                        echo " checked";
-                    }
-                    echo ">".get_string('room', 'block_mrbs'); ?>
-                    <input type="radio" name="sortby" value="s"<?php if ($sortby == "s") {
-                        echo " checked";
-                    }
-                    echo ">".get_string('sort_rep_time', 'block_mrbs'); ?>
-                </td>
-            </tr>
-            <tr>
-                <td class="CR"><?php echo get_string('rep_dsp', 'block_mrbs'); ?></td>
-                <td class="CL">
-                    <input type="radio" name="display" value="d"<?php if ($display == "d") {
-                        echo " checked";
-                    }
-                    echo ">".get_string('rep_dsp_dur', 'block_mrbs'); ?>
-                    <input type="radio" name="display" value="e"<?php if ($display == "e") {
-                        echo " checked";
-                    }
-                    echo ">".get_string('rep_dsp_end', 'block_mrbs'); ?>
-                </td>
-            </tr>
-            <tr>
-                <td class="CR"><?php echo get_string('summarize_by', 'block_mrbs'); ?></td>
-                <td class="CL">
-                    <input type="radio" name="sumby" value="d"<?php if ($sumby == "d") {
-                        echo " checked";
-                    }
-                    echo ">".get_string('sum_by_descrip', 'block_mrbs'); ?>
-                    <input type="radio" name="sumby" value="c"<?php if ($sumby == "c") {
-                        echo " checked";
-                    }
-                    echo ">".get_string('sum_by_creator', 'block_mrbs'); ?>
-                </td>
-            </tr>
-            <tr>
-                <td>&nbsp;</td>
-                <td><?php print_string('help_wildcard', 'block_mrbs'); ?></td>
-            </tr>
-            <tr>
-                <td colspan="2" align="center"><input name="submitform" type="submit"
-                                                      value="<?php echo get_string('submitquery', 'block_mrbs') ?>">
-                </td>
-            </tr>
-        </table>
+    <h2><?php echo get_string('report_on', 'block_mrbs'); ?></h2>
+    <form method="get" action="report.php" class="card my-3">
+        <div class="card-body">
+            <div class="form-row">
+                <fieldset class="form-group col-12 col-md-6">
+                    <legend class="h6"><?php echo get_string('report_start', 'block_mrbs'); ?></legend>
+                    <?php genDateSelector('From_', $From_day, $From_month, $From_year); ?>
+                </fieldset>
+                <fieldset class="form-group col-12 col-md-6">
+                    <legend class="h6"><?php echo get_string('report_end', 'block_mrbs'); ?></legend>
+                    <?php genDateSelector('To_', $To_day, $To_month, $To_year); ?>
+                </fieldset>
+            </div>
+            <div class="form-row" aria-describedby="mrbs-report-wildcard">
+                <?php foreach ([
+                    'areamatch' => ['match_area', $areamatch_default],
+                    'roommatch' => ['match_room', $roommatch_default],
+                    'namematch' => ['match_entry', $namematch_default],
+                    'descrmatch' => ['match_descr', $descrmatch_default],
+                    'creatormatch' => ['createdby', $creatormatch_default],
+                ] as $field => [$label, $value]) { ?>
+                    <div class="form-group col-12 col-md-6 col-lg-4">
+                        <label class="font-weight-bold" for="mrbs-report-<?php echo $field; ?>">
+                            <?php echo get_string($label, 'block_mrbs'); ?>
+                        </label>
+                        <input class="form-control" id="mrbs-report-<?php echo $field; ?>"
+                            name="<?php echo $field; ?>" value="<?php echo s($value); ?>">
+                    </div>
+                <?php } ?>
+            </div>
+            <p id="mrbs-report-wildcard" class="form-text text-muted"><?php print_string('help_wildcard', 'block_mrbs'); ?></p>
+            <div class="form-group">
+                <label class="font-weight-bold" for="mrbs-report-type"><?php echo get_string('match_type', 'block_mrbs'); ?></label>
+                <?php echo html_writer::select(array_filter($typel), 'typematch[]', $typematch_default, false, [
+                    'class' => 'custom-select w-100', 'id' => 'mrbs-report-type', 'multiple' => 'multiple',
+                    'aria-describedby' => 'mrbs-report-type-help',
+                ]); ?>
+                <small class="form-text text-muted" id="mrbs-report-type-help"><?php echo get_string('ctrl_click_type', 'block_mrbs'); ?></small>
+            </div>
+            <div class="form-row">
+                <?php foreach ([
+                    'summarize' => ['include', $summarize, [1 => 'report_only', 2 => 'summary_only', 3 => 'report_and_summary']],
+                    'sortby' => ['sort_rep', $sortby, ['r' => 'room', 's' => 'sort_rep_time']],
+                    'display' => ['rep_dsp', $display, ['d' => 'rep_dsp_dur', 'e' => 'rep_dsp_end']],
+                    'sumby' => ['summarize_by', $sumby, ['d' => 'sum_by_descrip', 'c' => 'sum_by_creator']],
+                ] as $field => [$label, $selected, $options]) { ?>
+                    <fieldset class="form-group col-12 col-md-6">
+                        <legend class="h6"><?php echo get_string($label, 'block_mrbs'); ?></legend>
+                        <?php foreach ($options as $value => $option) {
+                            $optionid = "mrbs-report-$field-$value";
+                            ?>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="<?php echo $field; ?>"
+                                    id="<?php echo $optionid; ?>" value="<?php echo $value; ?>"
+                                    <?php echo $value == $selected ? 'checked' : ''; ?>>
+                                <label class="form-check-label" for="<?php echo $optionid; ?>">
+                                    <?php echo get_string($option, 'block_mrbs'); ?>
+                                </label>
+                            </div>
+                        <?php } ?>
+                    </fieldset>
+                <?php } ?>
+            </div>
+            <button class="btn btn-primary" name="submitform" value="1" type="submit">
+                <?php echo get_string('submitquery', 'block_mrbs'); ?>
+            </button>
+        </div>
     </form>
 
     <?php
