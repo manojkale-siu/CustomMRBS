@@ -429,7 +429,10 @@ $string['timetablenofiltermatches'] = 'No sessions match these filters.';
 
 $string['forcebookkeepentry'] = 'Keep this booking and move conflicting bookings';
 $string['forcebookconfirmedtype'] = 'Select a confirmed booking type before moving conflicting bookings.';
-$string['forcebooknoroom'] = 'There is no suitable replacement room at the same time for every conflicting booking. Your bookings are unchanged.';
+$string['forcebooknoroom'] = 'MRBS could not find a suitable replacement room or a free slot on the same day for every conflicting booking. Your bookings are unchanged.';
 $string['forcebookreschedulehelp'] = 'To keep your selected time, open the conflicting booking and choose another time or room. Then return to the booking you want to keep and save it.';
 $string['forcebookrescheduleentry'] = 'Reschedule {$a->name} ({$a->time})';
 $string['forcebookreturnselected'] = 'Return to the booking you want to keep';
+
+$string['bookingrescheduledshort'] = '{$a->name} moved to {$a->newtime} in {$a->newroom}.';
+$string['bookingrescheduledmessage'] = '{$a->name} was rescheduled from {$a->oldtime} to {$a->newtime} in {$a->newroom}, {$a->area}.';

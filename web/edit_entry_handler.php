@@ -559,7 +559,7 @@ if ($forcebook && !$err) {
     }
     require_once(__DIR__ . '/force_book.php');
     $conflicts = mrbsFindForceConflicts($rooms, $slots, $ignore_id, $seriesignore);
-    $forcemoves = mrbsPlanForceMoves($rooms, $conflicts);
+    $forcemoves = mrbsPlanForceMoves($rooms, $slots, $conflicts);
     if ($forcemoves === null) {
         print_header_mrbs($day, $month, $year, $area);
         echo $OUTPUT->heading(get_string('sched_conflict', 'block_mrbs'));
@@ -751,7 +751,10 @@ if (empty($err)) {
                     if (!empty($new_id)) {
                         \block_mrbs\local\attendance_manager::sync_for_repeat($new_id, $courseid, $facultyid, $groupid);
                     }
-                } catch (Exception $e) {
+                } catch (Throwable $e) {
+                    if ($transaction) {
+                        throw $e;
+                    }
                     debugging('MRBS attendance session sync failed: '.$e->getMessage(), DEBUG_DEVELOPER);
                     error_log('MRBS attendance session sync failed for repeat '.$new_id.': '.$e->getMessage());
                     $forcemoveoutput .= ' '.get_string('sessioncreatefailed', 'block_mrbs');
@@ -821,7 +824,10 @@ if (empty($err)) {
                     if (!empty($new_id)) {
                         \block_mrbs\local\attendance_manager::sync_for_entry($new_id, $courseid, $facultyid, $groupid);
                     }
-                } catch (Exception $e) {
+                } catch (Throwable $e) {
+                    if ($transaction) {
+                        throw $e;
+                    }
                     debugging('MRBS attendance session sync failed: '.$e->getMessage(), DEBUG_DEVELOPER);
                     error_log('MRBS attendance session sync failed for entry '.$new_id.': '.$e->getMessage());
                     $forcemoveoutput .= ' '.get_string('sessioncreatefailed', 'block_mrbs');

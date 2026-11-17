@@ -206,7 +206,7 @@ function mrbsFindForceConflicts(array $roomids, array $slots, $ignoreid, $ignore
  *
  * @return array|null Planned moves, or null if a conflict cannot be relocated.
  */
-function mrbsPlanForceMoves(array $roomids, array $conflicts) {
+function mrbsPlanForceMoves(array $roomids, array $slots, array $conflicts) {
     global $DB, $USER;
 
     if (!$conflicts) {
@@ -258,20 +258,99 @@ function mrbsPlanForceMoves(array $roomids, array $conflicts) {
                 continue;
             }
             foreach ($planned as $move) {
-                if ($move['room']->id == $candidate->id && $move['entry']->start_time < $entry->end_time
-                        && $move['entry']->end_time > $entry->start_time) {
+                if ($move['room']->id == $candidate->id && $move['start'] < $entry->end_time
+                        && $move['end'] > $entry->start_time) {
                     continue 2;
                 }
             }
             $destination = $candidate;
             break;
         }
+        $start = (int)$entry->start_time;
+        $end = (int)$entry->end_time;
         if (!$destination) {
-            return null;
+            $slot = mrbsFindForceTimeSlot($entry, $original, $slots, $planned);
+            if ($slot === null) {
+                return null;
+            }
+            [$start, $end] = $slot;
+            $destination = $original;
         }
-        $planned[] = ['entry' => $entry, 'room' => $destination, 'original' => $original, 'owner' => $owner];
+        $planned[] = [
+            'entry' => $entry, 'room' => $destination, 'original' => $original,
+            'owner' => $owner, 'start' => $start, 'end' => $end,
+        ];
     }
     return $planned;
+}
+
+/**
+ * Find another slot on the same day without changing the room or session length.
+ */
+function mrbsFindForceTimeSlot($entry, $room, array $reserved, array $planned) {
+    global $DB, $USER, $enable_periods, $resolution, $morningstarts, $morningstarts_minutes, $eveningends, $eveningends_minutes;
+
+    if (!allowed_to_book($USER, $room)) {
+        return null;
+    }
+    if (!empty($entry->attendancesessionid)
+            && ($DB->get_field('attendance_sessions', 'lasttaken', ['id' => $entry->attendancesessionid])
+                || $DB->record_exists('attendance_log', ['sessionid' => $entry->attendancesessionid]))) {
+        return null;
+    }
+
+    $year = (int)date('Y', $entry->start_time);
+    $month = (int)date('n', $entry->start_time);
+    $day = (int)date('j', $entry->start_time);
+    if ($enable_periods) {
+        [$opening, $closing] = \block_mrbs\local\settings_manager::get_period_day_bounds($year, $month, $day);
+        $interval = \block_mrbs\local\settings_manager::get_period_interval_seconds();
+    } else {
+        $interval = (int)$resolution;
+        $opening = mktime($morningstarts, $morningstarts_minutes, 0, $month, $day, $year);
+        $closing = mktime($eveningends, $eveningends_minutes, 0, $month, $day, $year) + $interval;
+    }
+    $duration = (int)$entry->end_time - (int)$entry->start_time;
+    if ($interval <= 0 || $duration <= 0) {
+        return null;
+    }
+
+    // The retained booking also occupies this room in every requested interval.
+    $unavailable = $reserved;
+    foreach ($planned as $move) {
+        if ($move['room']->id == $room->id
+                || ($entry->facultyid && $move['entry']->facultyid == $entry->facultyid)) {
+            $unavailable[] = [$move['start'], $move['end']];
+        }
+    }
+    $earlier = [];
+    $later = [];
+    for ($start = $opening; $start + $duration <= $closing; $start += $interval) {
+        if ($start < $entry->start_time) {
+            $earlier[] = $start;
+        } else if ($start > $entry->start_time) {
+            $later[] = $start;
+        }
+    }
+    foreach (array_merge($later, array_reverse($earlier)) as $start) {
+        $end = $start + $duration;
+        foreach ($unavailable as [$from, $to]) {
+            if ($start < $to && $end > $from) {
+                continue 2;
+            }
+        }
+        if ($DB->record_exists_select('block_mrbs_entry', 'room_id = ? AND id <> ? AND start_time < ? AND end_time > ?', [
+            $room->id, $entry->id, $end, $start,
+        ])) {
+            continue;
+        }
+        if ($entry->facultyid && \block_mrbs\local\booking_validator::find_faculty_conflicts(
+                $entry->facultyid, $start, $end, $entry->id)) {
+            continue;
+        }
+        return [$start, $end];
+    }
+    return null;
 }
 
 /**
@@ -285,7 +364,9 @@ function mrbsApplyForceMoves(array $moves) {
         $update = (object)[
             'id' => $entry->id,
             'room_id' => $move['room']->id,
-            'roomchange' => 1,
+            'roomchange' => $entry->room_id == $move['room']->id ? $entry->roomchange : 1,
+            'start_time' => $move['start'],
+            'end_time' => $move['end'],
             'timestamp' => time(),
         ];
         if ($entry->repeat_id > 0) {
@@ -295,6 +376,9 @@ function mrbsApplyForceMoves(array $moves) {
             $update->type = 'L';
         }
         $DB->update_record('block_mrbs_entry', $update);
+        if ($move['start'] !== (int)$entry->start_time && !empty($entry->attendancesessionid)) {
+            \block_mrbs\local\attendance_manager::sync_for_entry($entry->id, $entry->courseid, $entry->facultyid, $entry->groupid);
+        }
     }
 }
 
@@ -317,10 +401,18 @@ function mrbsNotifyForceMoves(array $moves, $name) {
             'starttime' => userdate($entry->start_time, get_string('strftimetime', 'langconfig')),
             'newbookingname' => $name,
         ];
-        $output .= '<br>' . s(get_string('bookingmovedshort', 'block_mrbs', $details));
+        $status = 'bookingmovedshort';
+        $message = 'bookingmovedmessage';
+        if ($move['start'] !== (int)$entry->start_time) {
+            $details->oldtime = userdate($entry->start_time);
+            $details->newtime = userdate($move['start']);
+            $status = 'bookingrescheduledshort';
+            $message = 'bookingrescheduledmessage';
+        }
+        $output .= '<br>' . s(get_string($status, 'block_mrbs', $details));
         if ($move['owner']) {
             email_to_user($move['owner'], $USER, get_string('bookingmoved', 'block_mrbs'),
-                get_string('bookingmovedmessage', 'block_mrbs', $details));
+                get_string($message, 'block_mrbs', $details));
         }
     }
     return $output;
