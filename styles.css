@@ -198,3 +198,15 @@ top:12}
     width: 8rem;
     font-family: monospace;
 }
+
+/* The current page remains marked after navigation and reload. */
+#mrbscontainer nav .nav-link {
+    border-bottom: 3px solid transparent;
+}
+#mrbscontainer nav .nav-link[aria-current="page"] {
+    border-bottom-color: #0056b3;
+    color: #0056b3;
+    text-decoration: underline;
+    text-underline-offset: .25rem;
+    font-weight: bold;
+}
