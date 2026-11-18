@@ -35,6 +35,16 @@ class session_import {
         $sheet->getStyle('B2:C501')->getNumberFormat()->setFormatCode('hh:mm');
         $sheet->getStyle('D2:I501')->getNumberFormat()->setFormatCode('@');
 
+        // Demonstrate each column using sample values that the user replaces.
+        $sheet->fromArray([
+            '2030-01-15', '09:00', '09:30', 'Example Area', 'Example Room',
+            'COURSE101', 'faculty.username', 'Group A', 'Example session - replace or delete this row',
+        ], null, 'A2');
+        $sheet->getStyle('A2:I2')->getFont()->setItalic(true);
+        $sheet->getComment('A2')->getText()->createTextRun(
+            'Example data only. Replace or delete row 2 before importing. Use your configured period times.'
+        );
+
         $file = make_request_directory() . '/mrbs-session-template.xlsx';
         (new XlsxWriter($workbook))->save($file);
         $workbook->disconnectWorksheets();
