@@ -201,20 +201,20 @@ function showTimeBox(type) {
                 <h4>Define Time Range</h4>
 
                 <strong>From:</strong><br>
-                <select name="from_hour">
+                <select class="custom-select w-auto mr-1 mb-1" name="from_hour">
                     <?php for ($i = 1; $i <= 12; $i++): ?>
                     <option value="<?php echo $i; ?>"><?php echo $i; ?></option>
                     <?php endfor; ?>
                 </select>
 
-                <select name="from_min">
+                <select class="custom-select w-auto mr-1 mb-1" name="from_min">
                     <option value="00">00</option>
                     <option value="15">15</option>
                     <option value="30">30</option>
                     <option value="45">45</option>
                 </select>
 
-                <select name="from_ampm">
+                <select class="custom-select w-auto mr-1 mb-1" name="from_ampm">
                     <option value="AM">AM</option>
                     <option value="PM">PM</option>
                 </select>
@@ -222,20 +222,20 @@ function showTimeBox(type) {
                 <br><br>
 
                 <strong>To:</strong><br>
-                <select name="to_hour">
+                <select class="custom-select w-auto mr-1 mb-1" name="to_hour">
                     <?php for ($i = 1; $i <= 12; $i++): ?>
                     <option value="<?php echo $i; ?>"><?php echo $i; ?></option>
                     <?php endfor; ?>
                 </select>
 
-                <select name="to_min">
+                <select class="custom-select w-auto mr-1 mb-1" name="to_min">
                     <option value="00">00</option>
                     <option value="15">15</option>
                     <option value="30">30</option>
                     <option value="45">45</option>
                 </select>
 
-                <select name="to_ampm">
+                <select class="custom-select w-auto mr-1 mb-1" name="to_ampm">
                     <option value="AM">AM</option>
                     <option value="PM">PM</option>
                 </select>

@@ -296,7 +296,7 @@ function genDateSelector($prefix, $day, $month, $year, $updatefreerooms = false,
     }
 
     echo "
-                  <SELECT NAME=\"{$prefix}day\" ";
+                  <SELECT CLASS=\"custom-select w-auto mr-1 mb-1\" NAME=\"{$prefix}day\" ";
     if ($updatefreerooms) {
         echo "onChange=\"updateFreeRooms()\"";
     }
@@ -313,7 +313,7 @@ function genDateSelector($prefix, $day, $month, $year, $updatefreerooms = false,
     echo "
                   </SELECT>
 
-                  <SELECT NAME=\"{$prefix}month\" onchange=\"ChangeOptionDays(this.form,'$prefix'";
+                  <SELECT CLASS=\"custom-select w-auto mr-1 mb-1\" NAME=\"{$prefix}month\" onchange=\"ChangeOptionDays(this.form,'$prefix'";
     if ($updatefreerooms) {
         echo ",true";
     }
@@ -331,7 +331,7 @@ function genDateSelector($prefix, $day, $month, $year, $updatefreerooms = false,
 
     echo "
                   </SELECT>
-              <SELECT NAME=\"{$prefix}year\" onchange=\"ChangeOptionDays(this.form,'{$prefix}'";
+              <SELECT CLASS=\"custom-select w-auto mr-1 mb-1\" NAME=\"{$prefix}year\" onchange=\"ChangeOptionDays(this.form,'{$prefix}'";
     if ($updatefreerooms) {
         echo ",true";
     }
