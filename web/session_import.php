@@ -69,7 +69,7 @@ $templateurl = new moodle_url($url, ['template' => 1]);
         <input type="hidden" name="sesskey" value="<?php echo sesskey(); ?>">
         <p><?php echo get_string('sessionimportinstructions', 'block_mrbs'); ?></p>
         <p><?php echo html_writer::link($templateurl, get_string('sessionimporttemplate', 'block_mrbs'), [
-            'class' => 'btn btn-outline-primary',
+            'class' => 'btn btn-primary',
         ]); ?></p>
         <div class="form-group">
             <label for="mrbs-session-workbook"><?php echo get_string('sessionimportworkbook', 'block_mrbs'); ?></label>

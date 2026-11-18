@@ -27,7 +27,7 @@ if (!in_array($section, ['time', 'colours'], true)) {
     $table->head = [get_string('settings'), get_string('view', 'block_mrbs')];
     foreach (['time' => 'timesettings', 'colours' => 'coloursettings'] as $key => $label) {
         $link = new moodle_url('/blocks/mrbs/web/custom_settings.php', ['section' => $key]);
-        $table->data[] = [get_string($label, 'block_mrbs'), html_writer::link($link, get_string('open'), ['class' => 'btn btn-primary'])];
+        $table->data[] = [get_string($label, 'block_mrbs'), html_writer::link($link, get_string('opensettings', 'block_mrbs'), ['class' => 'btn btn-primary'])];
     }
     echo html_writer::div(html_writer::table($table), 'card card-body table-responsive');
     include __DIR__ . '/trailer.php';

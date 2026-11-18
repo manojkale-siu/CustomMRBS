@@ -135,3 +135,14 @@ top:12}
     min-height: 1.4em;
     color: #555;
 }
+
+/* Keep Bootstrap primary links readable in every interaction state. */
+#mrbscontainer a.btn-primary,
+#mrbscontainer a.btn-primary:link,
+#mrbscontainer a.btn-primary:visited,
+#mrbscontainer a.btn-primary:hover,
+#mrbscontainer a.btn-primary:focus,
+#mrbscontainer a.btn-primary:active {
+    color: #fff;
+    text-decoration: none;
+}

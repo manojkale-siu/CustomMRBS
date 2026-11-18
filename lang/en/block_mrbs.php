@@ -469,3 +469,5 @@ $string['timesettings'] = 'Time settings';
 $string['coloursettings'] = 'Programme colour settings';
 $string['invalidcolour'] = 'Enter a colour as #RRGGBB.';
 $string['colourinstructions'] = 'Enter a colour as #RRGGBB for each programme. Leave a field blank to use the default booking colour.';
+
+$string['opensettings'] = 'Open';
