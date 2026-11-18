@@ -175,7 +175,7 @@ HTML2END;
             if (getAuthorised(1) && in_array(basename($PAGE->url->get_path()), ['day.php', 'week.php', 'month.php'], true)) {
                 $importurl = new moodle_url('/blocks/mrbs/web/session_import.php', compact('day', 'month', 'year', 'area'));
                 echo '<td class="banner">' . html_writer::link($importurl, get_string('sessionimport', 'block_mrbs'), [
-                    'class' => 'btn btn-sm btn-outline-primary',
+                    'class' => 'nav-link',
                 ]) . '</td>';
             }
         } // !$userview
