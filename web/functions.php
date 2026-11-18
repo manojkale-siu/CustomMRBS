@@ -129,7 +129,7 @@ function print_header_mrbs($day = null, $month = null, $year = null, $area = nul
                     new moodle_url('/blocks/mrbs/web/' . $view . '.php', $calendarparams)];
             }
             if (mrbsHasAdminCapability('block/mrbs:forcebook')
-                    && \block_mrbslocal\booking_prerequisites::can_create_bookings()) {
+                    && \block_mrbs\local\booking_prerequisites::can_create_bookings()) {
                 $links['edit_entry.php'] = [get_string('forciblybook', 'block_mrbs'),
                     new moodle_url('/blocks/mrbs/web/edit_entry.php', $calendarparams + ['force' => 1])];
             }
@@ -141,7 +141,7 @@ function print_header_mrbs($day = null, $month = null, $year = null, $area = nul
             }
         }
         $links['help.php'] = [get_string('help'), new moodle_url('/blocks/mrbs/web/help.php', $calendarparams)];
-        if (\block_mrbslocal\timetable_access::is_admin()) {
+        if (\block_mrbs\local\timetable_access::is_admin()) {
             $links['custom_settings.php'] = [get_string('settings'),
                 new moodle_url('/blocks/mrbs/web/custom_settings.php')];
         }
