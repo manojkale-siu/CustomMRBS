@@ -185,3 +185,16 @@ top:12}
     background-color: #b21f2d;
     border-color: #b21f2d;
 }
+
+#mrbscontainer input.mrbs-colour-picker {
+    width: 4.5rem;
+    min-width: 4.5rem;
+    height: 2.5rem;
+    padding: .25rem;
+    margin-right: .75rem;
+    cursor: pointer;
+}
+#mrbscontainer input.mrbs-colour-code {
+    width: 8rem;
+    font-family: monospace;
+}

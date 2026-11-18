@@ -74,12 +74,18 @@ if ($section === 'colours') {
         $id = 'mrbs-colour-' . $programme['id'];
         $picker = html_writer::empty_tag('input', [
             'type' => 'color', 'id' => $id, 'name' => 'colours[' . $programme['id'] . ']',
-            'value' => $value ?: '#ddffdd', 'class' => 'form-control w-auto',
+            'value' => $value ?: '#ddffdd', 'class' => 'form-control mrbs-colour-picker',
+            'oninput' => "document.getElementById(this.id + '-code').value = this.value.toUpperCase(); document.getElementById(this.id + '-default').checked = false;",
             'aria-label' => strip_tags($programme['label']),
+        ]);
+        $code = html_writer::empty_tag('input', [
+            'type' => 'text', 'id' => $id . '-code', 'value' => strtoupper($value ?: '#ddffdd'),
+            'readonly' => 'readonly', 'class' => 'form-control mrbs-colour-code',
+            'aria-label' => get_string('programmecolourcode', 'block_mrbs'),
         ]);
         $default = html_writer::checkbox('defaultcolour[' . $programme['id'] . ']', 1, !$value,
             get_string('defaultprogrammecolour', 'block_mrbs'), ['id' => $id . '-default', 'class' => 'mr-2']);
-        $table->data[] = [$programme['label'], $picker . html_writer::div($default, 'mt-2')];
+        $table->data[] = [$programme['label'], html_writer::div($picker . $code, 'd-flex align-items-center') . html_writer::div($default, 'mt-2')];
     }
     echo html_writer::tag('p', get_string('colourinstructions', 'block_mrbs'));
     echo html_writer::div(html_writer::table($table), 'table-responsive');

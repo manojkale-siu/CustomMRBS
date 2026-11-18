@@ -473,3 +473,5 @@ $string['colourinstructions'] = 'Choose a colour for each programme. Clear Use d
 $string['opensettings'] = 'Open';
 
 $string['defaultprogrammecolour'] = 'Use default colour';
+
+$string['programmecolourcode'] = 'Colour code';
