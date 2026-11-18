@@ -100,7 +100,7 @@ function print_header_mrbs($day = null, $month = null, $year = null, $area = nul
         echo html_writer::start_div('card my-3');
         echo html_writer::start_div('card-body p-3');
         echo html_writer::start_div('d-flex flex-wrap align-items-center justify-content-between');
-        echo html_writer::link($homeurl, get_string('blockname', 'block_mrbs'), [
+        echo html_writer::link($homeurl, get_string('mrbs', 'block_mrbs'), [
             'class' => 'h5 mb-2 mr-3',
         ]);
         echo html_writer::start_tag('form', [
