@@ -475,3 +475,12 @@ $string['opensettings'] = 'Open';
 $string['defaultprogrammecolour'] = 'Use default colour';
 
 $string['programmecolourcode'] = 'Colour code';
+
+$string['timeconfiguration'] = 'Time configuration';
+$string['defaultperiods'] = 'Use default MRBS periods';
+$string['customtimeslots'] = 'Use custom time slots';
+$string['definetimerange'] = 'Define time range';
+$string['timeinterval'] = 'Slot interval in minutes';
+$string['timeparthour'] = 'hour';
+$string['timepartmin'] = 'minute';
+$string['timepartampm'] = 'AM or PM';

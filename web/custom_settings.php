@@ -98,7 +98,7 @@ if ($section === 'colours') {
 $customtimelocked = \block_mrbs\local\settings_manager::has_valid_custom_time_range();
 $currentsettings = \block_mrbs\local\settings_manager::get_time_settings();
 
-echo '<h2>MRBS Custom Settings</h2>';
+echo $OUTPUT->heading(get_string('timesettings', 'block_mrbs'), 2);
 
 if (data_submitted()) {
     require_sesskey();
@@ -151,112 +151,80 @@ if (data_submitted()) {
 }
 ?>
 
-<style>
-.box {
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    padding: 15px;
-    width: 60%;
-    margin-bottom: 20px;
-}
-.readonly-settings {
-    background: #f8f9fa;
-}
-</style>
-
-<script>
-function showTimeBox(type) {
-    document.getElementById('timeBox').style.display = (type === 'time') ? 'block' : 'none';
-}
-</script>
-
-<div class="box <?php echo $customtimelocked ? 'readonly-settings' : ''; ?>">
-    <h3>Time Settings</h3>
-
-    <?php if ($customtimelocked): ?>
-        <?php echo $OUTPUT->notification(get_string('customtiminglocked', 'block_mrbs'), 'notifyproblem'); ?>
-        <p><strong><?php echo s(get_string('from', 'block_mrbs')); ?>:</strong> <?php echo s($currentsettings['from'] ?? ''); ?></p>
-        <p><strong><?php echo s(get_string('to', 'block_mrbs')); ?>:</strong> <?php echo s($currentsettings['to'] ?? ''); ?></p>
-        <p><strong><?php echo s(get_string('duration', 'block_mrbs')); ?>:</strong> <?php echo s(($currentsettings['interval'] ?? '') . ' ' . get_string('minutes', 'block_mrbs')); ?></p>
-    <?php else: ?>
-        <form method="POST">
-            <input type="hidden" name="section" value="time">
-            <input type="hidden" name="sesskey" value="<?php echo sesskey(); ?>">
-
-            <label>
-                <input type="radio" name="setting_type" value="periods" onclick="showTimeBox('periods')" required>
-                Use Default MRBS Periods
-            </label>
-
-            <input type="hidden" name="default_flag" id="default_flag" value="">
-
-            <br><br>
-
-            <label>
-                <input type="radio" name="setting_type" value="time" onclick="showTimeBox('time')" required>
-                Use Custom Time Slots
-            </label>
-
-            <div id="timeBox" style="display:none; margin-top:20px;">
-                <h4>Define Time Range</h4>
-
-                <strong>From:</strong><br>
-                <select class="custom-select w-auto mr-1 mb-1" name="from_hour">
-                    <?php for ($i = 1; $i <= 12; $i++): ?>
-                    <option value="<?php echo $i; ?>"><?php echo $i; ?></option>
-                    <?php endfor; ?>
-                </select>
-
-                <select class="custom-select w-auto mr-1 mb-1" name="from_min">
-                    <option value="00">00</option>
-                    <option value="15">15</option>
-                    <option value="30">30</option>
-                    <option value="45">45</option>
-                </select>
-
-                <select class="custom-select w-auto mr-1 mb-1" name="from_ampm">
-                    <option value="AM">AM</option>
-                    <option value="PM">PM</option>
-                </select>
-
-                <br><br>
-
-                <strong>To:</strong><br>
-                <select class="custom-select w-auto mr-1 mb-1" name="to_hour">
-                    <?php for ($i = 1; $i <= 12; $i++): ?>
-                    <option value="<?php echo $i; ?>"><?php echo $i; ?></option>
-                    <?php endfor; ?>
-                </select>
-
-                <select class="custom-select w-auto mr-1 mb-1" name="to_min">
-                    <option value="00">00</option>
-                    <option value="15">15</option>
-                    <option value="30">30</option>
-                    <option value="45">45</option>
-                </select>
-
-                <select class="custom-select w-auto mr-1 mb-1" name="to_ampm">
-                    <option value="AM">AM</option>
-                    <option value="PM">PM</option>
-                </select>
-
-                <br><br>
-
-                <strong>Slot Interval (Minutes):</strong><br>
-                <input type="number" name="interval" min="1">
-            </div>
-
-            <br><br>
-            <button type="submit" name="submit">Save</button>
-        </form>
-        <script>
-        document.querySelector("input[value='periods']").addEventListener('change', function() {
-            document.getElementById('default_flag').value = 'yes';
-        });
-
-        document.querySelector("input[value='time']").addEventListener('change', function() {
-            document.getElementById('default_flag').value = '';
-        });
-        </script>
-    <?php endif; ?>
+<div class="card my-3">
+    <div class="card-body">
+        <?php if ($customtimelocked): ?>
+            <?php echo $OUTPUT->notification(get_string('customtiminglocked', 'block_mrbs'), 'info'); ?>
+            <dl class="row mb-0">
+                <?php foreach ([
+                    'from' => $currentsettings['from'] ?? '',
+                    'to' => $currentsettings['to'] ?? '',
+                    'timeinterval' => ($currentsettings['interval'] ?? '') . ' ' . get_string('minutes', 'block_mrbs'),
+                ] as $label => $value) { ?>
+                    <dt class="col-12 col-sm-4"><?php echo get_string($label, 'block_mrbs'); ?></dt>
+                    <dd class="col-12 col-sm-8"><?php echo s($value); ?></dd>
+                <?php } ?>
+            </dl>
+        <?php else: ?>
+            <form method="post">
+                <input type="hidden" name="section" value="time">
+                <input type="hidden" name="sesskey" value="<?php echo sesskey(); ?>">
+                <fieldset class="form-group">
+                    <legend class="h5"><?php echo get_string('timeconfiguration', 'block_mrbs'); ?></legend>
+                    <?php foreach (['periods' => 'defaultperiods', 'time' => 'customtimeslots'] as $value => $label) { ?>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" id="mrbs-time-<?php echo $value; ?>"
+                                name="setting_type" value="<?php echo $value; ?>" required
+                                onchange="showTimeBox(this.value)">
+                            <label class="form-check-label" for="mrbs-time-<?php echo $value; ?>">
+                                <?php echo get_string($label, 'block_mrbs'); ?>
+                            </label>
+                        </div>
+                    <?php } ?>
+                </fieldset>
+                <fieldset id="timeBox" class="border rounded p-3 mb-3" hidden disabled>
+                    <legend class="h6 w-auto px-2"><?php echo get_string('definetimerange', 'block_mrbs'); ?></legend>
+                    <div class="row">
+                        <?php foreach (['from', 'to'] as $prefix) { ?>
+                            <fieldset class="form-group col-12 col-lg-6">
+                                <legend class="h6"><?php echo get_string($prefix, 'block_mrbs'); ?></legend>
+                                <div class="d-flex flex-wrap">
+                                    <?php
+                                    $options = [
+                                        'hour' => array_combine(range(1, 12), range(1, 12)),
+                                        'min' => ['00' => '00', '15' => '15', '30' => '30', '45' => '45'],
+                                        'ampm' => ['AM' => 'AM', 'PM' => 'PM'],
+                                    ];
+                                    foreach ($options as $part => $values) {
+                                        echo html_writer::select($values, $prefix . '_' . $part, array_key_first($values), false, [
+                                            'class' => 'custom-select w-auto mr-1 mb-1',
+                                            'aria-label' => get_string($prefix, 'block_mrbs') . ' '
+                                                . get_string('timepart' . $part, 'block_mrbs'),
+                                        ]);
+                                    }
+                                    ?>
+                                </div>
+                            </fieldset>
+                        <?php } ?>
+                    </div>
+                    <div class="form-group mb-0">
+                        <label for="mrbs-time-interval"><?php echo get_string('timeinterval', 'block_mrbs'); ?></label>
+                        <input class="form-control w-auto" id="mrbs-time-interval" type="number"
+                            name="interval" min="1" required>
+                    </div>
+                </fieldset>
+                <button class="btn btn-primary" type="submit" name="submit">
+                    <?php echo get_string('savechanges'); ?>
+                </button>
+            </form>
+            <script>
+            function showTimeBox(type) {
+                var box = document.getElementById('timeBox');
+                box.hidden = type !== 'time';
+                box.disabled = type !== 'time';
+            }
+            </script>
+        <?php endif; ?>
+    </div>
 </div>
+<?php include __DIR__ . '/trailer.php';
