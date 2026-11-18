@@ -21,7 +21,6 @@ if (!\block_mrbs\local\timetable_access::is_admin()) {
 $section = optional_param('section', '', PARAM_ALPHA);
 $PAGE->set_url(new moodle_url('/blocks/mrbs/web/custom_settings.php', ['section' => $section]));
 print_header_mrbs();
-echo html_writer::link(new moodle_url('/blocks/mrbs/web/custom_settings.php'), get_string('settings'), ['class' => 'btn btn-outline-secondary mb-3']);
 if (!in_array($section, ['time', 'colours'], true)) {
     $table = new html_table();
     $table->head = [get_string('settings'), get_string('view', 'block_mrbs')];
@@ -38,9 +37,10 @@ if ($section === 'colours') {
     if (data_submitted()) {
         require_sesskey();
         $colours = optional_param_array('colours', [], PARAM_RAW_TRIMMED);
+        $defaults = optional_param_array('defaultcolour', [], PARAM_BOOL);
         $transaction = $DB->start_delegated_transaction();
         foreach ($programmes as $programme) {
-            $value = $colours[$programme['id']] ?? '';
+            $value = !empty($defaults[$programme['id']]) ? '' : ($colours[$programme['id']] ?? '');
             if ($value !== '' && !preg_match('/^#[0-9a-f]{6}$/iD', $value)) {
                 throw new moodle_exception('invalidcolour', 'block_mrbs');
             }
@@ -71,11 +71,15 @@ if ($section === 'colours') {
         $value = $DB->get_field('block_mrbs_settings', 'setting_value', [
             'setting_group' => 'programme_colours', 'setting_key' => (string)$programme['id'],
         ]);
-        $table->data[] = [$programme['label'], html_writer::empty_tag('input', [
-            'type' => 'text', 'name' => 'colours[' . $programme['id'] . ']', 'value' => $value ?: '',
-            'class' => 'form-control', 'pattern' => '#[0-9a-fA-F]{6}', 'placeholder' => '#DDFFDD',
+        $id = 'mrbs-colour-' . $programme['id'];
+        $picker = html_writer::empty_tag('input', [
+            'type' => 'color', 'id' => $id, 'name' => 'colours[' . $programme['id'] . ']',
+            'value' => $value ?: '#ddffdd', 'class' => 'form-control w-auto',
             'aria-label' => strip_tags($programme['label']),
-        ])];
+        ]);
+        $default = html_writer::checkbox('defaultcolour[' . $programme['id'] . ']', 1, !$value,
+            get_string('defaultprogrammecolour', 'block_mrbs'), ['id' => $id . '-default', 'class' => 'mr-2']);
+        $table->data[] = [$programme['label'], $picker . html_writer::div($default, 'mt-2')];
     }
     echo html_writer::tag('p', get_string('colourinstructions', 'block_mrbs'));
     echo html_writer::div(html_writer::table($table), 'table-responsive');

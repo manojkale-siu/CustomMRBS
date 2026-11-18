@@ -146,3 +146,42 @@ top:12}
     color: #fff;
     text-decoration: none;
 }
+
+
+/* Override legacy link colours for all Bootstrap button states. */
+#mrbscontainer a.btn {
+    text-decoration: none;
+}
+#mrbscontainer a.btn-secondary {
+    color: #fff;
+}
+#mrbscontainer a.btn-outline-secondary {
+    color: #495057;
+}
+#mrbscontainer a.btn-outline-primary {
+    color: #0056b3;
+}
+#mrbscontainer a.btn-outline-danger {
+    color: #b21f2d;
+}
+#mrbscontainer a.btn-outline-secondary:hover,
+#mrbscontainer a.btn-outline-secondary:focus,
+#mrbscontainer a.btn-outline-secondary:active {
+    color: #fff;
+    background-color: #495057;
+    border-color: #495057;
+}
+#mrbscontainer a.btn-outline-primary:hover,
+#mrbscontainer a.btn-outline-primary:focus,
+#mrbscontainer a.btn-outline-primary:active {
+    color: #fff;
+    background-color: #0056b3;
+    border-color: #0056b3;
+}
+#mrbscontainer a.btn-outline-danger:hover,
+#mrbscontainer a.btn-outline-danger:focus,
+#mrbscontainer a.btn-outline-danger:active {
+    color: #fff;
+    background-color: #b21f2d;
+    border-color: #b21f2d;
+}

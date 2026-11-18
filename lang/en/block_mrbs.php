@@ -468,6 +468,8 @@ $string['sessionimportcount'] = 'Sessions imported';
 $string['timesettings'] = 'Time settings';
 $string['coloursettings'] = 'Programme colour settings';
 $string['invalidcolour'] = 'Enter a colour as #RRGGBB.';
-$string['colourinstructions'] = 'Enter a colour as #RRGGBB for each programme. Leave a field blank to use the default booking colour.';
+$string['colourinstructions'] = 'Choose a colour for each programme. Clear Use default colour to apply your selection.';
 
 $string['opensettings'] = 'Open';
+
+$string['defaultprogrammecolour'] = 'Use default colour';
