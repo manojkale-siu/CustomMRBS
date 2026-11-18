@@ -22,7 +22,6 @@ global $DB, $PAGE;
 include "config.inc.php";
 include "functions.php";
 require_once('mrbs_auth.php');
-include "mincals.php";
 
 $day = optional_param('day', 0, PARAM_INT);
 $month = optional_param('month', 0, PARAM_INT);
@@ -190,8 +189,6 @@ if ($area_list_format == "select") {
 if ($pview != 1) {
     echo "</td>\n";
 
-    //Draw the three month calendars
-    minicals($year, $month, $day, $area, $room, 'week');
     echo "</tr></table>\n";
 }
 
