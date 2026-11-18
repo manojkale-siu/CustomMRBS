@@ -92,120 +92,108 @@ function print_header_mrbs($day = null, $month = null, $year = null, $area = nul
             echo "[Warning: ".$locale_warning."]";
         }
 
-        $titlestr = get_string('mrbs', 'block_mrbs');
-        $homeurl = new moodle_url('/blocks/mrbs/web/index.php');
+        $calendarparams = compact('day', 'month', 'year', 'area');
+        $currentpage = basename($PAGE->url->get_path());
+        $gotourl = new moodle_url('/blocks/mrbs/web/' . ($userview ? 'userweek.php' : 'day.php'));
+        $homeurl = new moodle_url('/blocks/mrbs/web/index.php', $calendarparams);
 
-        $gotostr = get_string('goto', 'block_mrbs');
-        $gotourl = new moodle_url('/blocks/mrbs/web/day.php');
-        if ($userview) {
-            $gotourl = new moodle_url('/blocks/mrbs/web/userweek.php');
+        echo html_writer::start_div('card my-3');
+        echo html_writer::start_div('card-body p-3');
+        echo html_writer::start_div('d-flex flex-wrap align-items-center justify-content-between');
+        echo html_writer::link($homeurl, get_string('blockname', 'block_mrbs'), [
+            'class' => 'h5 mb-2 mr-3',
+        ]);
+        echo html_writer::start_tag('form', [
+            'action' => $gotourl->out(false), 'method' => 'get', 'name' => 'Form1',
+            'class' => 'd-flex flex-wrap align-items-center mb-2',
+            'aria-label' => get_string('date'),
+        ]);
+        genDateSelector('', $day, $month, $year);
+        if ($area) {
+            echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'area', 'value' => $area]);
         }
+        echo html_writer::tag('button', get_string('goto', 'block_mrbs'), [
+            'class' => 'btn btn-sm btn-primary ml-2', 'type' => 'submit',
+        ]);
+        echo html_writer::end_tag('form');
+        echo '<script>ChangeOptionDays(document.Form1, "");
+            document.Form1.querySelectorAll("select").forEach(function(select) {
+                select.classList.add("custom-select", "w-auto", "mr-1", "mb-1");
+            });</script>';
+        echo html_writer::end_div();
 
-        $roomsearchstr = get_string('roomsearch', 'block_mrbs');
-        $roomsearchurl = new moodle_url('/blocks/mrbs/web/roomsearch.php', compact('day', 'month', 'year', 'area'));
-
-        $helpstr = get_string('help');
-        $helpurl = new moodle_url('/blocks/mrbs/web/help.php', array('day' => $day, 'month' => $month, 'year' => $year));
-
-        $adminstr = get_string('admin');
-        $adminurl = new moodle_url('/blocks/mrbs/web/admin.php', array('day' => $day, 'month' => $month, 'year' => $year));
-
-        $reportstr = get_string('report');
-        $reporturl = new moodle_url('/blocks/mrbs/web/report.php');
-        
-        //New code snippet added for showing the "Setting" tab under navigation
-        $custom_settings_str = "Settings"; //get_string('custom_settings');
-        $custom_settings_url = new moodle_url('/blocks/mrbs/web/custom_settings.php');
-        //Ends here
-
-        $searchstr = get_string('search');
-        $searchurl = new moodle_url('/blocks/mrbs/web/search.php');
-        $searchadvurl = new moodle_url($searchurl, array('advanced' => 1));
-
-        $level = authGetUserLevel($USER->id);
-        $canadmin = $level >= 2;
-
-        echo <<<HTML1END
-
-    <TABLE WIDTH="100%" class="banner" >
-      <TR>
-        <TD BGCOLOR="#5B69A6">
-          <TABLE WIDTH="100%" BORDER=0>
-            <TR>
-              <TD CLASS="banner" BGCOLOR="#C0E0FF">
-          <FONT SIZE=4>
-           <A HREF="$homeurl">$titlestr</A>
-                </FONT>
-              </TD>
-              <TD CLASS="banner" BGCOLOR="#C0E0FF">
-                <FORM ACTION="$gotourl" METHOD=GET name="Form1">
-                  <FONT SIZE=2>
-HTML1END;
-
-        genDateSelector("", $day, $month, $year); // Note: The 1st arg must match the last arg in the call to ChangeOptionDays below.
-        if (!empty($area)) {
-            echo "<INPUT TYPE=HIDDEN NAME=area VALUE=$area>\n";
-        }
-
-        echo <<<HTML2END
-                <SCRIPT LANGUAGE="JavaScript">
-                    <!--
-                    // fix number of days for the $month/$year that you start with
-                    ChangeOptionDays(document.Form1, ''); // Note: The 2nd arg must match the first in the call to genDateSelector above.
-                    // -->
-                    </SCRIPT>
-        <INPUT TYPE=SUBMIT VALUE="$gotostr">
-                  </FONT>
-                </FORM>
-              </TD>
-HTML2END;
+        $links = [];
         if (!$userview) {
+            foreach (['day' => 'viewday', 'week' => 'viewweek', 'month' => 'viewmonth'] as $view => $label) {
+                $links[$view . '.php'] = [get_string($label, 'block_mrbs'),
+                    new moodle_url('/blocks/mrbs/web/' . $view . '.php', $calendarparams)];
+            }
             if (mrbsHasAdminCapability('block/mrbs:forcebook')
-                    && \block_mrbs\local\booking_prerequisites::can_create_bookings()) {
-                echo '<TD CLASS="banner" BGCOLOR="#C0E0FF" ALIGN=CENTER>
-                  <a href="edit_entry.php?force=TRUE">'.get_string('forciblybook', 'block_mrbs').'</a>
-              </TD>';
+                    && \block_mrbslocal\booking_prerequisites::can_create_bookings()) {
+                $links['edit_entry.php'] = [get_string('forciblybook', 'block_mrbs'),
+                    new moodle_url('/blocks/mrbs/web/edit_entry.php', $calendarparams + ['force' => 1])];
             }
-
-            echo '<TD CLASS="banner" BGCOLOR="#C0E0FF" ALIGN=CENTER>';
-            echo '<a target="popup" title="'.$roomsearchstr.'" href="'.$roomsearchurl.'" ';
-            echo 'onclick="this.target=\'popup\'; return openpopup(\''.$roomsearchurl.'\', \'popup\', \'toolbar=1,location=0,scrollbars,resizable,width=500,height=400\', 0);">';
-            echo $roomsearchstr.'</a></TD>';
-
-            if (getAuthorised(1) && in_array(basename($PAGE->url->get_path()), ['day.php', 'week.php', 'month.php'], true)) {
-                $importurl = new moodle_url('/blocks/mrbs/web/session_import.php', compact('day', 'month', 'year', 'area'));
-                echo '<td class="banner">' . html_writer::link($importurl, get_string('sessionimport', 'block_mrbs'), [
-                    'class' => 'nav-link',
-                ]) . '</td>';
+            $links['roomsearch.php'] = [get_string('roomsearch', 'block_mrbs'),
+                new moodle_url('/blocks/mrbs/web/roomsearch.php', $calendarparams)];
+            if (getAuthorised(1)) {
+                $links['session_import.php'] = [get_string('sessionimport', 'block_mrbs'),
+                    new moodle_url('/blocks/mrbs/web/session_import.php', $calendarparams)];
             }
-        } // !$userview
-        
-        echo '<TD CLASS="banner" BGCOLOR="#C0E0FF" ALIGN=CENTER><A HREF="'.$helpurl.'">'.$helpstr.'</A></TD>';
-        
-        //Added after the HELP tab
-        if (\block_mrbs\local\timetable_access::is_admin()) {
-            echo '<TD CLASS="banner" BGCOLOR="#C0E0FF" ALIGN=CENTER><A HREF="'.$custom_settings_url.'">'.$custom_settings_str.'</A></TD>';
         }
-        //end here
+        $links['help.php'] = [get_string('help'), new moodle_url('/blocks/mrbs/web/help.php', $calendarparams)];
+        if (\block_mrbslocal\timetable_access::is_admin()) {
+            $links['custom_settings.php'] = [get_string('settings'),
+                new moodle_url('/blocks/mrbs/web/custom_settings.php')];
+        }
+        if (!$userview) {
+            if (getAuthorised(2)) {
+                $links['admin.php'] = [get_string('admin'),
+                    new moodle_url('/blocks/mrbs/web/admin.php', $calendarparams)];
+            }
+            $links['report.php'] = [get_string('report'), new moodle_url('/blocks/mrbs/web/report.php', $calendarparams)];
+            $links['search.php'] = [get_string('search'),
+                new moodle_url('/blocks/mrbs/web/search.php', $calendarparams + ['advanced' => 1])];
+        }
+
+        echo html_writer::start_tag('nav', [
+            'class' => 'nav flex-wrap border-top pt-2', 'aria-label' => get_string('blockname', 'block_mrbs'),
+        ]);
+        foreach ($links as $page => [$label, $url]) {
+            $attributes = ['class' => 'nav-link px-2 py-1'];
+            if ($currentpage === $page) {
+                $attributes['class'] .= ' font-weight-bold';
+                $attributes['aria-current'] = 'page';
+            }
+            if ($page === 'roomsearch.php') {
+                $attributes['target'] = 'popup';
+                $attributes['onclick'] = "this.target='popup'; return openpopup("
+                    . json_encode($url->out(false)) . ", 'popup', 'scrollbars,resizable,width=1000,height=700', 0);";
+            }
+            echo html_writer::link($url, $label, $attributes);
+        }
+        echo html_writer::end_tag('nav');
 
         if (!$userview) {
-            if ($canadmin) {
-                echo '<TD CLASS="banner" BGCOLOR="#C0E0FF" ALIGN=CENTER><A HREF="'.$adminurl.'">'.$adminstr.'</A></TD>';
-            }
-            echo '<TD CLASS="banner" BGCOLOR="#C0E0FF" ALIGN=CENTER><A HREF="'.$reporturl.'">'.$reportstr.'</A></TD>';
-            echo '<TD CLASS="banner" BGCOLOR="#C0E0FF" ALIGN=CENTER><FORM METHOD=GET ACTION="'.$searchurl.'">';
-            echo '<FONT SIZE=2><A HREF="'.$searchadvurl.'">'.$searchstr.'</A></FONT>
-                  <INPUT TYPE=TEXT   NAME="search_str" VALUE="'.$search_str.'" SIZE=10>
-                  <INPUT TYPE=HIDDEN NAME=day        VALUE="'.$day.'"        >
-                  <INPUT TYPE=HIDDEN NAME=month      VALUE="'.$month.'"        >
-                  <INPUT TYPE=HIDDEN NAME=year       VALUE="'.$year.'"        >';
-            if (!empty($area)) {
-                echo "<INPUT TYPE=HIDDEN NAME=area VALUE=$area>\n";
-            }
-            echo '</FORM></TD>';
-        } // !$userview
-
-        echo '</TR> </TABLE> </TD> </TR> </TABLE>';
+            $searchurl = new moodle_url('/blocks/mrbs/web/search.php');
+            echo html_writer::start_tag('form', [
+                'action' => $searchurl->out(false), 'method' => 'get',
+                'class' => 'form-inline mt-3',
+                'role' => 'search',
+            ]);
+            echo html_writer::input_hidden_params(new moodle_url($searchurl, $calendarparams));
+            echo html_writer::label(get_string('search'), 'mrbs-header-search', false, ['class' => 'sr-only']);
+            echo html_writer::empty_tag('input', [
+                'id' => 'mrbs-header-search', 'name' => 'search_str', 'value' => $search_str,
+                'class' => 'form-control form-control-sm mr-2', 'type' => 'search',
+                'placeholder' => get_string('search'), 'required' => 'required',
+            ]);
+            echo html_writer::tag('button', get_string('search'), [
+                'class' => 'btn btn-sm btn-outline-secondary', 'type' => 'submit',
+            ]);
+            echo html_writer::end_tag('form');
+        }
+        echo html_writer::end_div();
+        echo html_writer::end_div();
     }
 }
 
