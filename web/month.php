@@ -245,7 +245,7 @@ for ($day_num = 1; $day_num <= $days_in_month; $day_num++) {
         'room_id = ? AND start_time <= ? AND end_time > ?',
         array($room, $midnight_tonight[$day_num], $midnight[$day_num]),
         'start_time',
-        'id, start_time, end_time, name, courseid, facultyid'
+        'id, start_time, end_time, name, type, courseid, facultyid'
     );
 
     foreach ($entries as $entry) {
@@ -255,6 +255,7 @@ for ($day_num = 1; $day_num <= $days_in_month; $day_num++) {
         }
 
         $d[$day_num]["id"][] = $entry->id;
+        $d[$day_num]["colour"][] = \block_mrbs\local\programme_colour::cell_type($entry);
         $d[$day_num]["shortdescrip"][] = \block_mrbs\local\reservation::get_display_name($entry);
 
         // Describe the start and end time, accounting for "all day"
@@ -403,6 +404,7 @@ for ($cday = 1; $cday <= $days_in_month; $cday++) {
             $viewentry_url = new moodle_url('/blocks/mrbs/web/view_entry.php', array(
                 'id' => $d[$cday]['id'][$i], 'day' => $cday, 'month' => $month, 'year' => $year
             ));
+            echo html_writer::start_span($d[$cday]["colour"][$i] . ' rounded px-1');
             switch ($monthly_view_entries_details) {
                 case "description": {
                     echo "<a href=\"".$viewentry_url."\" title=\""
@@ -427,6 +429,7 @@ for ($cday = 1; $cday <= $days_in_month; $cday++) {
                     echo "error: unknown parameter";
                 }
             }
+            echo html_writer::end_span();
         }
         echo "</font>";
     }

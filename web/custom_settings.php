@@ -18,7 +18,72 @@ require_login();
 if (!\block_mrbs\local\timetable_access::is_admin()) {
     throw new moodle_exception('accessdenied', 'block_mrbs');
 }
+$section = optional_param('section', '', PARAM_ALPHA);
+$PAGE->set_url(new moodle_url('/blocks/mrbs/web/custom_settings.php', ['section' => $section]));
 print_header_mrbs();
+echo html_writer::link(new moodle_url('/blocks/mrbs/web/custom_settings.php'), get_string('settings'), ['class' => 'btn btn-outline-secondary mb-3']);
+if (!in_array($section, ['time', 'colours'], true)) {
+    $table = new html_table();
+    $table->head = [get_string('settings'), get_string('view', 'block_mrbs')];
+    foreach (['time' => 'timesettings', 'colours' => 'coloursettings'] as $key => $label) {
+        $link = new moodle_url('/blocks/mrbs/web/custom_settings.php', ['section' => $key]);
+        $table->data[] = [get_string($label, 'block_mrbs'), html_writer::link($link, get_string('open'), ['class' => 'btn btn-primary'])];
+    }
+    echo html_writer::div(html_writer::table($table), 'card card-body table-responsive');
+    include __DIR__ . '/trailer.php';
+    exit;
+}
+if ($section === 'colours') {
+    $programmes = \block_mrbs\local\booking_options::get_programmes();
+    if (data_submitted()) {
+        require_sesskey();
+        $colours = optional_param_array('colours', [], PARAM_RAW_TRIMMED);
+        $transaction = $DB->start_delegated_transaction();
+        foreach ($programmes as $programme) {
+            $value = $colours[$programme['id']] ?? '';
+            if ($value !== '' && !preg_match('/^#[0-9a-f]{6}$/iD', $value)) {
+                throw new moodle_exception('invalidcolour', 'block_mrbs');
+            }
+            $params = ['setting_group' => 'programme_colours', 'setting_key' => (string)$programme['id']];
+            $record = $DB->get_record('block_mrbs_settings', $params);
+            if ($value === '') {
+                $DB->delete_records('block_mrbs_settings', $params);
+            } else if ($record) {
+                $record->setting_value = $value;
+                $record->updated_at = time();
+                $DB->update_record('block_mrbs_settings', $record);
+            } else {
+                $DB->insert_record('block_mrbs_settings', (object)($params + [
+                    'setting_value' => $value, 'created_at' => time(), 'updated_at' => time(), 'creatoruserid' => $USER->id,
+                ]));
+            }
+        }
+        $transaction->allow_commit();
+        echo $OUTPUT->notification(get_string('settingssaved', 'block_mrbs'), 'success');
+    }
+    echo $OUTPUT->heading(get_string('coloursettings', 'block_mrbs'), 2);
+    echo '<form method="post" class="card card-body">';
+    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
+    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'section', 'value' => 'colours']);
+    $table = new html_table();
+    $table->head = [get_string('programme', 'block_mrbs'), get_string('coloursettings', 'block_mrbs')];
+    foreach ($programmes as $programme) {
+        $value = $DB->get_field('block_mrbs_settings', 'setting_value', [
+            'setting_group' => 'programme_colours', 'setting_key' => (string)$programme['id'],
+        ]);
+        $table->data[] = [$programme['label'], html_writer::empty_tag('input', [
+            'type' => 'text', 'name' => 'colours[' . $programme['id'] . ']', 'value' => $value ?: '',
+            'class' => 'form-control', 'pattern' => '#[0-9a-fA-F]{6}', 'placeholder' => '#DDFFDD',
+            'aria-label' => strip_tags($programme['label']),
+        ])];
+    }
+    echo html_writer::tag('p', get_string('colourinstructions', 'block_mrbs'));
+    echo html_writer::div(html_writer::table($table), 'table-responsive');
+    echo html_writer::tag('button', get_string('savechanges'), ['class' => 'btn btn-primary', 'type' => 'submit']);
+    echo '</form>';
+    include __DIR__ . '/trailer.php';
+    exit;
+}
 
 $customtimelocked = \block_mrbs\local\settings_manager::has_valid_custom_time_range();
 $currentsettings = \block_mrbs\local\settings_manager::get_time_settings();
@@ -105,6 +170,7 @@ function showTimeBox(type) {
         <p><strong><?php echo s(get_string('duration', 'block_mrbs')); ?>:</strong> <?php echo s(($currentsettings['interval'] ?? '') . ' ' . get_string('minutes', 'block_mrbs')); ?></p>
     <?php else: ?>
         <form method="POST">
+            <input type="hidden" name="section" value="time">
             <input type="hidden" name="sesskey" value="<?php echo sesskey(); ?>">
 
             <label>

@@ -86,6 +86,7 @@ function print_header_mrbs($day = null, $month = null, $year = null, $area = nul
     echo ');</script>';
 
     echo '<div id="mrbscontainer">';
+    echo \block_mrbs\local\programme_colour::styles();
 
     if ($pview != 1) {
         if (!empty($locale_warning)) {

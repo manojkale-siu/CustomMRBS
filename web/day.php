@@ -219,7 +219,7 @@ if (!empty($area)) {
             //checks for double bookings
             if (empty($today[$entry->rid][$slotkey])) {
                 $today[$entry->rid][$slotkey]["id"] = $entry->eid;
-                $today[$entry->rid][$slotkey]["color"] = $entry->type;
+                $today[$entry->rid][$slotkey]["color"] = \block_mrbs\local\programme_colour::cell_type($entry);
                 $today[$entry->rid][$slotkey]["data"] = "";
                 $today[$entry->rid][$slotkey]["long_descr"] = "";
                 $today[$entry->rid][$slotkey]["double_booked"] = false;

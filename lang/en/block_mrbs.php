@@ -464,3 +464,8 @@ $string['sessionimportcapacity'] = 'Room capacity is exceeded. Choose a larger r
 $string['sessionimportfailed'] = 'No sessions were imported. {$a}';
 $string['sessionimportsuccess'] = 'Imported {$a} sessions.';
 $string['sessionimportcount'] = 'Sessions imported';
+
+$string['timesettings'] = 'Time settings';
+$string['coloursettings'] = 'Programme colour settings';
+$string['invalidcolour'] = 'Enter a colour as #RRGGBB.';
+$string['colourinstructions'] = 'Enter a colour as #RRGGBB for each programme. Leave a field blank to use the default booking colour.';

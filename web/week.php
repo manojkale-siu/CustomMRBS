@@ -282,7 +282,7 @@ for ($j = 0; $j <= ($num_of_days - 1); $j++) {
                 ? \block_mrbs\local\settings_manager::get_period_index_from_timestamp($t)
                 : date($format, $t);
             $d[$j][$slotkey]["id"] = $entry->id;
-            $d[$j][$slotkey]["color"] = $entry->type;
+            $d[$j][$slotkey]["color"] = \block_mrbs\local\programme_colour::cell_type($entry);
             $d[$j][$slotkey]["data"] = "";
             $d[$j][$slotkey]["long_descr"] = "";
         }
