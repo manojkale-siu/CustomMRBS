@@ -348,6 +348,17 @@ function mrbsFindForceTimeSlot($entry, $room, array $reserved, array $planned) {
                 $entry->facultyid, $start, $end, $entry->id)) {
             continue;
         }
+        if (\block_mrbs\local\booking_validator::find_student_conflicts(
+                $entry->courseid, $entry->groupid, $start, $end, $entry->id)) {
+            continue;
+        }
+        foreach ($planned as $move) {
+            if ($move['start'] < $end && $move['end'] > $start
+                    && \block_mrbs\local\booking_validator::share_students(
+                        $entry->courseid, $entry->groupid, $move['entry']->courseid, $move['entry']->groupid)) {
+                continue 2;
+            }
+        }
         return [$start, $end];
     }
     return null;

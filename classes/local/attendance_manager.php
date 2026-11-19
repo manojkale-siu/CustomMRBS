@@ -217,8 +217,10 @@ class attendance_manager {
 
         $session = $DB->get_record('attendance_sessions', ['id' => (int)$sessionid], '*', MUST_EXIST);
         $groupchanged = ((int)$session->groupid !== (int)$groupid);
-        $session->sessdate = (int)$entry->start_time;
-        $session->duration = max(0, (int)$entry->end_time - (int)$entry->start_time);
+        if ((int)$session->sessdate > time() && (int)$entry->start_time > time()) {
+            $session->sessdate = (int)$entry->start_time;
+            $session->duration = max(0, (int)$entry->end_time - (int)$entry->start_time);
+        }
         $session->description = self::build_description($facultyid);
         $session->descriptionformat = FORMAT_MOODLE;
         $session->groupid = (int)$groupid;
