@@ -375,7 +375,7 @@ print_header_mrbs($day, $month, $year, $area);
             alert("<?php echo get_string('you_have_not_entered', 'block_mrbs').'\n'.get_string('useful_n-weekly_value', 'block_mrbs') ?>");
             return false;
         }
-        if (repType === 2 || repType === 6) {
+        if (repType === 6) {
             for (i = 0; i < 7; i++) {
                 if (form.elements['rep_day[' + i + ']'] && form.elements['rep_day[' + i + ']'].checked) {
                     repeatDaySelected = true;
@@ -727,12 +727,12 @@ print_header_mrbs($day, $month, $year, $area);
                 </div>
             </div>
 
-            <div class="form-group">
+            <div class="form-group" id="mrbs-repeat-end">
                 <div class="font-weight-bold mb-1"><B><?php echo get_string('rep_end_date', 'block_mrbs') ?></B></div>
                 <div><?php genDateSelector("rep_end_", $rep_end_day, $rep_end_month, $rep_end_year) ?></div>
             </div>
 
-            <div class="form-group">
+            <div class="form-group" id="mrbs-repeat-days">
                 <div class="font-weight-bold mb-1">
                     <B><?php echo get_string('rep_rep_day', 'block_mrbs') ?></B> <?php echo get_string('rep_for_weekly', 'block_mrbs') ?>
                 </div>
@@ -776,16 +776,10 @@ print_header_mrbs($day, $month, $year, $area);
                 echo "<div class=\"form-group\"><div class=\"font-weight-bold mb-1\"><b>".get_string('rep_end_date', 'block_mrbs')."</b></div><div>$rep_end_date</div></div>\n";
             }
         }
-        /* We display the rep_num_weeks box only if:
-           - this is a new entry ($id is not set)
-           Xor
-           - we are editing an existing repeating entry ($rep_type is set and
-             $rep_type != 0 and $edit_type == "series" )
-        */
-        if ((($id == 0)) Xor (isset($rep_type) && ($rep_type != 0) && ("series" == $edit_type))) {
+        if ($edit_type === "series") {
             ?>
 
-            <div class="form-group">
+            <div class="form-group" id="mrbs-repeat-weeks">
                 <div class="font-weight-bold mb-1">
                     <B><?php echo get_string('rep_num_weeks', 'block_mrbs') ?></B> <?php echo get_string('rep_for_nweekly', 'block_mrbs') ?>
                 </div>
@@ -843,5 +837,33 @@ print_header_mrbs($day, $month, $year, $area);
     }
     ?>
 </form>
+<script>
+(function() {
+    var form = document.forms.main;
+    var radios = form.querySelectorAll('input[name="rep_type"]');
+    function updateRepeatFields() {
+        var selected = form.querySelector('input[name="rep_type"]:checked');
+        if (!selected) {
+            return;
+        }
+        var type = Number(selected.value);
+        ['end', 'days', 'weeks'].forEach(function(group) {
+            var container = document.getElementById('mrbs-repeat-' + group);
+            if (!container) {
+                return;
+            }
+            var visible = group === 'end' ? type !== 0 : type === 6;
+            container.hidden = !visible;
+            container.querySelectorAll('input, select').forEach(function(control) {
+                control.disabled = !visible;
+            });
+        });
+    }
+    radios.forEach(function(radio) {
+        radio.addEventListener('change', updateRepeatFields);
+    });
+    updateRepeatFields();
+})();
+</script>
 
 <?php include "trailer.php" ?>

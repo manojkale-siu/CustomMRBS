@@ -363,36 +363,22 @@ if ($all_day) {
     }
 }
 
-// if (isset($rep_type) && isset($rep_end_month) && isset($rep_end_day) && isset($rep_end_year)) {
-//     // Get the repeat entry settings
-//     $rep_enddate = mktime($hour, $minute, 0, $rep_end_month, $rep_end_day, $rep_end_year);
-// } else {
-//     $rep_type = 0;
-// }
-
-
-if (isset($rep_type) && isset($rep_end_month) && isset($rep_end_day) && isset($rep_end_year)) {
-    // Use end-of-day for rep_enddate so a series covering that day includes it.
-    $rep_enddate = mktime(23, 59, 59,
-                          (int)$rep_end_month,
-                          (int)$rep_end_day,
-                          (int)$rep_end_year);
-
-    // If rep_enddate is earlier than starttime, try to extend it using rep_num_weeks.
-    if (isset($starttime) && $rep_enddate < $starttime) {
-        // If rep_num_weeks provided, extend rep_enddate by that many weeks.
-        if (!empty($rep_num_weeks) && is_numeric($rep_num_weeks) && ((int)$rep_num_weeks > 0)) {
-            $rep_enddate = $starttime + ((int)$rep_num_weeks * 7 * 24 * 3600);
-        } else {
-            // If we can't fix it, disable repeating to avoid invalid series creation.
-            $rep_type = 0;
-        }
-    }
-} else {
-    $rep_type = 0;
+if ($rep_type !== 6) {
+    $rep_day = [];
+    $rep_num_weeks = 0;
 }
-
-
+if ($rep_type === 2) {
+    $rep_day[(int)date('w', $starttime)] = 1;
+}
+if ($rep_type !== 0) {
+    if (!checkdate($rep_end_month, $rep_end_day, $rep_end_year)) {
+        block_mrbs_print_user_error($day, $month, $year, $area, get_string('invalidrepeatenddate', 'block_mrbs'));
+        exit;
+    }
+    $rep_enddate = mktime(23, 59, 59, $rep_end_month, $rep_end_day, $rep_end_year);
+} else {
+    $rep_enddate = $starttime;
+}
 
 if (!isset($rep_day)) {
     $rep_day = array();
