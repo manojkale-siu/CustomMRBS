@@ -31,10 +31,10 @@ class booking_validator {
         if (!$courseid) {
             return [];
         }
-        $context = context_course::instance($courseid);
+        $context = \context_course::instance($courseid);
         [$enrolledsql, $params] = get_enrolled_sql($context, '', $groupid, true);
         $params['studentcourse'] = $context->id;
-        $params['studentsystem'] = context_system::instance()->id;
+        $params['studentsystem'] = \context_system::instance()->id;
         $params['studentarchetype'] = 'student';
         $params['studentshortname'] = 'student';
         $sql = "SELECT u.id
