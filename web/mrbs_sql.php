@@ -549,9 +549,12 @@ function mrbsCreateRepeatingEntrys($starttime, $endtime, $rep_type, $rep_enddate
                 $updateid = 0;
             }
 
-            mrbsCreateSingleEntry($reps[$i], $reps[$i] + $diff, 1, $ret->id,
+            $entryid = mrbsCreateSingleEntry($reps[$i], $reps[$i] + $diff, 1, $ret->id,
                                    $room_id, $owner, $name, $type, $description, $updateid, $roomchange,
                                    $courseid, $facultyid, $groupid);
+            if (!$entryid) {
+                throw new moodle_exception('bookingcreatefailed', 'block_mrbs');
+            }
             $ret->lasttime = $reps[$i];
 
             $ret->created++;

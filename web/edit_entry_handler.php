@@ -53,8 +53,6 @@ if (isset($_GET['rooms']) && is_array($_GET['rooms'])) {
     );
 }
 
-
-
 // remove empty array "rooms"
 
 // echo"<pre>";
@@ -249,7 +247,6 @@ if (!check_max_advance_days($day, $month, $year)) {
 }
 
 // echo "<pre><br>179";
-
 
 foreach ($roomdetails as $room) {
     if (!allowed_to_book($USER, $room)) {
@@ -635,40 +632,8 @@ foreach ($rooms as $room_id) {
         // }
     } else {
         // echo "I am in first else part <br>";
-        if ($doublebook and mrbsHasAdminCapability('block/mrbs:doublebook')) {
-            // echo "I am inner else else-if . <br>";
-            
-            $sql = 'SELECT entry.id AS entryid,
-                entry.name as entryname,
-                entry.create_by,
-                room.room_name,
-                entry.start_time
-              FROM {block_mrbs_entry} as entry
-                join {block_mrbs_room} as room on entry.room_id = room.id
-             WHERE room.id = ?
-             AND ((entry.start_time >= ? AND entry.end_time < ?)
-             OR (entry.start_time < ? AND entry.end_time> ?)
-             OR (entry.start_time < ? AND entry.end_time>= ?))';
-            // echo $sql;
-            // die();
-            $clashingbookings = $DB->get_records_sql($sql, array(
-                $room_id, $starttime, $endtime, $starttime, $starttime, $endtime, $endtime
-            ));
-            foreach ($clashingbookings as $clashingbooking) {
-                $oldbookinguser = $DB->get_record('user', array('username' => $clashingbooking->create_by));
-                $langvars->user = $USER->firstname.' '.$USER->lastname;
-                $langvars->room = $clashingbooking->room_name;
-                $langvars->time = to_hr_time($clashingbooking->start_time);
-                $langvars->date = userdate($clashingbooking->start_time, '%A %d/%m/%Y');
-                $langvars->oldbooking = $clashingbooking->entryname;
-                $langvars->newbooking = $name;
-                $langvars->admin = $mrbs_admin.' ('.$mrbs_admin_email.')';
-
-                // Send emails to user with existing booking
-                if (!email_to_user($oldbookinguser, $USER, get_string('doublebookesubject', 'block_mrbs'), get_string('doublebookebody', 'block_mrbs', $langvars))) {
-                    email_to_user($DB->get_record('user', array('email' => $mrbs_admin_email)), $USER, get_string('doublebookefailsubject', 'block_mrbs'), get_string('doublebookefailbody', 'block_mrbs', $oldbookinguser->username).get_string('doublebookebody', 'block_mrbs', $langvars));
-                }
-            }
+        if ($doublebook && mrbsHasAdminCapability('block/mrbs:doublebook')) {
+            // An explicit authorised override permits the room overlap.
         } else {
             // echo "<br> I am inner else-else. <br> vardump : ";
             // If the user hasn't confirmed they want to double book, check the room is free.
@@ -680,7 +645,6 @@ foreach ($rooms as $room_id) {
     }
 
 } // end foreach rooms
-
 
 // echo "<br> Line : 434 - Error : . $err . <br>";
 // exit;
@@ -695,7 +659,7 @@ if (empty($err)) {
     
     
     
-    $transaction = $forcebook ? $DB->start_delegated_transaction() : null;
+    $transaction = $DB->start_delegated_transaction();
     try {
         if ($forcemoves) {
             mrbsApplyForceMoves($forcemoves);
@@ -705,33 +669,18 @@ if (empty($err)) {
             if ($edit_type == "series" && isset($rep_type) && $rep_type != 0) {
                 $rep_num_weeks = (int)$rep_num_weeks;
 
-                try {
-                    $rep_details = mrbsCreateRepeatingEntrys($starttime, $endtime, $rep_type, $rep_enddate, $rep_opt,
+                $rep_details = mrbsCreateRepeatingEntrys($starttime, $endtime, $rep_type, $rep_enddate, $rep_opt,
                                                              $room_id, $create_by, $name, $type, $description,
                                                              $rep_num_weeks, $roomchange, $id, $courseid, $facultyid, $groupid);
-                } catch (Exception $e) {
-                    debugging('MRBS repeating entry creation failed: '.$e->getMessage(), DEBUG_DEVELOPER);
-                    error_log("MRBS repeating entry creation failed - params: start=$starttime end=$endtime rep_type=$rep_type rep_end=$rep_enddate rep_opt=$rep_opt rep_num_weeks=$rep_num_weeks room=$room_id name=$name error=".$e->getMessage());
-                    if ($transaction) {
-                        throw new moodle_exception('repeatcreatefailed', 'block_mrbs');
-                    }
-                    block_mrbs_print_user_error($day, $month, $year, $area, get_string('repeatcreatefailed', 'block_mrbs'));
-                    exit;
-                }
 
                 $new_id = $rep_details->id ?? 0;
                 if (!$new_id) {
-                    if ($transaction) {
-                        throw new moodle_exception('repeatcreatefailed', 'block_mrbs');
-                    }
-                    block_mrbs_print_user_error($day, $month, $year, $area, get_string('repeatcreatefailed', 'block_mrbs'));
-                    exit;
+                    throw new moodle_exception('repeatcreatefailed', 'block_mrbs');
                 }
 
                 $enddate = null;
-                if ($rep_details->created && $rep_details->created < $rep_details->requested) {
-                    $forcemoveoutput .= get_string('notallcreated', 'block_mrbs', $rep_details);
-                    $enddate = $rep_details->lasttime;
+                if ($rep_details->created !== $rep_details->requested) {
+                    throw new moodle_exception('repeatcreatefailed', 'block_mrbs');
                 }
 
                 $sql = "SELECT r.id, r.room_name, r.area_id, a.area_name ";
@@ -751,33 +700,15 @@ if (empty($err)) {
                 $event = $eventclass::create($params);
                 $event->trigger();
 
-                try {
-                    if (!empty($new_id)) {
-                        \block_mrbs\local\attendance_manager::sync_for_repeat($new_id, $courseid, $facultyid, $groupid);
+                if ($rep_details->repeating) {
+                    $sessionids = \block_mrbs\local\attendance_manager::sync_for_repeat($new_id, $courseid, $facultyid, $groupid);
+                    if (count($sessionids) !== $rep_details->created) {
+                        throw new moodle_exception('sessioncreatefailed', 'block_mrbs');
                     }
-                } catch (Throwable $e) {
-                    if ($transaction) {
-                        throw $e;
-                    }
-                    debugging('MRBS attendance session sync failed: '.$e->getMessage(), DEBUG_DEVELOPER);
-                    error_log('MRBS attendance session sync failed for repeat '.$new_id.': '.$e->getMessage());
-                    $forcemoveoutput .= ' '.get_string('sessioncreatefailed', 'block_mrbs');
+                } else if (!\block_mrbs\local\attendance_manager::sync_for_entry($new_id, $courseid, $facultyid, $groupid)) {
+                    throw new moodle_exception('sessioncreatefailed', 'block_mrbs');
                 }
 
-                // Send a mail to the Administrator
-                if (MAIL_ADMIN_ON_BOOKINGS or MAIL_AREA_ADMIN_ON_BOOKINGS or MAIL_ROOM_ADMIN_ON_BOOKINGS or MAIL_BOOKER) {
-                    // Send a mail only if this a new entry, or if this is an
-                    // edited entry but we have to send mail on every change,
-                    // and if mrbsCreateRepeatingEntrys is successful
-                    if (((($id > 0) && MAIL_ADMIN_ALL) or ($id == 0)) && (0 != $new_id)) {
-                        // If this is a modified entry then call
-                        // getPreviousEntryData to prepare entry comparison.
-                        if ($id > 0) {
-                            $mail_previous = getPreviousEntryData($id, $rep_details->repeating);
-                        }
-                        $result = notifyAdminOnBooking(($id == 0), $new_id, $enddate);
-                    }
-                }
             } else {
                 // Mark changed entry in a series with entry_type 2:
                 if ($repeat_id > 0) {
@@ -785,26 +716,11 @@ if (empty($err)) {
                 } else {
                     $entry_type = 0;
                 }
-                try {
-                    // Create / update the entry:
-                    $new_id = mrbsCreateSingleEntry($starttime, $endtime, $entry_type, $repeat_id, $room_id,
+                $new_id = mrbsCreateSingleEntry($starttime, $endtime, $entry_type, $repeat_id, $room_id,
                                                     $create_by, $name, $type, $description, $id, $roomchange,
                                                     $courseid, $facultyid, $groupid);
-                } catch (Exception $e) {
-                    debugging('MRBS single entry creation failed: '.$e->getMessage(), DEBUG_DEVELOPER);
-                    error_log('MRBS single entry creation failed: '.$e->getMessage());
-                    if ($transaction) {
-                        throw new moodle_exception('bookingcreatefailed', 'block_mrbs');
-                    }
-                    block_mrbs_print_user_error($day, $month, $year, $area, get_string('bookingcreatefailed', 'block_mrbs'));
-                    exit;
-                }
                 if (empty($new_id)) {
-                    if ($transaction) {
-                        throw new moodle_exception('bookingcreatefailed', 'block_mrbs');
-                    }
-                    block_mrbs_print_user_error($day, $month, $year, $area, get_string('bookingcreatefailed', 'block_mrbs'));
-                    exit;
+                    throw new moodle_exception('bookingcreatefailed', 'block_mrbs');
                 }
 
                 $sql = "SELECT r.id, r.room_name, r.area_id, a.area_name ";
@@ -824,43 +740,21 @@ if (empty($err)) {
                 $event = $eventclass::create($params);
                 $event->trigger();
 
-                try {
-                    if (!empty($new_id)) {
-                        \block_mrbs\local\attendance_manager::sync_for_entry($new_id, $courseid, $facultyid, $groupid);
-                    }
-                } catch (Throwable $e) {
-                    if ($transaction) {
-                        throw $e;
-                    }
-                    debugging('MRBS attendance session sync failed: '.$e->getMessage(), DEBUG_DEVELOPER);
-                    error_log('MRBS attendance session sync failed for entry '.$new_id.': '.$e->getMessage());
-                    $forcemoveoutput .= ' '.get_string('sessioncreatefailed', 'block_mrbs');
+                if (!\block_mrbs\local\attendance_manager::sync_for_entry($new_id, $courseid, $facultyid, $groupid)) {
+                    throw new moodle_exception('sessioncreatefailed', 'block_mrbs');
                 }
 
-                // Send a mail to the Administrator
-                if (MAIL_ADMIN_ON_BOOKINGS or MAIL_AREA_ADMIN_ON_BOOKINGS or MAIL_ROOM_ADMIN_ON_BOOKINGS or MAIL_BOOKER) {
-                    // Send a mail only if this a new entry, or if this is an
-                    // edited entry but we have to send mail on every change,
-                    // and if mrbsCreateRepeatingEntrys is successful
-                    if (((($id > 0) && MAIL_ADMIN_ALL) or ($id == 0)) && (0 != $new_id)) {
-                        // If this is a modified entry then call
-                        // getPreviousEntryData to prepare entry comparison.
-                        if ($id > 0) {
-                            $mail_previous = getPreviousEntryData($id, 0);
-                        }
-                        $result = notifyAdminOnBooking(($id == 0), $new_id);
-                    }
-                }
             }
         }
-        if ($transaction) {
-            $transaction->allow_commit();
-        }
+        $transaction->allow_commit();
     } catch (Throwable $error) {
-        if ($transaction) {
+        try {
             $transaction->rollback($error);
+        } catch (Throwable $rolledback) {
+            debugging('MRBS booking save rolled back: ' . $rolledback->getMessage(), DEBUG_DEVELOPER);
+            block_mrbs_print_user_error($day, $month, $year, $area, get_string('bookingsaverolledback', 'block_mrbs'));
+            exit;
         }
-        throw $error;
     }
 
     if ($forcemoves) {
@@ -876,6 +770,15 @@ if (empty($err)) {
 
     // Now its all done go back to the day view
     $dayurl = new moodle_url('/blocks/mrbs/web/day.php', array('year' => $year, 'month' => $month, 'day' => $day, 'area' => $area));
+    $notificationtext = get_string('bookingsavednotification', 'block_mrbs', (object)[
+        'name' => strip_tags($name), 'date' => userdate($starttime),
+    ]);
+    if ($forcemoveoutput !== '') {
+        $notificationtext .= ' ' . html_to_text($forcemoveoutput);
+    }
+    if (!\block_mrbs\local\booking_notification::send($notificationtext, $dayurl)) {
+        $forcemoveoutput .= ' ' . get_string('bookingnotificationfailed', 'block_mrbs');
+    }
     redirect($dayurl, $forcemoveoutput, empty($forcemoveoutput) ? 0 : 5);
     exit;
 }
