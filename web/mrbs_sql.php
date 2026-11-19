@@ -460,6 +460,25 @@ function mrbsGetRepeatEntryList($time, $enddate, $rep_type, $rep_opt, $max_ittr,
  *   non-zero - The entry's ID
  */
 /**
+ * Protect historical sessions and individually modified occurrences in a series.
+ */
+function mrbsRequireEditableSeries($repeatid) {
+    global $DB;
+    foreach ($DB->get_records('block_mrbs_entry', ['repeat_id' => $repeatid]) as $entry) {
+        if ((int)$entry->start_time <= time() || (int)$entry->entry_type === 2) {
+            throw new moodle_exception('seriesprotected', 'block_mrbs');
+        }
+        if ($entry->attendancesessionid) {
+            $session = $DB->get_record('attendance_sessions', ['id' => $entry->attendancesessionid]);
+            if (($session && ((int)$session->sessdate <= time() || !empty($session->lasttaken)))
+                    || $DB->record_exists('attendance_log', ['sessionid' => $entry->attendancesessionid])) {
+                throw new moodle_exception('seriesprotected', 'block_mrbs');
+            }
+        }
+    }
+}
+
+/**
  * Reject intersecting occurrences before any part of a series is persisted.
  * Uses the same duration and daylight-saving calculation as the series writer.
  */
@@ -511,6 +530,7 @@ function mrbsCreateRepeatingEntrys($starttime, $endtime, $rep_type, $rep_enddate
         $stored = $DB->get_record('block_mrbs_entry', ['id' => $oldid], '*', MUST_EXIST);
         mrbsRequireEntryWrite($stored);
         if ($repeatid) {
+            mrbsRequireEditableSeries($repeatid);
             mrbsRequireEntryWrite($DB->get_record('block_mrbs_repeat', ['id' => $repeatid], '*', MUST_EXIST));
             foreach ($DB->get_records('block_mrbs_entry', ['repeat_id' => $repeatid]) as $member) {
                 mrbsRequireEntryWrite($member);
@@ -547,12 +567,12 @@ function mrbsCreateRepeatingEntrys($starttime, $endtime, $rep_type, $rep_enddate
                                      $type, $description, $rep_num_weeks, $repeatid, $courseid, $facultyid, $groupid);
 
     if ($ret->id) {
-        $oldids = array();
-        if ($repeatid) {
-            // If there are old entries, we will update each of them in turn, as we go through the repeats
-            // if we run out, we will create extra; any leftovers will be deleted
-            $oldids = $DB->get_fieldset_sql('SELECT id FROM {block_mrbs_entry} WHERE repeat_id = ? ORDER BY start_time', array($repeatid));
+        $oldentries = $repeatid ? $DB->get_records('block_mrbs_entry', ['repeat_id' => $repeatid], 'start_time, id') : [];
+        $bytime = [];
+        foreach ($oldentries as $oldentry) {
+            $bytime[$oldentry->start_time][] = $oldentry->id;
         }
+        $usedids = [];
 
         for ($i = 0; $i < count($reps); $i++) {
             // calculate diff each time and correct where events
@@ -564,10 +584,9 @@ function mrbsCreateRepeatingEntrys($starttime, $endtime, $rep_type, $rep_enddate
                 break; // Repeat entry is too far into the future
             }
 
-            if ($i < count($oldids)) {
-                $updateid = $oldids[$i];
-            } else {
-                $updateid = 0;
+            $updateid = !empty($bytime[$reps[$i]]) ? array_shift($bytime[$reps[$i]]) : 0;
+            if ($updateid) {
+                $usedids[$updateid] = true;
             }
 
             $entryid = mrbsCreateSingleEntry($reps[$i], $reps[$i] + $diff, 1, $ret->id,
@@ -582,9 +601,11 @@ function mrbsCreateRepeatingEntrys($starttime, $endtime, $rep_type, $rep_enddate
         }
 
         // Delete any repeats that are no longer needed
-        for ($i = count($reps); $i < count($oldids); $i++) {
-            \block_mrbs\local\attendance_manager::delete_for_entry($oldids[$i]);
-            $DB->delete_records('block_mrbs_entry', array('id' => $oldids[$i]));
+        foreach ($oldentries as $oldentry) {
+            if (!isset($usedids[$oldentry->id])) {
+                \block_mrbs\local\attendance_manager::delete_for_entry($oldentry->id);
+                $DB->delete_records('block_mrbs_entry', ['id' => $oldentry->id]);
+            }
         }
     }
     return $ret;

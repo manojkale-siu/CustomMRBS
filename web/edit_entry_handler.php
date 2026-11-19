@@ -163,6 +163,12 @@ if ($id) {
     if ($edit_type === 'series' && $storedentry->repeat_id) {
         $storedrepeat = $DB->get_record('block_mrbs_repeat', ['id' => $storedentry->repeat_id], '*', MUST_EXIST);
         mrbsRequireEntryWrite($storedrepeat);
+        try {
+            mrbsRequireEditableSeries($storedrepeat->id);
+        } catch (moodle_exception $error) {
+            block_mrbs_print_user_error($day, $month, $year, $area, $error->getMessage());
+            exit;
+        }
         foreach ($DB->get_records('block_mrbs_entry', ['repeat_id' => $storedrepeat->id]) as $seriesentry) {
             mrbsRequireEntryWrite($seriesentry);
         }

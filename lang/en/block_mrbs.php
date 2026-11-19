@@ -495,3 +495,5 @@ $string['bookingsaverolledback'] = 'The booking and Attendance changes could not
 $string['bookingnotificationfailed'] = 'The booking was saved, but the Moodle notification could not be delivered.';
 
 $string['bookingeditdenied'] = 'You cannot change this booking. Only its creator or an authorized administrator can change it.';
+
+$string['seriesprotected'] = 'This series contains past or started sessions, recorded attendance, or individually modified occurrences. A whole-series change is blocked to preserve those records. Edit an eligible future occurrence individually or create a new series.';
