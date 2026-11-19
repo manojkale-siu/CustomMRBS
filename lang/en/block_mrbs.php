@@ -484,3 +484,5 @@ $string['timeinterval'] = 'Slot interval in minutes';
 $string['timeparthour'] = 'hour';
 $string['timepartmin'] = 'minute';
 $string['timepartampm'] = 'AM or PM';
+
+$string['studentbookingconflict'] = 'Invalid booking. One or more enrolled students already have another session during this time. Choose another time or a group with different students.';

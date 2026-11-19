@@ -19,6 +19,59 @@ class booking_validator {
     private static $roomcache = [];
 
     /**
+     * Student IDs eligible for a course booking, including whole-course sessions.
+     */
+    private static function students($courseid, $groupid): array {
+        global $DB;
+        static $cache = [];
+        $key = (int)$courseid . ':' . (int)$groupid;
+        if (isset($cache[$key])) {
+            return $cache[$key];
+        }
+        if (!$courseid) {
+            return [];
+        }
+        $context = context_course::instance($courseid);
+        [$enrolledsql, $params] = get_enrolled_sql($context, '', $groupid, true);
+        $params['studentcourse'] = $context->id;
+        $params['studentsystem'] = context_system::instance()->id;
+        $params['studentarchetype'] = 'student';
+        $params['studentshortname'] = 'student';
+        $sql = "SELECT u.id
+                  FROM {user} u JOIN ($enrolledsql) enrolled ON enrolled.id = u.id
+                 WHERE u.deleted = 0 AND u.suspended = 0
+                   AND EXISTS (
+                       SELECT 1 FROM {role_assignments} ra JOIN {role} r ON r.id = ra.roleid
+                        WHERE ra.userid = u.id AND ra.contextid IN (:studentcourse, :studentsystem)
+                          AND (r.archetype = :studentarchetype OR r.shortname = :studentshortname)
+                   )";
+        return $cache[$key] = array_fill_keys($DB->get_fieldset_sql($sql, $params), true);
+    }
+
+    /** Compare actual active student membership, including overlapping groups. */
+    public static function share_students($courseid, $groupid, $othercourse, $othergroup): bool {
+        return (bool)array_intersect_key(self::students($courseid, $groupid), self::students($othercourse, $othergroup));
+    }
+
+    /** Find overlaps even when faculty and room are different. */
+    public static function find_student_conflicts($courseid, $groupid, $start, $end, $ignoreid = 0, $ignorerepeatid = 0): array {
+        global $DB;
+        $where = 'start_time < ? AND end_time > ? AND id <> ?';
+        $params = [$end, $start, $ignoreid];
+        if ($ignorerepeatid) {
+            $where .= ' AND repeat_id <> ?';
+            $params[] = $ignorerepeatid;
+        }
+        $conflicts = [];
+        foreach ($DB->get_records_select('block_mrbs_entry', $where, $params) as $entry) {
+            if (self::share_students($courseid, $groupid, $entry->courseid, $entry->groupid)) {
+                $conflicts[$entry->id] = $entry;
+            }
+        }
+        return $conflicts;
+    }
+
+    /**
      * Find overlapping bookings for a faculty member.
      *
      * @param int $facultyid

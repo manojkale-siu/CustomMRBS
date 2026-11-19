@@ -473,6 +473,16 @@ if (!$bookinglock) {
 }
 register_shutdown_function([$bookinglock, 'release']);
 
+$studenttimes = $rep_type != 0 && !empty($reps) ? $reps : [$starttime];
+foreach ($studenttimes as $studentstart) {
+    $studentend = $studentstart + ($endtime - $starttime) + cross_dst($studentstart, $studentstart + ($endtime - $starttime));
+    if (lock_mrbslocalooking_validator::find_student_conflicts(
+            $courseid, $groupid, $studentstart, $studentend, $ignore_id, $seriesignore)) {
+        block_mrbs_print_user_error($day, $month, $year, $area, get_string('studentbookingconflict', 'block_mrbs'));
+        exit;
+    }
+}
+
 if ($facultyid) {
     $facultyconflicts = array();
     if ($rep_type != 0 && !empty($reps)) {
