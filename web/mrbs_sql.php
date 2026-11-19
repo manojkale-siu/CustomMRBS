@@ -446,6 +446,33 @@ function mrbsGetRepeatEntryList($time, $enddate, $rep_type, $rep_opt, $max_ittr,
  *   0        - An error occured while inserting the entry
  *   non-zero - The entry's ID
  */
+/**
+ * Reject intersecting occurrences before any part of a series is persisted.
+ * Uses the same duration and daylight-saving calculation as the series writer.
+ */
+function mrbsValidateRepeatIntervals(array $reps, $starttime, $endtime) {
+    $ordered = $reps;
+    sort($ordered, SORT_NUMERIC);
+    $previousstart = null;
+    $previousend = null;
+    foreach ($ordered as $start) {
+        $duration = $endtime - $starttime;
+        $end = $start + $duration + cross_dst($start, $start + $duration);
+        if ($previousend !== null && $start < $previousend) {
+            throw new moodle_exception('repeatoverlap', 'block_mrbs', '', (object)[
+                'firststart' => userdate($previousstart),
+                'firstend' => userdate($previousend),
+                'secondstart' => userdate($start),
+                'secondend' => userdate($end),
+            ]);
+        }
+        if ($previousend === null || $end > $previousend) {
+            $previousstart = $start;
+            $previousend = $end;
+        }
+    }
+}
+
 function mrbsCreateRepeatingEntrys($starttime, $endtime, $rep_type, $rep_enddate, $rep_opt,
                                    $room_id, $owner, $name, $type, $description, $rep_num_weeks, $roomchange = false,
                                    $oldid = 0, $courseid = 0, $facultyid = 0, $groupid = 0) {
@@ -462,6 +489,8 @@ function mrbsCreateRepeatingEntrys($starttime, $endtime, $rep_type, $rep_enddate
     if ($ret->requested > $max_rep_entrys) {
         return $ret;
     }
+
+    mrbsValidateRepeatIntervals($reps, $starttime, $endtime);
 
     $repeatid = 0;
     if ($oldid) {

@@ -486,3 +486,4 @@ $string['timepartmin'] = 'minute';
 $string['timepartampm'] = 'AM or PM';
 
 $string['studentbookingconflict'] = 'Invalid booking. One or more enrolled students already have another session during this time. Choose another time or a group with different students.';
+$string['repeatoverlap'] = 'The recurring sessions overlap. The session from {$a->firststart} to {$a->firstend} overlaps the session from {$a->secondstart} to {$a->secondend}. Shorten the duration or choose a repeat pattern with more time between sessions.';

@@ -452,6 +452,14 @@ if ($rep_type != 0) {
     }
 }
 
+// Validate the proposed occurrences before conflict resolution can move any bookings.
+try {
+    mrbsValidateRepeatIntervals($reps, $starttime, $endtime);
+} catch (moodle_exception $error) {
+    block_mrbs_print_user_error($day, $month, $year, $area, $error->getMessage());
+    exit;
+}
+
 // When checking for overlaps, for Edit (not New), ignore this entry and series:
 $repeat_id = 0;
 if ($id > 0) {
