@@ -421,10 +421,7 @@ function mrbsNotifyForceMoves(array $moves, $name) {
             $message = 'bookingrescheduledmessage';
         }
         $output .= '<br>' . s(get_string($status, 'block_mrbs', $details));
-        if ($move['owner']) {
-            email_to_user($move['owner'], $USER, get_string('bookingmoved', 'block_mrbs'),
-                get_string($message, 'block_mrbs', $details));
-        }
+
     }
     return $output;
 }

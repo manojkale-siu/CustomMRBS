@@ -42,6 +42,13 @@ if (data_submitted()) {
             optional_param('allowcapacity', false, PARAM_BOOL),
             (bool)$enable_periods
         );
+        $text = get_string('sessionimportsuccess', 'block_mrbs', array_sum($counts));
+        foreach ($counts as $date => $count) {
+            $text .= "\n" . $date . ' - ' . $count;
+        }
+        if (!\block_mrbs\local\booking_notification::send($text, $url)) {
+            $error = get_string('bookingnotificationfailed', 'block_mrbs');
+        }
     } catch (moodle_exception $e) {
         $error = $e->getMessage();
     }
@@ -50,7 +57,7 @@ if (data_submitted()) {
 print_header_mrbs($day, $month, $year, $area);
 echo $OUTPUT->heading(get_string('sessionimport', 'block_mrbs'), 2);
 if ($error !== '') {
-    echo $OUTPUT->notification(s(get_string('sessionimportfailed', 'block_mrbs', $error)), 'error');
+    echo $OUTPUT->notification(s($counts ? $error : get_string('sessionimportfailed', 'block_mrbs', $error)), $counts ? 'warning' : 'error');
 }
 if ($counts) {
     echo $OUTPUT->notification(get_string('sessionimportsuccess', 'block_mrbs', array_sum($counts)), 'success');

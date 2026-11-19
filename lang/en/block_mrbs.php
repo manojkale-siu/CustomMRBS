@@ -487,3 +487,9 @@ $string['timepartampm'] = 'AM or PM';
 
 $string['studentbookingconflict'] = 'Invalid booking. One or more enrolled students already have another session during this time. Choose another time or a group with different students.';
 $string['repeatoverlap'] = 'The recurring sessions overlap. The session from {$a->firststart} to {$a->firstend} overlaps the session from {$a->secondstart} to {$a->secondend}. Shorten the duration or choose a repeat pattern with more time between sessions.';
+
+$string['messageprovider:booking_saved'] = 'Booking save confirmations';
+$string['bookingnotificationsubject'] = 'MRBS booking saved';
+$string['bookingsavednotification'] = 'Your booking {$a->name} starting {$a->date} was saved and synchronized with Attendance.';
+$string['bookingsaverolledback'] = 'The booking and Attendance changes could not be saved. All changes from this save were rolled back. Please retry or contact your administrator.';
+$string['bookingnotificationfailed'] = 'The booking was saved, but the Moodle notification could not be delivered.';
