@@ -164,6 +164,13 @@ function mrbsCreateSingleEntry($starttime, $endtime, $entry_type, $repeat_id, $r
                                $courseid = 0, $facultyid = 0, $groupid = 0) {
     global $DB;
 
+    if ($oldid) {
+        $stored = $DB->get_record('block_mrbs_entry', ['id' => $oldid], '*', MUST_EXIST);
+        mrbsRequireEntryWrite($stored);
+        $owner = $stored->create_by;
+        $repeat_id = $stored->repeat_id;
+    }
+
     $add = new stdClass;
     $add->start_time = $starttime;
     $add->end_time = $endtime;
@@ -219,6 +226,12 @@ function mrbsCreateRepeatEntry($starttime, $endtime, $rep_type, $rep_enddate, $r
                                $room_id, $owner, $name, $type, $description, $rep_num_weeks, $oldrepeatid = 0,
                                $courseid = 0, $facultyid = 0, $groupid = 0) {
     global $DB;
+
+    if ($oldrepeatid) {
+        $stored = $DB->get_record('block_mrbs_repeat', ['id' => $oldrepeatid], '*', MUST_EXIST);
+        mrbsRequireEntryWrite($stored);
+        $owner = $stored->create_by;
+    }
 
     $add = new stdClass;
 
@@ -495,6 +508,14 @@ function mrbsCreateRepeatingEntrys($starttime, $endtime, $rep_type, $rep_enddate
     $repeatid = 0;
     if ($oldid) {
         $repeatid = $DB->get_field('block_mrbs_entry', 'repeat_id', array('id' => $oldid));
+        $stored = $DB->get_record('block_mrbs_entry', ['id' => $oldid], '*', MUST_EXIST);
+        mrbsRequireEntryWrite($stored);
+        if ($repeatid) {
+            mrbsRequireEntryWrite($DB->get_record('block_mrbs_repeat', ['id' => $repeatid], '*', MUST_EXIST));
+            foreach ($DB->get_records('block_mrbs_entry', ['repeat_id' => $repeatid]) as $member) {
+                mrbsRequireEntryWrite($member);
+            }
+        }
     }
 
     if (empty($reps)) {

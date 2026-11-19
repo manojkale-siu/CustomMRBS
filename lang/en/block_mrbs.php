@@ -493,3 +493,5 @@ $string['bookingnotificationsubject'] = 'MRBS booking saved';
 $string['bookingsavednotification'] = 'Your booking {$a->name} starting {$a->date} was saved and synchronized with Attendance.';
 $string['bookingsaverolledback'] = 'The booking and Attendance changes could not be saved. All changes from this save were rolled back. Please retry or contact your administrator.';
 $string['bookingnotificationfailed'] = 'The booking was saved, but the Moodle notification could not be delivered.';
+
+$string['bookingeditdenied'] = 'You cannot change this booking. Only its creator or an authorized administrator can change it.';

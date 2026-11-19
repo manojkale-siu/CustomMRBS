@@ -75,3 +75,17 @@ function showAccessDenied($day, $month, $year, $area) {
     echo '<br/>';
     echo $OUTPUT->footer();
 }
+
+
+/** Authorize against a stored booking, including the existing room administrator exception. */
+function mrbsRequireEntryWrite($entry) {
+    global $DB, $USER;
+    if (getWritable($entry->create_by, getUserName())) {
+        return;
+    }
+    $email = $DB->get_field('block_mrbs_room', 'room_admin_email', ['id' => $entry->room_id]);
+    if (mrbsCanOnlyEditUnconfirmed() && $email === $USER->email) {
+        return;
+    }
+    throw new moodle_exception('bookingeditdenied', 'block_mrbs');
+}

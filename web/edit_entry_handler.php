@@ -156,23 +156,20 @@ $area = $prerequisites->areaid;
 
 $roomadmin = false;
 $editunconfirmed = mrbsCanOnlyEditUnconfirmed();
-if (!getWritable($create_by, getUserName())) {
-    if ($editunconfirmed) {
-        foreach ($rooms as $key => $room) {
-            $adminemail = $DB->get_field('block_mrbs_room', 'room_admin_email', array('id' => $room));
-            if ($adminemail == $USER->email) {
-                $roomadmin = true;
-            } else {
-                unset($rooms[$key]);
-            }
+if ($id) {
+    $storedentry = $DB->get_record('block_mrbs_entry', ['id' => $id], '*', MUST_EXIST);
+    mrbsRequireEntryWrite($storedentry);
+    $create_by = $storedentry->create_by;
+    if ($edit_type === 'series' && $storedentry->repeat_id) {
+        $storedrepeat = $DB->get_record('block_mrbs_repeat', ['id' => $storedentry->repeat_id], '*', MUST_EXIST);
+        mrbsRequireEntryWrite($storedrepeat);
+        foreach ($DB->get_records('block_mrbs_entry', ['repeat_id' => $storedrepeat->id]) as $seriesentry) {
+            mrbsRequireEntryWrite($seriesentry);
         }
+        $create_by = $storedrepeat->create_by;
     }
-
-    if (!$roomadmin) {
-        // echo "AccessDenied because the room is not confirmed ... <br>";
-        showAccessDenied($day, $month, $year, $area);
-        exit;
-    }
+} else {
+    $create_by = $USER->username;
 }
 
 // Make sure that confirmed bookings can't be made by non-room admins
