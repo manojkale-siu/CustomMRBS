@@ -519,3 +519,5 @@ $string['roomcapacitycomparison'] = '{$a->room}: capacity {$a->capacity}, users 
 $string['sessionimportcapacitydetails'] = 'Room capacity is exceeded. {$a} Choose a larger room or allow over-capacity bookings before importing.';
 
 $string['bookingtimezone'] = 'All MRBS dates and times use the Moodle site timezone: {$a}.';
+
+$string['bookingdeletedenied'] = 'Deletion stopped. You do not have permission to delete every selected booking in its current room. No bookings or Attendance sessions were deleted. Ask the booking owner or a Moodle Manager/MRBS Administrator to delete the series.';

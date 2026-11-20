@@ -108,9 +108,11 @@ function mrbsDelEntry($user, $id, $series, $all, $roomadminoverride = false) {
     return \block_mrbs\local\booking_cancellation::run(static function () use ($DB, $user, $id, $series, $all, $roomadminoverride) {
         // Resolve and authorize the selected entry before expanding the deletion scope.
         $selected = $DB->get_record('block_mrbs_entry', ['id' => $id]);
-        if (!$selected || (!$roomadminoverride && !getWritable($selected->create_by, $user))) {
+        if (!$selected) {
             return 0;
         }
+        // The legacy override argument cannot grant authority over other rooms.
+        \block_mrbs\local\booking_permissions::require_delete([$selected]);
         $repeat_id = (int)$selected->repeat_id;
         if ($repeat_id < 0) {
             return 0;
@@ -129,14 +131,12 @@ function mrbsDelEntry($user, $id, $series, $all, $roomadminoverride = false) {
         $entries = $DB->get_records('block_mrbs_entry', $params);
         $targets = [];
         foreach ($entries as $entry) {
-            if (!$roomadminoverride && !getWritable($entry->create_by, $user)) {
-                continue;
-            }
             if ($series && $entry->entry_type == 2 && !$all) {
                 continue;
             }
             $targets[$entry->id] = $entry;
         }
+        \block_mrbs\local\booking_permissions::require_delete($targets);
         return \block_mrbs\local\booking_cancellation::delete_entries($targets) > 0;
     });
 }
