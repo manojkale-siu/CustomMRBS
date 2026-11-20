@@ -490,7 +490,7 @@ $string['repeatoverlap'] = 'The recurring sessions overlap. The session from {$a
 
 $string['messageprovider:booking_saved'] = 'Booking save confirmations';
 $string['bookingnotificationsubject'] = 'MRBS booking saved';
-$string['bookingsavednotification'] = 'Your booking {$a->name} starting {$a->date} was saved and synchronized with Attendance.';
+$string['bookingsavednotification'] = 'Your booking {$a->name} starting {$a->date} was saved.';
 $string['bookingsaverolledback'] = 'The booking and Attendance changes could not be saved. All changes from this save were rolled back. Please retry or contact your administrator.';
 $string['bookingnotificationfailed'] = 'The booking was saved, but the Moodle notification could not be delivered.';
 
@@ -502,3 +502,5 @@ $string['facultysuspended'] = 'Unavailable: user account is suspended.';
 $string['facultyinactiveenrolment'] = 'Unavailable: faculty is not actively enrolled in this course (enrolment may be suspended, expired or not yet started).';
 
 $string['bookingoutsidehours'] = 'Invalid booking: the session from {$a->start} to {$a->end} is outside the configured booking hours ({$a->open} to {$a->close}). Select a start time and duration within these hours. Sessions cannot continue into the next day. No bookings were changed.';
+
+$string['attendancepreserved'] = 'Attendance session #{$a->id} was left unchanged at {$a->oldstart} to {$a->oldend}; the booking is now {$a->newstart} to {$a->newend}. Attendance can be updated only before the original session starts, when no attendance has been recorded and the new start is still in the future. Live and completed sessions are preserved, including their faculty and group.';

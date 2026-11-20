@@ -27,6 +27,7 @@ if (optional_param('template', false, PARAM_BOOL)) {
 }
 
 $counts = [];
+$attendancewarnings = [];
 $error = '';
 if (data_submitted()) {
     require_sesskey();
@@ -42,10 +43,12 @@ if (data_submitted()) {
             optional_param('allowcapacity', false, PARAM_BOOL),
             (bool)$enable_periods
         );
+        $attendancewarnings = \block_mrbs\local\attendance_manager::take_warnings();
         $text = get_string('sessionimportsuccess', 'block_mrbs', array_sum($counts));
         foreach ($counts as $date => $count) {
             $text .= "\n" . $date . ' - ' . $count;
         }
+        $text .= PHP_EOL . implode(PHP_EOL, $attendancewarnings);
         if (!\block_mrbs\local\booking_notification::send($text, $url)) {
             $error = get_string('bookingnotificationfailed', 'block_mrbs');
         }
@@ -61,6 +64,9 @@ if ($error !== '') {
 }
 if ($counts) {
     echo $OUTPUT->notification(get_string('sessionimportsuccess', 'block_mrbs', array_sum($counts)), 'success');
+    foreach ($attendancewarnings as $warning) {
+        echo $OUTPUT->notification(s($warning), 'warning');
+    }
     $table = new html_table();
     $table->head = [get_string('date'), get_string('sessionimportcount', 'block_mrbs')];
     foreach ($counts as $date => $count) {

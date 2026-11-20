@@ -12,6 +12,33 @@ defined('MOODLE_INTERNAL') || die();
  */
 class attendance_manager {
 
+    /** @var array<int,string> Preservation notices, shown only after a successful commit. */
+    private static $warnings = [];
+
+    public static function take_warnings(): array {
+        $warnings = array_values(self::$warnings);
+        self::$warnings = [];
+        return $warnings;
+    }
+
+    /** Live, completed or recorded sessions must retain their original data. */
+    public static function can_update_session(\stdClass $session, int $newstart, ?int $now = null): bool {
+        global $DB;
+        $now = $now ?? time();
+        return (int)$session->sessdate > $now && $newstart > $now && empty($session->lasttaken)
+            && !$DB->record_exists('attendance_log', ['sessionid' => $session->id]);
+    }
+
+    private static function preserve_notice(\stdClass $session, \stdClass $entry): void {
+        self::$warnings[$session->id] = get_string('attendancepreserved', 'block_mrbs', (object)[
+            'id' => $session->id,
+            'oldstart' => userdate($session->sessdate),
+            'oldend' => userdate($session->sessdate + $session->duration),
+            'newstart' => userdate($entry->start_time),
+            'newend' => userdate($entry->end_time),
+        ]);
+    }
+
     /**
      * Create or update the attendance session for one MRBS entry.
      *
@@ -34,6 +61,13 @@ class attendance_manager {
         }
 
         $entry = $DB->get_record('block_mrbs_entry', ['id' => $entryid], '*', MUST_EXIST);
+        $existingid = empty($entry->attendancesessionid) ? 0 : (int)$entry->attendancesessionid;
+        $existing = $existingid ? $DB->get_record('attendance_sessions', ['id' => $existingid]) : false;
+        // Guard before deleting/replacing a link or changing faculty, group or calendar metadata.
+        if ($existing && !self::can_update_session($existing, (int)$entry->start_time)) {
+            self::preserve_notice($existing, $entry);
+            return $existingid;
+        }
         if (!$courseid) {
             self::delete_for_entry($entryid);
             return 0;
@@ -216,11 +250,13 @@ class attendance_manager {
         global $DB;
 
         $session = $DB->get_record('attendance_sessions', ['id' => (int)$sessionid], '*', MUST_EXIST);
-        $groupchanged = ((int)$session->groupid !== (int)$groupid);
-        if ((int)$session->sessdate > time() && (int)$entry->start_time > time()) {
-            $session->sessdate = (int)$entry->start_time;
-            $session->duration = max(0, (int)$entry->end_time - (int)$entry->start_time);
+        if (!self::can_update_session($session, (int)$entry->start_time)) {
+            self::preserve_notice($session, $entry);
+            return;
         }
+        $groupchanged = ((int)$session->groupid !== (int)$groupid);
+        $session->sessdate = (int)$entry->start_time;
+        $session->duration = max(0, (int)$entry->end_time - (int)$entry->start_time);
         $session->description = self::build_description($facultyid);
         $session->descriptionformat = FORMAT_MOODLE;
         $session->groupid = (int)$groupid;

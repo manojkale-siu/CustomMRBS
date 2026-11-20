@@ -767,6 +767,10 @@ if (empty($err)) {
         }
     }
 
+    $attendancewarnings = \block_mrbs\local\attendance_manager::take_warnings();
+    if ($attendancewarnings) {
+        $forcemoveoutput .= ' ' . implode(' ', array_map('s', $attendancewarnings));
+    }
     if ($forcemoves) {
         $forcemoveoutput .= mrbsNotifyForceMoves($forcemoves, $name);
     }
