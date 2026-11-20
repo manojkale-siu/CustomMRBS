@@ -133,6 +133,15 @@ class attendance_manager {
         return $sessionids;
     }
 
+    /** Live, completed or recorded Attendance cannot be cancelled. */
+    public static function require_deletable_session(int $sessionid): void {
+        global $DB;
+        $session = $DB->get_record('attendance_sessions', ['id' => $sessionid]);
+        if ($session && !self::can_update_session($session, (int)$session->sessdate)) {
+            throw new \moodle_exception('cancellationnotfuture', 'block_mrbs');
+        }
+    }
+
     /**
      * Delete the Attendance session linked to an MRBS entry.
      *
@@ -309,6 +318,7 @@ class attendance_manager {
     private static function delete_session($sessionid) {
         global $DB;
 
+        self::require_deletable_session((int)$sessionid);
         self::require_attendance_api();
         $session = $DB->get_record('attendance_sessions', ['id' => (int)$sessionid], '*', IGNORE_MISSING);
         if (!$session) {

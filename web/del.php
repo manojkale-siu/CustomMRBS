@@ -68,11 +68,7 @@ if ($type == "room") {
 
     // We are supposed to delete a room
     if ($confirm) {
-        // Delete bookings
-        $DB->delete_records('block_mrbs_entry', array('room_id' => $room));
-
-        // Delete the room
-        $DB->delete_records('block_mrbs_room', array('id' => $room));
+        \block_mrbs\local\booking_cancellation::delete_room((int)$room);
 
         // Go back to the admin page
         redirect($adminurl);

@@ -506,3 +506,5 @@ $string['bookingoutsidehours'] = 'Invalid booking: the session from {$a->start} 
 $string['attendancepreserved'] = 'Attendance session #{$a->id} was left unchanged at {$a->oldstart} to {$a->oldend}; the booking is now {$a->newstart} to {$a->newend}. Attendance can be updated only before the original session starts, when no attendance has been recorded and the new start is still in the future. Live and completed sessions are preserved, including their faculty and group.';
 
 $string['invalidseriesdelete'] = 'This booking does not belong to a valid recurring series. No bookings were deleted. Return to the booking and delete only this session.';
+
+$string['cancellationnotfuture'] = 'Deletion stopped. A selected booking or linked Attendance session has already started, has finished, or contains recorded attendance. Only future, unrecorded sessions can be deleted. No bookings, Attendance sessions or rooms were deleted.';

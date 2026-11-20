@@ -105,48 +105,40 @@ function mrbsCheckFree($room_id, $starttime, $endtime, $ignore, $repignore) {
 function mrbsDelEntry($user, $id, $series, $all, $roomadminoverride = false) {
     global $DB;
 
-    // Resolve and authorize the selected entry before expanding the deletion scope.
-    $selected = $DB->get_record('block_mrbs_entry', ['id' => $id]);
-    if (!$selected || (!$roomadminoverride && !getWritable($selected->create_by, $user))) {
-        return 0;
-    }
-    $repeat_id = (int)$selected->repeat_id;
-    if ($repeat_id < 0) {
-        return 0;
-    }
-
-    if ($series) {
-        // repeat_id = 0 identifies every independent booking, never a series.
-        if ($repeat_id === 0 || !$DB->record_exists('block_mrbs_repeat', ['id' => $repeat_id])) {
-            throw new moodle_exception('invalidseriesdelete', 'block_mrbs');
+    return \block_mrbs\local\booking_cancellation::run(static function () use ($DB, $user, $id, $series, $all, $roomadminoverride) {
+        // Resolve and authorize the selected entry before expanding the deletion scope.
+        $selected = $DB->get_record('block_mrbs_entry', ['id' => $id]);
+        if (!$selected || (!$roomadminoverride && !getWritable($selected->create_by, $user))) {
+            return 0;
         }
-        $params = array('repeat_id' => $repeat_id);
-    } else {
-        $params = array('id' => $id);
-    }
-
-    $removed = 0;
-    $entries = $DB->get_records('block_mrbs_entry', $params);
-    foreach ($entries as $entry) {
-        if (!$roomadminoverride && !getWritable($entry->create_by, $user)) {
-            continue;
+        $repeat_id = (int)$selected->repeat_id;
+        if ($repeat_id < 0) {
+            return 0;
         }
 
-        if ($series && $entry->entry_type == 2 && !$all) {
-            continue;
+        if ($series) {
+            // repeat_id = 0 identifies every independent booking, never a series.
+            if ($repeat_id === 0 || !$DB->record_exists('block_mrbs_repeat', ['id' => $repeat_id])) {
+                throw new moodle_exception('invalidseriesdelete', 'block_mrbs');
+            }
+            $params = array('repeat_id' => $repeat_id);
+        } else {
+            $params = array('id' => $id);
         }
 
-        \block_mrbs\local\attendance_manager::delete_for_entry($entry->id);
-        $DB->delete_records('block_mrbs_entry', array('id' => $entry->id));
-
-        $removed++;
-    }
-
-    if ($repeat_id > 0 && $DB->count_records('block_mrbs_entry', array('repeat_id' => $repeat_id)) == 0) {
-        $DB->delete_records('block_mrbs_repeat', array('id' => $repeat_id));
-    }
-
-    return $removed > 0;
+        $entries = $DB->get_records('block_mrbs_entry', $params);
+        $targets = [];
+        foreach ($entries as $entry) {
+            if (!$roomadminoverride && !getWritable($entry->create_by, $user)) {
+                continue;
+            }
+            if ($series && $entry->entry_type == 2 && !$all) {
+                continue;
+            }
+            $targets[$entry->id] = $entry;
+        }
+        return \block_mrbs\local\booking_cancellation::delete_entries($targets) > 0;
+    });
 }
 
 /** mrbsCreateSingleEntry()
