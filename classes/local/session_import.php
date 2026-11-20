@@ -222,8 +222,10 @@ class session_import {
         if (booking_validator::find_faculty_conflicts($faculty, $start, $end)) {
             throw new \moodle_exception('facultybookingconflict', 'block_mrbs');
         }
-        if (!$allowcapacity && booking_validator::check_room_capacity($course, $group, [(int)$room->id])['blocked']) {
-            throw new \moodle_exception('sessionimportcapacity', 'block_mrbs');
+        $capacity = booking_validator::check_room_capacity($course, $group, [(int)$room->id]);
+        if (!$allowcapacity && $capacity['blocked']) {
+            throw new \moodle_exception('sessionimportcapacitydetails', 'block_mrbs', '',
+                booking_validator::capacity_comparison($capacity));
         }
         return [$date, $start, $end, $room, $course, $faculty, $group, $description];
     }

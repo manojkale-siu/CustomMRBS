@@ -83,7 +83,8 @@ function mrbsPlanForceMoves(array $roomids, array $slots, array $conflicts) {
 
         $destination = null;
         foreach ($candidates as $candidate) {
-            if (in_array((int)$candidate->id, $roomids, true) || (int)$candidate->capacity < $size) {
+            if (in_array((int)$candidate->id, $roomids, true)
+                    || (!empty($candidate->capacity) && (int)$candidate->capacity < $size)) {
                 continue;
             }
             if (!allowed_to_book($USER, $candidate)

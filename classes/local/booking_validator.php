@@ -12,9 +12,6 @@ defined('MOODLE_INTERNAL') || die();
  */
 class booking_validator {
 
-    /** @var array<int,int> Cached participant counts keyed by course and group. */
-    private static $participantcountcache = [];
-
     /** @var array<int,array> Cached room details keyed by room id. */
     private static $roomcache = [];
 
@@ -199,46 +196,15 @@ class booking_validator {
      * @return int
      */
     public static function count_participants($courseid, $groupid = 0) {
-        global $DB;
-
         $courseid = (int)$courseid;
-        $groupid = (int)$groupid;
         if (!$courseid) {
             return 0;
         }
-
-        $cachekey = $courseid . ':' . $groupid;
-        if (isset(self::$participantcountcache[$cachekey])) {
-            return self::$participantcountcache[$cachekey];
-        }
-
-        $from = '{user} u
-                 JOIN {user_enrolments} ue ON ue.userid = u.id
-                 JOIN {enrol} e ON e.id = ue.enrolid';
-        $params = [
-            'courseid' => $courseid,
-            'enrolstatus' => ENROL_INSTANCE_ENABLED,
-            'userstatus' => ENROL_USER_ACTIVE,
-        ];
-
-        if ($groupid > 0) {
-            $from .= '
-                 JOIN {groups_members} gm ON gm.userid = u.id AND gm.groupid = :groupid';
-            $params['groupid'] = $groupid;
-        }
-
-        $sql = "SELECT COUNT(DISTINCT u.id)
-                  FROM $from
-                 WHERE e.courseid = :courseid
-                   AND e.status = :enrolstatus
-                   AND ue.status = :userstatus
-                   AND u.deleted = 0
-                   AND u.suspended = 0";
-
-        $count = (int)$DB->count_records_sql($sql, $params);
-        self::$participantcountcache[$cachekey] = $count;
-
-        return $count;
+        // Count active enrolled users of all roles, excluding suspended accounts.
+        // Keep this fresh: later enrolments and group changes affect the next view/check.
+        $users = get_enrolled_users(\context_course::instance($courseid), '', (int)$groupid,
+            'u.id, u.suspended', 'u.id ASC', 0, 0, true);
+        return count(array_filter($users, static function ($user) { return empty($user->suspended); }));
     }
 
     /**
@@ -298,11 +264,29 @@ class booking_validator {
             }
         }
 
-        return [
+        $details = [
+            'courseparticipantcount' => $groupid ? self::count_participants($courseid, 0) : $participantcount,
             'participantcount' => $participantcount,
             'blocked' => !empty($blockingrooms),
             'blockingrooms' => $blockingrooms,
             'rooms' => $rooms,
         ];
+        $details['warningmessage'] = s(self::capacity_comparison($details)) . '<br>'
+            . s(get_string('capacitywarningmessage', 'block_mrbs'));
+        return $details;
+    }
+    /** Plain-text comparison, shared by the manual warning and Excel row errors. */
+    public static function capacity_comparison(array $details): string {
+        $rooms = [];
+        foreach ($details['rooms'] as $room) {
+            $rooms[] = get_string('roomcapacitycomparison', 'block_mrbs', (object)[
+                'room' => strip_tags($room['name']), 'capacity' => $room['capacity'],
+                'excess' => $room['capacity'] ? max(0, $details['participantcount'] - $room['capacity']) : 0,
+            ]);
+        }
+        return get_string('capacitycomparison', 'block_mrbs', (object)[
+            'coursecount' => $details['courseparticipantcount'], 'selectedcount' => $details['participantcount'],
+            'rooms' => implode('; ', $rooms),
+        ]);
     }
 }

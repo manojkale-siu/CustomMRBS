@@ -86,11 +86,11 @@ define(['core/notification'], function(Notification) {
         });
     }
 
-    function showConfirmation(signature) {
+    function showConfirmation(signature, result) {
         return new Promise(function(resolve) {
             Notification.confirm(
                 config.title,
-                config.message,
+                result.warningmessage || config.message,
                 config.yesLabel,
                 config.noLabel,
                 function() {
@@ -141,7 +141,7 @@ define(['core/notification'], function(Notification) {
                 return true;
             }
 
-            return showConfirmation(signature);
+            return showConfirmation(signature, result);
         }).catch(function(error) {
             state.pendingPromise = null;
             if (window.console) {

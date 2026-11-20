@@ -513,3 +513,7 @@ $string['bookinglockrequired'] = 'The booking operation was stopped because the 
 $string['legacycsvdisabled'] = 'Legacy CSV import and relocation are disabled because they bypass booking safety checks. Use Import sessions (Excel) or the current booking form.';
 
 $string['participantbookingconflict'] = 'Invalid booking: a faculty member or enrolled student is already scheduled during this time, including when the same person is faculty in one course and a student in another. A person cannot attend two sessions at the same time. No bookings were changed.';
+
+$string['capacitycomparison'] = 'Active enrolled users in course: {$a->coursecount}. Active users in the selected course/group: {$a->selectedcount}. {$a->rooms}. Counts include all active enrolled roles and exclude suspended accounts.';
+$string['roomcapacitycomparison'] = '{$a->room}: capacity {$a->capacity}, users above capacity {$a->excess} (capacity 0 means unspecified)';
+$string['sessionimportcapacitydetails'] = 'Room capacity is exceeded. {$a} Choose a larger room or allow over-capacity bookings before importing.';
