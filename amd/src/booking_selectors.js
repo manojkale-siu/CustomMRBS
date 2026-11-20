@@ -31,7 +31,10 @@ define([], function() {
         }
 
         items.forEach(function(item) {
-            select.appendChild(option(String(item.id), item.label, String(item.id) === String(selected)));
+            var choice = option(String(item.id), item.label, !item.disabled && String(item.id) === String(selected));
+            choice.disabled = Boolean(item.disabled);
+            choice.title = item.reason || '';
+            select.appendChild(choice);
         });
         select.disabled = false;
     }

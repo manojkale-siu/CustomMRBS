@@ -103,31 +103,31 @@ class booking_options {
             return [];
         }
 
+        $context = \context_course::instance($courseid);
+        [$contextsql, $params] = $DB->get_in_or_equal(
+            $context->get_parent_context_ids(true), SQL_PARAMS_NAMED, 'facultycontext'
+        );
         [$rolesql, $roleparams] = $DB->get_in_or_equal(self::FACULTY_ROLES, SQL_PARAMS_NAMED, 'facultyrole');
+        [$archetypesql, $archetypeparams] = $DB->get_in_or_equal(
+            ['teacher', 'editingteacher'], SQL_PARAMS_NAMED, 'facultyarchetype'
+        );
+        $params += $roleparams + $archetypeparams;
         $userfields = reservation::user_name_fields_sql('u');
-        $params = $roleparams + [
-            'courseid' => $courseid,
-            'contextlevel' => CONTEXT_COURSE,
-        ];
-
-        $sql = "SELECT DISTINCT u.id, u.email, $userfields
+        $sql = "SELECT DISTINCT u.id, u.email, u.suspended, $userfields
                   FROM {user} u
                   JOIN {role_assignments} ra ON ra.userid = u.id
                   JOIN {role} r ON r.id = ra.roleid
-                  JOIN {context} ctx ON ctx.id = ra.contextid
-                 WHERE u.deleted = 0
-                   AND u.suspended = 0
-                   AND ctx.contextlevel = :contextlevel
-                   AND ctx.instanceid = :courseid
-                   AND r.shortname $rolesql
+                 WHERE u.deleted = 0 AND ra.contextid $contextsql
+                   AND (r.shortname $rolesql OR r.archetype $archetypesql)
               ORDER BY u.lastname ASC, u.firstname ASC";
-
-        $users = $DB->get_records_sql($sql, $params);
         $results = [];
-        foreach ($users as $user) {
+        foreach ($DB->get_records_sql($sql, $params) as $user) {
+            $reason = self::faculty_unavailable_reason($user->id, $courseid);
             $results[] = [
                 'id' => (int)$user->id,
-                'label' => fullname($user),
+                'label' => fullname($user) . ($reason === '' ? '' : ' — ' . $reason),
+                'disabled' => $reason !== '',
+                'reason' => $reason,
             ];
         }
 
@@ -239,31 +239,35 @@ class booking_options {
      * @return bool
      */
     public static function is_faculty_for_course($userid, $courseid) {
+        return self::faculty_unavailable_reason($userid, $courseid) === '';
+    }
+
+    /** Explain why a faculty option is unavailable; also used by server validation. */
+    public static function faculty_unavailable_reason($userid, $courseid): string {
         global $DB;
-
-        $userid = (int)$userid;
-        $courseid = (int)$courseid;
-        if (!$userid || !$courseid) {
-            return false;
+        $user = $DB->get_record('user', ['id' => (int)$userid, 'deleted' => 0]);
+        if (!$user || !$courseid) {
+            return get_string('invalidfacultycourse', 'block_mrbs');
         }
-
-        [$rolesql, $roleparams] = $DB->get_in_or_equal(self::FACULTY_ROLES, SQL_PARAMS_NAMED, 'coursefacultyrole');
-        $params = $roleparams + [
-            'userid' => $userid,
-            'courseid' => $courseid,
-            'contextlevel' => CONTEXT_COURSE,
-        ];
-
-        $sql = "SELECT 1
-                  FROM {role_assignments} ra
-                  JOIN {role} r ON r.id = ra.roleid
-                  JOIN {context} ctx ON ctx.id = ra.contextid
-                 WHERE ra.userid = :userid
-                   AND ctx.contextlevel = :contextlevel
-                   AND ctx.instanceid = :courseid
-                   AND r.shortname $rolesql";
-
-        return $DB->record_exists_sql($sql, $params);
+        if ($user->suspended) {
+            return get_string('facultysuspended', 'block_mrbs');
+        }
+        $context = \context_course::instance($courseid);
+        $teaching = false;
+        foreach (get_user_roles($context, $userid, true) as $role) {
+            if (in_array($role->shortname, self::FACULTY_ROLES, true)
+                    || in_array($DB->get_field('role', 'archetype', ['id' => $role->roleid]), ['teacher', 'editingteacher'], true)) {
+                $teaching = true;
+                break;
+            }
+        }
+        if (!$teaching) {
+            return get_string('invalidfacultycourse', 'block_mrbs');
+        }
+        if (!is_enrolled($context, $user, '', true)) {
+            return get_string('facultyinactiveenrolment', 'block_mrbs');
+        }
+        return '';
     }
 
     /**
@@ -337,8 +341,9 @@ class booking_options {
                 $errors[] = get_string('courseattendancemissing', 'block_mrbs');
             }
         }
-        if (!$facultyid || !self::is_faculty_for_course($facultyid, $courseid)) {
-            $errors[] = get_string('invalidfacultycourse', 'block_mrbs');
+        $facultyreason = self::faculty_unavailable_reason($facultyid, $courseid);
+        if ($facultyreason !== '') {
+            $errors[] = $facultyreason;
         }
         if (!self::group_belongs_to_course($groupid, $courseid)) {
             $errors[] = get_string('invalidgroup', 'block_mrbs');

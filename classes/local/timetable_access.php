@@ -44,6 +44,16 @@ class timetable_access {
             }
         }
 
+        // Resolve inherited category roles for active enrolments too.
+        foreach (enrol_get_users_courses($USER->id, true) as $course) {
+            foreach (get_user_roles(\context_course::instance($course->id), $USER->id, true) as $role) {
+                $archetype = $DB->get_field('role', 'archetype', ['id' => $role->roleid]);
+                $types = array_fill_keys(array_filter([$role->shortname, $archetype]), true);
+                $bycourse[$course->id] = ($bycourse[$course->id] ?? []) + $types;
+                $learner = $learner || self::is_teacher($types) || isset($types['student']);
+            }
+        }
+
         return self::$profile = ['system' => $system, 'learner' => $learner, 'bycourse' => $bycourse];
     }
 

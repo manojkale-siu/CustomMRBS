@@ -497,3 +497,6 @@ $string['bookingnotificationfailed'] = 'The booking was saved, but the Moodle no
 $string['bookingeditdenied'] = 'You cannot change this booking. Only its creator or an authorized administrator can change it.';
 
 $string['seriesprotected'] = 'This series contains past or started sessions, recorded attendance, or individually modified occurrences. A whole-series change is blocked to preserve those records. Edit an eligible future occurrence individually or create a new series.';
+
+$string['facultysuspended'] = 'Unavailable: user account is suspended.';
+$string['facultyinactiveenrolment'] = 'Unavailable: faculty is not actively enrolled in this course (enrolment may be suspended, expired or not yet started).';
