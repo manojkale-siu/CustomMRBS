@@ -165,6 +165,15 @@ foreach ($records as $entry) {
     try {
         \block_mrbs\local\booking_lock::require_held();
         \block_mrbs\local\booking_validator::validate_time_range($newstart, $newend, true);
+        if (\block_mrbs\local\booking_validator::find_participant_conflicts(
+                $entry->courseid, $entry->groupid, $entry->facultyid, $newstart, $newend, $entry->id)) {
+            throw new moodle_exception('participantbookingconflict', 'block_mrbs');
+        }
+        if ($DB->record_exists_select('block_mrbs_entry',
+                'room_id = ? AND id <> ? AND start_time < ? AND end_time > ?',
+                [$entry->room_id, $entry->id, $newend, $newstart])) {
+            throw new moodle_exception('sessionimportroomconflict', 'block_mrbs');
+        }
         $DB->set_field('block_mrbs_entry', 'start_time', $newstart, ['id' => (int)$entry->id]);
         $DB->set_field('block_mrbs_entry', 'end_time', $newend, ['id' => (int)$entry->id]);
         \block_mrbs\local\attendance_manager::sync_for_entry(

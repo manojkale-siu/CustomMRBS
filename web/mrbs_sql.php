@@ -162,7 +162,7 @@ function mrbsDelEntry($user, $id, $series, $all, $roomadminoverride = false) {
  */
 function mrbsCreateSingleEntry($starttime, $endtime, $entry_type, $repeat_id, $room_id,
                                $owner, $name, $type, $description, $oldid = 0, $roomchange = false,
-                               $courseid = 0, $facultyid = 0, $groupid = 0) {
+                               $courseid = 0, $facultyid = 0, $groupid = 0, $conflictignorerepeatid = 0) {
     global $DB;
     \block_mrbs\local\booking_lock::require_held();
 
@@ -174,6 +174,10 @@ function mrbsCreateSingleEntry($starttime, $endtime, $entry_type, $repeat_id, $r
     }
 
     \block_mrbs\local\booking_validator::validate_time_range($starttime, $endtime, !empty($GLOBALS['enable_periods']));
+    if (\block_mrbs\local\booking_validator::find_participant_conflicts(
+            $courseid, $groupid, $facultyid, $starttime, $endtime, $oldid, $conflictignorerepeatid)) {
+        throw new moodle_exception('participantbookingconflict', 'block_mrbs');
+    }
 
     $add = new stdClass;
     $add->start_time = $starttime;
@@ -597,7 +601,7 @@ function mrbsCreateRepeatingEntrys($starttime, $endtime, $rep_type, $rep_enddate
 
             $entryid = mrbsCreateSingleEntry($reps[$i], $reps[$i] + $diff, 1, $ret->id,
                                    $room_id, $owner, $name, $type, $description, $updateid, $roomchange,
-                                   $courseid, $facultyid, $groupid);
+                                   $courseid, $facultyid, $groupid, $repeatid);
             if (!$entryid) {
                 throw new moodle_exception('bookingcreatefailed', 'block_mrbs');
             }

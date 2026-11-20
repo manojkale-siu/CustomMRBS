@@ -216,8 +216,8 @@ class session_import {
         if (mrbsCheckFree($room->id, $start, $end, 0, 0)) {
             throw new \moodle_exception('sessionimportroomconflict', 'block_mrbs');
         }
-        if (booking_validator::find_student_conflicts($course, $group, $start, $end)) {
-            throw new \moodle_exception('studentbookingconflict', 'block_mrbs');
+        if (booking_validator::find_participant_conflicts($course, $group, $faculty, $start, $end)) {
+            throw new \moodle_exception('participantbookingconflict', 'block_mrbs');
         }
         if (booking_validator::find_faculty_conflicts($faculty, $start, $end)) {
             throw new \moodle_exception('facultybookingconflict', 'block_mrbs');

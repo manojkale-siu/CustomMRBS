@@ -72,6 +72,39 @@ class booking_validator {
         return (bool)array_intersect_key(self::students($courseid, $groupid), self::students($othercourse, $othergroup));
     }
 
+    /** Compare actual people, including faculty attending another course as a student. */
+    public static function share_participants($courseid, $groupid, $facultyid, $othercourse, $othergroup, $otherfaculty): bool {
+        $first = self::students($courseid, $groupid);
+        $second = self::students($othercourse, $othergroup);
+        if ($facultyid) {
+            $first[(int)$facultyid] = true;
+        }
+        if ($otherfaculty) {
+            $second[(int)$otherfaculty] = true;
+        }
+        return (bool)array_intersect_key($first, $second);
+    }
+
+    /** No person may occupy two overlapping sessions, regardless of their role. */
+    public static function find_participant_conflicts($courseid, $groupid, $facultyid, $start, $end,
+            $ignoreid = 0, $ignorerepeatid = 0): array {
+        global $DB;
+        $where = 'start_time < ? AND end_time > ? AND id <> ?';
+        $params = [$end, $start, $ignoreid];
+        if ($ignorerepeatid) {
+            $where .= ' AND repeat_id <> ?';
+            $params[] = $ignorerepeatid;
+        }
+        $conflicts = [];
+        foreach ($DB->get_records_select('block_mrbs_entry', $where, $params) as $entry) {
+            if (self::share_participants($courseid, $groupid, $facultyid,
+                    $entry->courseid, $entry->groupid, $entry->facultyid)) {
+                $conflicts[$entry->id] = $entry;
+            }
+        }
+        return $conflicts;
+    }
+
     /** Find overlaps even when faculty and room are different. */
     public static function find_student_conflicts($courseid, $groupid, $start, $end, $ignoreid = 0, $ignorerepeatid = 0): array {
         global $DB;

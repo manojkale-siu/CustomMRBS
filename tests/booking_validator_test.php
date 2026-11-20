@@ -41,4 +41,20 @@ final class booking_validator_test extends \advanced_testcase {
         $this->assertTrue(local\booking_validator::share_students($first->id, 0, $second->id, 0));
         $this->assertFalse(local\booking_validator::share_students($first->id, 0, $inactive->id, 0));
     }
+    public function test_faculty_and_student_roles_cannot_overlap(): void {
+        $this->resetAfterTest();
+        $generator = $this->getDataGenerator();
+        $teaching = $generator->create_course();
+        $learning = $generator->create_course();
+        $person = $generator->create_user();
+        $other = $generator->create_user();
+        $generator->enrol_user($person->id, $learning->id);
+        $this->assertTrue(local\booking_validator::share_participants(
+            $teaching->id, 0, $person->id, $learning->id, 0, $other->id));
+        $this->assertTrue(local\booking_validator::share_participants(
+            $learning->id, 0, $other->id, $teaching->id, 0, $person->id));
+        $empty = $generator->create_group(['courseid' => $learning->id]);
+        $this->assertFalse(local\booking_validator::share_participants(
+            $teaching->id, 0, $person->id, $learning->id, $empty->id, $other->id));
+    }
 }

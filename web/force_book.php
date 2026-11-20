@@ -192,14 +192,15 @@ function mrbsFindForceTimeSlot($entry, $room, array $reserved, array $planned) {
                 $entry->facultyid, $start, $end, $entry->id)) {
             continue;
         }
-        if (\block_mrbs\local\booking_validator::find_student_conflicts(
-                $entry->courseid, $entry->groupid, $start, $end, $entry->id)) {
+        if (\block_mrbs\local\booking_validator::find_participant_conflicts(
+                $entry->courseid, $entry->groupid, $entry->facultyid, $start, $end, $entry->id)) {
             continue;
         }
         foreach ($planned as $move) {
             if ($move['start'] < $end && $move['end'] > $start
-                    && \block_mrbs\local\booking_validator::share_students(
-                        $entry->courseid, $entry->groupid, $move['entry']->courseid, $move['entry']->groupid)) {
+                    && \block_mrbs\local\booking_validator::share_participants(
+                        $entry->courseid, $entry->groupid, $entry->facultyid,
+                        $move['entry']->courseid, $move['entry']->groupid, $move['entry']->facultyid)) {
                 continue 2;
             }
         }
@@ -215,6 +216,27 @@ function mrbsApplyForceMoves(array $moves) {
     global $DB;
     \block_mrbs\local\booking_lock::require_held();
 
+    $movingids = [];
+    foreach ($moves as $move) {
+        $movingids[$move['entry']->id] = true;
+    }
+    foreach ($moves as $index => $move) {
+        $entry = $move['entry'];
+        $conflicts = \block_mrbs\local\booking_validator::find_participant_conflicts(
+            $entry->courseid, $entry->groupid, $entry->facultyid, $move['start'], $move['end'], $entry->id
+        );
+        if (array_diff_key($conflicts, $movingids)) {
+            throw new moodle_exception('participantbookingconflict', 'block_mrbs');
+        }
+        foreach ($moves as $otherindex => $other) {
+            if ($index !== $otherindex && $move['start'] < $other['end'] && $move['end'] > $other['start']
+                    && \block_mrbs\local\booking_validator::share_participants(
+                        $entry->courseid, $entry->groupid, $entry->facultyid,
+                        $other['entry']->courseid, $other['entry']->groupid, $other['entry']->facultyid)) {
+                throw new moodle_exception('participantbookingconflict', 'block_mrbs');
+            }
+        }
+    }
     foreach ($moves as $move) {
         $entry = $move['entry'];
         \block_mrbs\local\booking_validator::validate_time_range($move['start'], $move['end'], !empty($GLOBALS['enable_periods']));

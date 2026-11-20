@@ -511,3 +511,5 @@ $string['cancellationnotfuture'] = 'Deletion stopped. A selected booking or link
 
 $string['bookinglockrequired'] = 'The booking operation was stopped because the shared MRBS lock was not acquired. No changes were made by this operation.';
 $string['legacycsvdisabled'] = 'Legacy CSV import and relocation are disabled because they bypass booking safety checks. Use Import sessions (Excel) or the current booking form.';
+
+$string['participantbookingconflict'] = 'Invalid booking: a faculty member or enrolled student is already scheduled during this time, including when the same person is faculty in one course and a student in another. A person cannot attend two sessions at the same time. No bookings were changed.';
