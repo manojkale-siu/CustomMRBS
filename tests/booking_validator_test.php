@@ -16,7 +16,7 @@ final class booking_validator_test extends \advanced_testcase {
         $role = $DB->get_field('role', 'id', ['shortname' => 'student'], MUST_EXIST);
         $generator->enrol_user($student->id, $first->id, 0);
         $generator->enrol_user($student->id, $second->id, 0);
-        role_assign($role, $student->id, \context_coursecat::instance($category->id));
+        role_assign($role, $student->id, \context_coursecat::instance($category->id)->id);
         $this->assertTrue(local\booking_validator::share_students($first->id, 0, $second->id, 0));
         $group = $generator->create_group(['courseid' => $first->id]);
         $empty = $generator->create_group(['courseid' => $second->id]);
@@ -34,7 +34,7 @@ final class booking_validator_test extends \advanced_testcase {
         $inactive = $generator->create_course();
         $student = $generator->create_user();
         $role = $DB->get_field('role', 'id', ['shortname' => 'student'], MUST_EXIST);
-        role_assign($role, $student->id, \context_system::instance());
+        role_assign($role, $student->id, \context_system::instance()->id);
         $generator->enrol_user($student->id, $first->id, 0);
         $generator->enrol_user($student->id, $second->id, 0);
         $generator->enrol_user($student->id, $inactive->id, 0, 'manual', 0, 0, ENROL_USER_SUSPENDED);

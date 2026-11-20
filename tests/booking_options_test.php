@@ -12,7 +12,7 @@ final class booking_options_test extends \advanced_testcase {
         $course = $generator->create_course();
         $faculty = $generator->create_user();
         $role = $DB->get_field('role', 'id', ['shortname' => 'editingteacher'], MUST_EXIST);
-        role_assign($role, $faculty->id, \context_system::instance());
+        role_assign($role, $faculty->id, \context_system::instance()->id);
         $options = local\booking_options::get_faculties($course->id);
         $this->assertTrue($options[0]['disabled']);
         $this->assertNotEmpty($options[0]['reason']);
