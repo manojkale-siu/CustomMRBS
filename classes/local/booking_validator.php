@@ -23,18 +23,16 @@ class booking_validator {
      */
     private static function students($courseid, $groupid): array {
         global $DB;
-        static $cache = [];
-        $key = (int)$courseid . ':' . (int)$groupid;
-        if (isset($cache[$key])) {
-            return $cache[$key];
-        }
         if (!$courseid) {
             return [];
         }
         $context = \context_course::instance($courseid);
         [$enrolledsql, $params] = get_enrolled_sql($context, '', $groupid, true);
-        $params['studentcourse'] = $context->id;
-        $params['studentsystem'] = \context_system::instance()->id;
+        // Include course, category ancestors and system roles, never unrelated categories.
+        [$contextsql, $contextparams] = $DB->get_in_or_equal(
+            $context->get_parent_context_ids(true), SQL_PARAMS_NAMED, 'studentcontext'
+        );
+        $params += $contextparams;
         $params['studentarchetype'] = 'student';
         $params['studentshortname'] = 'student';
         $sql = "SELECT u.id
@@ -42,10 +40,10 @@ class booking_validator {
                  WHERE u.deleted = 0 AND u.suspended = 0
                    AND EXISTS (
                        SELECT 1 FROM {role_assignments} ra JOIN {role} r ON r.id = ra.roleid
-                        WHERE ra.userid = u.id AND ra.contextid IN (:studentcourse, :studentsystem)
+                        WHERE ra.userid = u.id AND ra.contextid $contextsql
                           AND (r.archetype = :studentarchetype OR r.shortname = :studentshortname)
                    )";
-        return $cache[$key] = array_fill_keys($DB->get_fieldset_sql($sql, $params), true);
+        return array_fill_keys($DB->get_fieldset_sql($sql, $params), true);
     }
 
     /** Compare actual active student membership, including overlapping groups. */
