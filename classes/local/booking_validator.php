@@ -15,6 +15,24 @@ class booking_validator {
     /** @var array<int,array> Cached room details keyed by room id. */
     private static $roomcache = [];
 
+    /** Recheck availability under the shared lock immediately before each booking write. */
+    public static function require_room_available(int $roomid, int $start, int $end,
+            int $ignoreid = 0, int $ignorerepeatid = 0): void {
+        global $DB;
+        booking_lock::require_held();
+        // A room may have been deleted while an older form was open.
+        $DB->get_record('block_mrbs_room', ['id' => $roomid], 'id', MUST_EXIST);
+        $where = 'room_id = ? AND start_time < ? AND end_time > ? AND id <> ?';
+        $params = [$roomid, $end, $start, $ignoreid];
+        if ($ignorerepeatid) {
+            $where .= ' AND repeat_id <> ?';
+            $params[] = $ignorerepeatid;
+        }
+        if ($DB->record_exists_select('block_mrbs_entry', $where, $params)) {
+            throw new \moodle_exception('roomalreadyclaimed', 'block_mrbs');
+        }
+    }
+
     /** Enforce configured hours for every actual occurrence, regardless of input path. */
     public static function validate_time_range(int $start, int $end, bool $periodmode): void {
         if ($end <= $start) {

@@ -112,7 +112,6 @@ $rooms = array_values(array_unique(array_filter($rooms)));
 // print_r($rooms);
 // exit;
 
-$doublebook = optional_param('doublebook', 0, PARAM_INT);
 $roomchange = optional_param('roomchange', false, PARAM_BOOL);
 
 define('MRBS_ERR_DOUBLEBOOK', 1);
@@ -639,15 +638,11 @@ foreach ($rooms as $room_id) {
         // }
     } else {
         // echo "I am in first else part <br>";
-        if ($doublebook && mrbsHasAdminCapability('block/mrbs:doublebook')) {
-            // An explicit authorised override permits the room overlap.
-        } else {
-            // echo "<br> I am inner else-else. <br> vardump : ";
-            // If the user hasn't confirmed they want to double book, check the room is free.
-            $err .= mrbsCheckFree($room_id, $starttime, $endtime, $ignore_id, 0);
-            
-            // var_dump($err);
-            // echo "<br></pre>";
+        // Managers follow the same first-successful-save rule; no overlap override.
+        $tmp = mrbsCheckFree($room_id, $starttime, $endtime, $ignore_id, 0);
+        if ($tmp !== '') {
+            $err .= $tmp;
+            $errtype = MRBS_ERR_DOUBLEBOOK;
         }
     }
 
@@ -764,6 +759,8 @@ if (empty($err)) {
         }
     }
 
+    // The committed booking now owns the slot; let waiting saves recheck it immediately.
+    $bookinglock->release();
     $attendancewarnings = \block_mrbs\local\attendance_manager::take_warnings();
     if ($attendancewarnings) {
         $forcemoveoutput .= ' ' . implode(' ', array_map('s', $attendancewarnings));
@@ -798,9 +795,13 @@ if (empty($err)) {
 // The room was not free.
 
 if (strlen($err)) {
+    $bookinglock->release();
     print_header_mrbs($day, $month, $year, $area);
 
     echo "<H2>".get_string('sched_conflict', 'block_mrbs')."</H2>";
+    if ($errtype == MRBS_ERR_DOUBLEBOOK) {
+        echo $OUTPUT->notification(get_string('roomalreadyclaimed', 'block_mrbs'), 'warning');
+    }
     if (!isset($hide_title)) {
         echo get_string('conflict', 'block_mrbs');
         echo "<UL>";
@@ -816,47 +817,7 @@ if (strlen($err)) {
         ]);
         echo html_writer::div(html_writer::link($keepurl, get_string('forcebookkeepentry', 'block_mrbs')), 'my-3');
     }
-    if (mrbsHasAdminCapability('block/mrbs:doublebook') && $errtype == MRBS_ERR_DOUBLEBOOK) {
-        $thisurl = new moodle_url('/blocks/mrbs/web/edit_entry_handler.php');
-        echo '<form method="post" action="'.$thisurl.'">';
-        echo '<input type="hidden" name="name" value="'.s($name).'" />';
-        echo '<input type="hidden" name="description" value="'.s($description).'" />';
-        echo '<input type="hidden" name="day" value="'.(int)$day.'" />';
-        echo '<input type="hidden" name="month" value="'.(int)$month.'" />';
-        echo '<input type="hidden" name="year" value="'.(int)$year.'" />';
-        echo '<input type="hidden" name="area" value="'.(int)$area.'" />';
-        echo '<input type="hidden" name="create_by" value="'.s($create_by).'" />';
-        echo '<input type="hidden" name="id" value="'.(int)$id.'" />';
-        echo '<input type="hidden" name="programmeid" value="'.(int)$programmeid.'" />';
-        echo '<input type="hidden" name="batchid" value="'.(int)$batchid.'" />';
-        echo '<input type="hidden" name="semesterid" value="'.(int)$semesterid.'" />';
-        echo '<input type="hidden" name="courseid" value="'.(int)$courseid.'" />';
-        echo '<input type="hidden" name="facultyid" value="'.(int)$facultyid.'" />';
-        echo '<input type="hidden" name="groupid" value="'.(int)$groupid.'" />';
-        echo '<input type="hidden" name="rep_type" value="'.(int)$rep_type.'" />';
-        echo '<input type="hidden" name="rep_end_month" value="'.(int)$rep_end_month.'" />';
-        echo '<input type="hidden" name="rep_end_day" value="'.(int)$rep_end_day.'" />';
-        echo '<input type="hidden" name="rep_end_year" value="'.(int)$rep_end_year.'" />';
-        echo '<input type="hidden" name="rep_num_weeks" value="'.(int)$rep_num_weeks.'" />';
-        foreach ($rep_day as $repeatday => $repeatdayenabled) {
-            echo '<input type="hidden" name="rep_day['.(int)$repeatday.']" value="'.s($repeatdayenabled).'" />';
-        }
-        echo '<input type="hidden" name="rep_opt" value="'.s($rep_opt).'" />';
-        echo '<input type="hidden" name="rep_enddate" value="'.(int)$rep_enddate.'" />';
-        echo '<input type="hidden" name="hour" value="'.(int)$hour.'" />';
-        echo '<input type="hidden" name="minute" value="'.(int)$minute.'" />';
-        echo '<input type="hidden" name="period" value="'.(int)$period.'" />';
-        echo '<input type="hidden" name="duration" value="'.s($duration).'" />';
-        echo '<input type="hidden" name="dur_units" value="'.s($dur_units).'" />';
-        echo '<input type="hidden" name="type" value="'.s($type).'" />';
-        foreach ($rooms as $room) {
-            echo '<input type="hidden" name="rooms[]" value="'.(int)$room.'" />';
-        }
-        echo '<input type="hidden" name="doublebook" value="1" />';
-        echo '<input type="hidden" name="sesskey" value="'.sesskey().'" />';
-        echo '<input type="submit" name="submit" value="'.get_string('idontcare', 'block_mrbs').'" />';
-        echo '</form>';
-    }
+
 }
 
 // echo "LINE : 658";

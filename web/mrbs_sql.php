@@ -174,6 +174,9 @@ function mrbsCreateSingleEntry($starttime, $endtime, $entry_type, $repeat_id, $r
     }
 
     \block_mrbs\local\booking_validator::validate_time_range($starttime, $endtime, !empty($GLOBALS['enable_periods']));
+    \block_mrbs\local\booking_validator::require_room_available(
+        (int)$room_id, (int)$starttime, (int)$endtime, (int)$oldid, (int)$conflictignorerepeatid
+    );
     if (\block_mrbs\local\booking_validator::find_participant_conflicts(
             $courseid, $groupid, $facultyid, $starttime, $endtime, $oldid, $conflictignorerepeatid)) {
         throw new moodle_exception('participantbookingconflict', 'block_mrbs');

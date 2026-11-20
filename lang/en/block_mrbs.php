@@ -521,3 +521,6 @@ $string['sessionimportcapacitydetails'] = 'Room capacity is exceeded. {$a} Choos
 $string['bookingtimezone'] = 'All MRBS dates and times use the Moodle site timezone: {$a}.';
 
 $string['bookingdeletedenied'] = 'Deletion stopped. You do not have permission to delete every selected booking in its current room. No bookings or Attendance sessions were deleted. Ask the booking owner or a Moodle Manager/MRBS Administrator to delete the series.';
+
+$string['roomalreadyclaimed'] = 'This room is already booked for the requested time. The first successfully saved booking keeps the slot. No new booking was created and the existing booking was not replaced. Choose another time or room.';
+$string['bookingbusy'] = 'Another booking operation is still being processed. Nothing was saved by this request. Please try again; room availability will be checked again before saving.';

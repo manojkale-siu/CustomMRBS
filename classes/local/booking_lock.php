@@ -13,7 +13,7 @@ final class booking_lock {
         if (!self::$lock) {
             self::$lock = \core\lock\lock_config::get_lock_factory('block_mrbs')->get_lock('save_booking', 10);
             if (!self::$lock) {
-                throw new \moodle_exception('failed_to_acquire', 'block_mrbs');
+                throw new \moodle_exception('bookingbusy', 'block_mrbs');
             }
         }
         self::$holders++;
