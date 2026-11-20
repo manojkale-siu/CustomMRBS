@@ -504,3 +504,5 @@ $string['facultyinactiveenrolment'] = 'Unavailable: faculty is not actively enro
 $string['bookingoutsidehours'] = 'Invalid booking: the session from {$a->start} to {$a->end} is outside the configured booking hours ({$a->open} to {$a->close}). Select a start time and duration within these hours. Sessions cannot continue into the next day. No bookings were changed.';
 
 $string['attendancepreserved'] = 'Attendance session #{$a->id} was left unchanged at {$a->oldstart} to {$a->oldend}; the booking is now {$a->newstart} to {$a->newend}. Attendance can be updated only before the original session starts, when no attendance has been recorded and the new start is still in the future. Live and completed sessions are preserved, including their faculty and group.';
+
+$string['invalidseriesdelete'] = 'This booking does not belong to a valid recurring series. No bookings were deleted. Return to the booking and delete only this session.';

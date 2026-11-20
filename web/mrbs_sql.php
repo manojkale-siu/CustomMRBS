@@ -105,12 +105,21 @@ function mrbsCheckFree($room_id, $starttime, $endtime, $ignore, $repignore) {
 function mrbsDelEntry($user, $id, $series, $all, $roomadminoverride = false) {
     global $DB;
 
-    $repeat_id = $DB->get_field('block_mrbs_entry', 'repeat_id', array('id' => $id));
+    // Resolve and authorize the selected entry before expanding the deletion scope.
+    $selected = $DB->get_record('block_mrbs_entry', ['id' => $id]);
+    if (!$selected || (!$roomadminoverride && !getWritable($selected->create_by, $user))) {
+        return 0;
+    }
+    $repeat_id = (int)$selected->repeat_id;
     if ($repeat_id < 0) {
         return 0;
     }
 
     if ($series) {
+        // repeat_id = 0 identifies every independent booking, never a series.
+        if ($repeat_id === 0 || !$DB->record_exists('block_mrbs_repeat', ['id' => $repeat_id])) {
+            throw new moodle_exception('invalidseriesdelete', 'block_mrbs');
+        }
         $params = array('repeat_id' => $repeat_id);
     } else {
         $params = array('id' => $id);
