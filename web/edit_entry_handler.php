@@ -319,9 +319,10 @@ if ($all_day) {
     }
 } else {
     if ($enable_periods && $schedulevalid) {
-        $periodindex = max(0, (int)$period);
-        if ($periodindex >= $max_periods) {
-            $periodindex = $max_periods - 1;
+        $periodindex = (int)$period;
+        if ($periodindex < 0 || $periodindex >= $max_periods) {
+            block_mrbs_print_user_error($day, $month, $year, $area, get_string('sessionimportperiod', 'block_mrbs'));
+            exit;
         }
 
         $starttime = \block_mrbs\local\settings_manager::get_period_start_timestamp($year, $month, $day, $periodindex);
@@ -454,6 +455,12 @@ if ($rep_type != 0) {
 
 // Validate the proposed occurrences before conflict resolution can move any bookings.
 try {
+    \block_mrbs\local\booking_validator::validate_time_range($starttime, $endtime, (bool)$enable_periods);
+    foreach ($reps as $occurrence) {
+        $durationseconds = $endtime - $starttime;
+        $occurrenceend = $occurrence + $durationseconds + cross_dst($occurrence, $occurrence + $durationseconds);
+        \block_mrbs\local\booking_validator::validate_time_range($occurrence, $occurrenceend, (bool)$enable_periods);
+    }
     mrbsValidateRepeatIntervals($reps, $starttime, $endtime);
 } catch (moodle_exception $error) {
     block_mrbs_print_user_error($day, $month, $year, $area, $error->getMessage());

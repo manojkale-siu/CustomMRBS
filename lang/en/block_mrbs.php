@@ -500,3 +500,5 @@ $string['seriesprotected'] = 'This series contains past or started sessions, rec
 
 $string['facultysuspended'] = 'Unavailable: user account is suspended.';
 $string['facultyinactiveenrolment'] = 'Unavailable: faculty is not actively enrolled in this course (enrolment may be suspended, expired or not yet started).';
+
+$string['bookingoutsidehours'] = 'Invalid booking: the session from {$a->start} to {$a->end} is outside the configured booking hours ({$a->open} to {$a->close}). Select a start time and duration within these hours. Sessions cannot continue into the next day. No bookings were changed.';

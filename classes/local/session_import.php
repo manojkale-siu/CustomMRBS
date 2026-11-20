@@ -183,13 +183,7 @@ class session_import {
         if (!check_max_advance_days_timestamp($start)) {
             throw new \moodle_exception('sessionimportadvance', 'block_mrbs');
         }
-        if ($periodmode) {
-            [$open, $close] = settings_manager::get_period_day_bounds($parts[1], $parts[2], $parts[3]);
-            $interval = settings_manager::get_period_interval_seconds();
-            if ($start < $open || $end > $close || ($start - $open) % $interval || ($end - $start) % $interval) {
-                throw new \moodle_exception('sessionimportperiod', 'block_mrbs');
-            }
-        }
+        booking_validator::validate_time_range($start, $end, $periodmode);
 
         $area = $DB->get_record('block_mrbs_area', ['area_name' => (string)$areaname], 'id', IGNORE_MISSING);
         $room = $area ? $DB->get_record('block_mrbs_room', [

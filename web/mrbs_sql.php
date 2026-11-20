@@ -171,6 +171,8 @@ function mrbsCreateSingleEntry($starttime, $endtime, $entry_type, $repeat_id, $r
         $repeat_id = $stored->repeat_id;
     }
 
+    \block_mrbs\local\booking_validator::validate_time_range($starttime, $endtime, !empty($GLOBALS['enable_periods']));
+
     $add = new stdClass;
     $add->start_time = $starttime;
     $add->end_time = $endtime;

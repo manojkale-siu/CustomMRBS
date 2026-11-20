@@ -372,6 +372,7 @@ function mrbsApplyForceMoves(array $moves) {
 
     foreach ($moves as $move) {
         $entry = $move['entry'];
+        \block_mrbs\local\booking_validator::validate_time_range($move['start'], $move['end'], !empty($GLOBALS['enable_periods']));
         $update = (object)[
             'id' => $entry->id,
             'room_id' => $move['room']->id,

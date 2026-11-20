@@ -18,6 +18,27 @@ class booking_validator {
     /** @var array<int,array> Cached room details keyed by room id. */
     private static $roomcache = [];
 
+    /** Enforce configured hours for every actual occurrence, regardless of input path. */
+    public static function validate_time_range(int $start, int $end, bool $periodmode): void {
+        if ($end <= $start) {
+            throw new \moodle_exception('sessionimportdatetime', 'block_mrbs');
+        }
+        if (!settings_manager::has_valid_custom_time_range()) {
+            return;
+        }
+        [$open, $close] = settings_manager::get_period_day_bounds(date('Y', $start), date('n', $start), date('j', $start));
+        if ($start < $open || $end > $close) {
+            throw new \moodle_exception('bookingoutsidehours', 'block_mrbs', '', (object)[
+                'start' => userdate($start), 'end' => userdate($end),
+                'open' => userdate($open), 'close' => userdate($close),
+            ]);
+        }
+        $interval = settings_manager::get_period_interval_seconds();
+        if ($periodmode && (($start - $open) % $interval || ($end !== $close && ($end - $open) % $interval))) {
+            throw new \moodle_exception('sessionimportperiod', 'block_mrbs');
+        }
+    }
+
     /**
      * Student IDs eligible for a course booking, including whole-course sessions.
      */
