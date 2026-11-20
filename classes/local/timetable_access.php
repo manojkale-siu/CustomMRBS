@@ -121,15 +121,19 @@ class timetable_access {
 
         $teacher = [];
         $student = [];
-        $profile = self::profile();
+        // Resolve current enrolment, inherited roles and group membership at view time.
+        // The booking creation date must never exclude a student enrolled later.
         foreach (enrol_get_users_courses($USER->id, true) as $course) {
-            $roles = $profile['bycourse'][$course->id] ?? [];
-            if (!self::is_teacher($roles) && !isset($roles['student'])) {
-                $roles = $profile['system'];
+            $roles = [];
+            foreach (get_user_roles(\context_course::instance($course->id), $USER->id, true) as $role) {
+                $archetype = $DB->get_field('role', 'archetype', ['id' => $role->roleid]);
+                $roles += array_fill_keys(array_filter([$role->shortname, $archetype]), true);
             }
             if (self::is_teacher($roles)) {
                 $teacher[] = $course->id;
-            } else if (isset($roles['student'])) {
+            }
+            // A person may be both teacher and student: retain both visibility rules.
+            if (isset($roles['student'])) {
                 $student[] = $course->id;
             }
         }
