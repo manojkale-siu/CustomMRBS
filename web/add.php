@@ -26,9 +26,9 @@ $name = required_param('name', PARAM_TEXT);
 $description = optional_param('description', '', PARAM_TEXT);
 $capacity = optional_param('capacity', 0, PARAM_INT);
 $area = optional_param('area', 0, PARAM_INT);
-$day = optional_param('day', date('d'), PARAM_INT);
-$month = optional_param('month', date('m'), PARAM_INT);
-$year = optional_param('year', date('Y'), PARAM_INT);
+$day = optional_param('day', \block_mrbs\local\booking_time::date('d'), PARAM_INT);
+$month = optional_param('month', \block_mrbs\local\booking_time::date('m'), PARAM_INT);
+$year = optional_param('year', \block_mrbs\local\booking_time::date('Y'), PARAM_INT);
 
 $thisurl = new moodle_url('/blocks/mrbs/web/add.php', array('type' => $type, 'name' => $name));
 if (!empty($description)) {

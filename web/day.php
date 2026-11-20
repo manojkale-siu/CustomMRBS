@@ -33,9 +33,9 @@ $roomnotfound = optional_param('roomnotfound', null, PARAM_TEXT);
 
 //If we dont know the right date then make it up
 if (($day == 0) or ($month == 0) or ($year == 0)) {
-    $day = date("d");
-    $month = date("m");
-    $year = date("Y");
+    $day = \block_mrbs\local\booking_time::date("d");
+    $month = \block_mrbs\local\booking_time::date("m");
+    $year = \block_mrbs\local\booking_time::date("Y");
 } else {
     // Make the date valid if day is more then number of days in month
     while (!checkdate(intval($month), intval($day), intval($year))) {
@@ -92,8 +92,8 @@ block_mrbs_show_booking_configuration_warning();
 //  0 => entering DST
 //  1 => leaving DST
 $dst_change = is_dst($month, $day, $year);
-$am7 = mktime($morningstarts, $morningstarts_minutes, 0, $month, $day, $year);
-$pm7 = mktime($eveningends, $eveningends_minutes, 0, $month, $day, $year);
+$am7 = \block_mrbs\local\booking_time::mktime($morningstarts, $morningstarts_minutes, 0, $month, $day, $year);
+$pm7 = \block_mrbs\local\booking_time::mktime($eveningends, $eveningends_minutes, 0, $month, $day, $year);
 if ($enable_periods && !empty($customperiodschedule)) {
     $schedule = $customperiodschedule;
     $resolution = \block_mrbs\local\settings_manager::get_period_interval_seconds();
@@ -101,8 +101,8 @@ if ($enable_periods && !empty($customperiodschedule)) {
     $morningstarts_minutes = (int)($schedule['fromminutes'] % 60);
     $eveningends = (int)floor($schedule['tominutes'] / 60);
     $eveningends_minutes = (int)($schedule['tominutes'] % 60);
-    $am7 = mktime((int)floor($schedule['fromminutes'] / 60), (int)($schedule['fromminutes'] % 60), 0, $month, $day, $year);
-    $pm7 = mktime((int)floor($schedule['tominutes'] / 60), (int)($schedule['tominutes'] % 60), 0, $month, $day, $year);
+    $am7 = \block_mrbs\local\booking_time::mktime((int)floor($schedule['fromminutes'] / 60), (int)($schedule['fromminutes'] % 60), 0, $month, $day, $year);
+    $pm7 = \block_mrbs\local\booking_time::mktime((int)floor($schedule['tominutes'] / 60), (int)($schedule['tominutes'] % 60), 0, $month, $day, $year);
 }
 
 if ($pview != 1) {
@@ -153,15 +153,15 @@ if ($pview != 1) {
 //y? are year, month and day of yesterday
 //t? are year, month and day of tomorrow
 
-$i = mktime(12, 0, 0, $month, $day - 1, $year);
-$yy = date("Y", $i);
-$ym = date("m", $i);
-$yd = date("d", $i);
+$i = \block_mrbs\local\booking_time::mktime(12, 0, 0, $month, $day - 1, $year);
+$yy = \block_mrbs\local\booking_time::date("Y", $i);
+$ym = \block_mrbs\local\booking_time::date("m", $i);
+$yd = \block_mrbs\local\booking_time::date("d", $i);
 
-$i = mktime(12, 0, 0, $month, $day + 1, $year);
-$ty = date("Y", $i);
-$tm = date("m", $i);
-$td = date("d", $i);
+$i = \block_mrbs\local\booking_time::mktime(12, 0, 0, $month, $day + 1, $year);
+$ty = \block_mrbs\local\booking_time::date("Y", $i);
+$tm = \block_mrbs\local\booking_time::date("m", $i);
+$td = \block_mrbs\local\booking_time::date("d", $i);
 
 //We want to build an array containing all the data we want to show
 //and then spit it out.
@@ -215,7 +215,7 @@ if (!empty($area)) {
         for ($t = $start_t; $t <= $end_t; $t += $resolution) {
             $slotkey = $enable_periods && !empty($customperiodschedule)
                 ? \block_mrbs\local\settings_manager::get_period_index_from_timestamp($t)
-                : (int)date($format, $t);
+                : (int)\block_mrbs\local\booking_time::date($format, $t);
             //checks for double bookings
             if (empty($today[$entry->rid][$slotkey])) {
                 $today[$entry->rid][$slotkey]["id"] = $entry->eid;
@@ -237,13 +237,13 @@ if (!empty($area)) {
         if ($entry->start_time < $am7) {
             $startslot = $enable_periods && !empty($customperiodschedule)
                 ? \block_mrbs\local\settings_manager::get_period_index_from_timestamp($am7)
-                : (int)date($format, $am7);
+                : (int)\block_mrbs\local\booking_time::date($format, $am7);
             $today[$entry->rid][$startslot]["data"] .= $entryname;
             $today[$entry->rid][$startslot]["long_descr"] .= $entry->description;
         } else {
             $startslot = $enable_periods && !empty($customperiodschedule)
                 ? \block_mrbs\local\settings_manager::get_period_index_from_timestamp($start_t)
-                : (int)date($format, $start_t);
+                : (int)\block_mrbs\local\booking_time::date($format, $start_t);
             $today[$entry->rid][$startslot]["data"] .= $entryname;
             $today[$entry->rid][$startslot]["long_descr"] .= $entry->description;
         }
@@ -252,8 +252,8 @@ if (!empty($area)) {
     if ($debug_flag) {
         echo "<p>DEBUG:<pre>\n";
             echo "\$dst_change = $dst_change\n";
-            echo "\$am7 = $am7 or ".date($format, $am7)."\n";
-            echo "\$pm7 = $pm7 or ".date($format, $pm7)."\n";
+            echo "\$am7 = $am7 or ".\block_mrbs\local\booking_time::date($format, $am7)."\n";
+            echo "\$pm7 = $pm7 or ".\block_mrbs\local\booking_time::date($format, $pm7)."\n";
         if (is_array($today)) {
             foreach ($today as $w_k => $w_v) {
                 foreach ($w_v as $t_k => $t_v) {
@@ -283,7 +283,7 @@ if (!empty($area)) {
         echo "<h1>".get_string('no_rooms_for_area', 'block_mrbs')."</h1>";
     } else {
         //Show current date
-        echo "<h2 align=center>".userdate($am7, "%A %d %B %Y")."</h2>\n";
+        echo "<h2 align=center>".\block_mrbs\local\booking_time::userdate($am7, "%A %d %B %Y")."</h2>\n";
 
         if ($pview != 1) {
             //Show Go to day before and after links
@@ -358,12 +358,12 @@ if (!empty($area)) {
                 );
             }
         } else {
-            $starttime = mktime($morningstarts, $morningstarts_minutes, 0, $month, $day + $j, $year);
-            $endtime = mktime($eveningends, $eveningends_minutes, 0, $month, $day + $j, $year);
+            $starttime = \block_mrbs\local\booking_time::mktime($morningstarts, $morningstarts_minutes, 0, $month, $day + $j, $year);
+            $endtime = \block_mrbs\local\booking_time::mktime($eveningends, $eveningends_minutes, 0, $month, $day + $j, $year);
             for ($t = $starttime; $t <= $endtime; $t += $resolution) {
                 $displayrows[] = array(
                     't' => $t,
-                    'time_t' => (int)date($format, $t),
+                    'time_t' => (int)\block_mrbs\local\booking_time::date($format, $t),
                     'label' => null,
                 );
             }
@@ -388,7 +388,7 @@ if (!empty($area)) {
             } else {
                 echo "<a href=\"".$hiliteurl."\" title=\""
                     .get_string('highlight_line', 'block_mrbs')."\">"
-                    .userdate($t, hour_min_format())."</a></td>\n";
+                    .\block_mrbs\local\booking_time::userdate($t, hour_min_format())."</a></td>\n";
             }
 
             // Loop through the list of rooms we have for this area
@@ -421,8 +421,8 @@ if (!empty($area)) {
 
                 // If the room isnt booked then allow it to be booked
                 if (!isset($id)) {
-                    $hour = date("H", $t);
-                    $minute = date("i", $t);
+                    $hour = \block_mrbs\local\booking_time::date("H", $t);
+                    $minute = \block_mrbs\local\booking_time::date("i", $t);
 
                     if ($pview != 1) {
                         if (!$room->allowedtobook) {
@@ -513,7 +513,7 @@ if (!empty($area)) {
                     tdcell("red");
                     echo "<a href=\"".$hiliteurl."\" title=\""
                         .get_string('highlight_line', 'block_mrbs')."\">"
-                        .userdate($t, hour_min_format())."</a></td>\n";
+                        .\block_mrbs\local\booking_time::userdate($t, hour_min_format())."</a></td>\n";
                 }
             }
 

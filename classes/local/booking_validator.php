@@ -23,11 +23,11 @@ class booking_validator {
         if (!settings_manager::has_valid_custom_time_range()) {
             return;
         }
-        [$open, $close] = settings_manager::get_period_day_bounds(date('Y', $start), date('n', $start), date('j', $start));
+        [$open, $close] = settings_manager::get_period_day_bounds(\block_mrbs\local\booking_time::date('Y', $start), \block_mrbs\local\booking_time::date('n', $start), \block_mrbs\local\booking_time::date('j', $start));
         if ($start < $open || $end > $close) {
             throw new \moodle_exception('bookingoutsidehours', 'block_mrbs', '', (object)[
-                'start' => userdate($start), 'end' => userdate($end),
-                'open' => userdate($open), 'close' => userdate($close),
+                'start' => \block_mrbs\local\booking_time::userdate($start), 'end' => \block_mrbs\local\booking_time::userdate($end),
+                'open' => \block_mrbs\local\booking_time::userdate($open), 'close' => \block_mrbs\local\booking_time::userdate($close),
             ]);
         }
         $interval = settings_manager::get_period_interval_seconds();
@@ -182,7 +182,7 @@ class booking_validator {
         foreach ($conflicts as $conflict) {
             $label = reservation::get_display_name($conflict);
             $items[] = s($label) . ' (' . s($conflict->area_name) . ' - ' . s($conflict->room_name) . ', ' .
-                userdate($conflict->start_time, get_string('strftimedatetime', 'langconfig')) . ')';
+                \block_mrbs\local\booking_time::userdate($conflict->start_time, get_string('strftimedatetime', 'langconfig')) . ')';
         }
 
         return get_string('facultybookingconflict', 'block_mrbs') . \html_writer::alist($items);

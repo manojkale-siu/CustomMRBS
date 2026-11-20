@@ -22,15 +22,15 @@ if ($pview != 1) {
     echo "<P><HR><B>".get_string('viewday', 'block_mrbs').":</B>\n";
 
     if (!isset($year)) {
-        $year = strftime("%Y");
+        $year = \block_mrbs\local\booking_time::date("Y");
     }
 
     if (!isset($month)) {
-        $month = strftime("%m");
+        $month = \block_mrbs\local\booking_time::date("m");
     }
 
     if (!isset($day)) {
-        $day = strftime("%d");
+        $day = \block_mrbs\local\booking_time::date("d");
     }
 
     if (empty($area)) {
@@ -40,13 +40,13 @@ if ($pview != 1) {
     }
 
     for ($i = -6; $i <= 7; $i++) {
-        $ctime = mktime(0, 0, 0, $month, $day + $i, $year);
+        $ctime = \block_mrbs\local\booking_time::mktime(0, 0, 0, $month, $day + $i, $year);
 
-        $str = userdate($ctime, empty($dateformat) ? "%b %d" : "%d %b");
+        $str = \block_mrbs\local\booking_time::userdate($ctime, empty($dateformat) ? "%b %d" : "%d %b");
 
-        $cyear = date("Y", $ctime);
-        $cmonth = date("m", $ctime);
-        $cday = date("d", $ctime);
+        $cyear = \block_mrbs\local\booking_time::date("Y", $ctime);
+        $cmonth = \block_mrbs\local\booking_time::date("m", $ctime);
+        $cday = \block_mrbs\local\booking_time::date("d", $ctime);
         if ($i != -6) {
             echo " | ";
         }
@@ -72,17 +72,17 @@ if ($pview != 1) {
         }
     }
 
-    $ctime = mktime(0, 0, 0, $month, $day, $year);
+    $ctime = \block_mrbs\local\booking_time::mktime(0, 0, 0, $month, $day, $year);
     // How many days to skip back to first day of week:
-    $skipback = (date("w", $ctime) - $weekstarts + 7) % 7;
+    $skipback = (\block_mrbs\local\booking_time::date("w", $ctime) - $weekstarts + 7) % 7;
 
     for ($i = -4; $i <= 4; $i++) {
-        $ctime = mktime(0, 0, 0, $month, $day + 7 * $i - $skipback, $year);
+        $ctime = \block_mrbs\local\booking_time::mktime(0, 0, 0, $month, $day + 7 * $i - $skipback, $year);
 
-        $cweek = date("W", $ctime);
-        $cday = date("d", $ctime);
-        $cmonth = date("m", $ctime);
-        $cyear = date("Y", $ctime);
+        $cweek = \block_mrbs\local\booking_time::date("W", $ctime);
+        $cday = \block_mrbs\local\booking_time::date("d", $ctime);
+        $cmonth = \block_mrbs\local\booking_time::date("m", $ctime);
+        $cyear = \block_mrbs\local\booking_time::date("Y", $ctime);
         if ($i != -4) {
             echo " | ";
         }
@@ -90,7 +90,7 @@ if ($pview != 1) {
         if ($view_week_number) {
             $str = $cweek;
         } else {
-            $str = userdate($ctime, empty($dateformat) ? "%b %d" : "%d %b");
+            $str = \block_mrbs\local\booking_time::userdate($ctime, empty($dateformat) ? "%b %d" : "%d %b");
         }
         if ($i == 0) {
             echo '<b>[ ';
@@ -106,11 +106,11 @@ if ($pview != 1) {
 
     echo "<BR><B>".get_string('viewmonth', 'block_mrbs').":</B>\n";
     for ($i = -2; $i <= 6; $i++) {
-        $ctime = mktime(0, 0, 0, $month + $i, 1, $year);
-        $str = userdate($ctime, "%b %Y");
+        $ctime = \block_mrbs\local\booking_time::mktime(0, 0, 0, $month + $i, 1, $year);
+        $str = \block_mrbs\local\booking_time::userdate($ctime, "%b %Y");
 
-        $cmonth = date("m", $ctime);
-        $cyear = date("Y", $ctime);
+        $cmonth = \block_mrbs\local\booking_time::date("m", $ctime);
+        $cyear = \block_mrbs\local\booking_time::date("Y", $ctime);
         if ($i != -2) {
             echo " | ";
         }

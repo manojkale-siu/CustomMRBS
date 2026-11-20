@@ -29,9 +29,9 @@ $PAGE->set_url(new moodle_url('/blocks/mrbs/web/index.php'));
 require_login();
 mrbsRequireCalendar();
 
-$day = date("d");
-$month = date("m");
-$year = date("Y");
+$day = \block_mrbs\local\booking_time::date("d");
+$month = \block_mrbs\local\booking_time::date("m");
+$year = \block_mrbs\local\booking_time::date("Y");
 
 switch ($default_view) {
     case "month":

@@ -44,9 +44,9 @@ if ($num_of_days == 0) {
 // If we don't know the right date then use today:
 if (($day == 0) or ($month == 0) or ($year == 0)) //I think we should separate these out and handle each variable independently -ab
 {
-    $day = date("d");
-    $month = date("m");
-    $year = date("Y");
+    $day = \block_mrbs\local\booking_time::date("d");
+    $month = \block_mrbs\local\booking_time::date("m");
+    $year = \block_mrbs\local\booking_time::date("Y");
 } else {
     // Make the date valid if day is more then number of days in month:
     while (!checkdate(intval($month), intval($day), intval($year))) {
@@ -75,12 +75,12 @@ if ($enable_periods) {
 }
 
 // Set the date back to the previous $weekstarts day (Sunday, if 0):
-$time = mktime(12, 0, 0, $month, $day, $year);
-if (($weekday = (date("w", $time) - $weekstarts + 7) % 7) > 0) {
-    $time -= $weekday * 86400;
-    $day = date("d", $time);
-    $month = date("m", $time);
-    $year = date("Y", $time);
+$time = \block_mrbs\local\booking_time::mktime(12, 0, 0, $month, $day, $year);
+if (($weekday = (\block_mrbs\local\booking_time::date("w", $time) - $weekstarts + 7) % 7) > 0) {
+    $time = \block_mrbs\local\booking_time::shift_days($time, -(int)$weekday);
+    $day = \block_mrbs\local\booking_time::date("d", $time);
+    $month = \block_mrbs\local\booking_time::date("m", $time);
+    $year = \block_mrbs\local\booking_time::date("Y", $time);
 }
 
 $baseurl = new moodle_url('/blocks/mrbs/web/userweek.php', array(
@@ -126,8 +126,8 @@ for ($j = 0; $j <= ($num_of_days - 1); $j++) {
     //  0 => entering DST
     //  1 => leaving DST
     $dst_change[$j] = is_dst($month, $day + $j, $year);
-    $am7[$j] = mktime($morningstarts, $morningstarts_minutes, 0, $month, $day + $j, $year);
-    $pm7[$j] = mktime($eveningends, $eveningends_minutes, 0, $month, $day + $j, $year);
+    $am7[$j] = \block_mrbs\local\booking_time::mktime($morningstarts, $morningstarts_minutes, 0, $month, $day + $j, $year);
+    $pm7[$j] = \block_mrbs\local\booking_time::mktime($eveningends, $eveningends_minutes, 0, $month, $day + $j, $year);
 }
 
 if ($pview != 1) {
@@ -146,15 +146,15 @@ echo '<h2 align=center>'.get_string('ttfor', 'block_mrbs').$TTUSER->firstname.' 
 //y? are year, month and day of the previous week.
 //t? are year, month and day of the next week.
 
-$i = mktime(12, 0, 0, $month, $day - 7, $year);
-$yy = date("Y", $i);
-$ym = date("m", $i);
-$yd = date("d", $i);
+$i = \block_mrbs\local\booking_time::mktime(12, 0, 0, $month, $day - 7, $year);
+$yy = \block_mrbs\local\booking_time::date("Y", $i);
+$ym = \block_mrbs\local\booking_time::date("m", $i);
+$yd = \block_mrbs\local\booking_time::date("d", $i);
 
-$i = mktime(12, 0, 0, $month, $day + 7, $year);
-$ty = date("Y", $i);
-$tm = date("m", $i);
-$td = date("d", $i);
+$i = \block_mrbs\local\booking_time::mktime(12, 0, 0, $month, $day + 7, $year);
+$ty = \block_mrbs\local\booking_time::date("Y", $i);
+$tm = \block_mrbs\local\booking_time::date("m", $i);
+$td = \block_mrbs\local\booking_time::date("d", $i);
 
 if ($pview != 1) {
     //Show Go to week before and after links
@@ -224,28 +224,28 @@ for ($j = 0; $j <= ($num_of_days - 1); $j++) {
 
         for ($t = $start_t; $t <= $end_t; $t += $resolution) {
             //checks for double bookings
-            if (empty($d[$j][date($format, $t)])) {
-                $d[$j][date($format, $t)]["id"] = $entry->id;
-                $d[$j][date($format, $t)]["color"] = $entry->type;
-                $d[$j][date($format, $t)]["data"] = "";
-                $d[$j][date($format, $t)]["long_descr"] = "";
-                $d[$j][date($format, $t)]["double_booked"] = false;
+            if (empty($d[$j][\block_mrbs\local\booking_time::date($format, $t)])) {
+                $d[$j][\block_mrbs\local\booking_time::date($format, $t)]["id"] = $entry->id;
+                $d[$j][\block_mrbs\local\booking_time::date($format, $t)]["color"] = $entry->type;
+                $d[$j][\block_mrbs\local\booking_time::date($format, $t)]["data"] = "";
+                $d[$j][\block_mrbs\local\booking_time::date($format, $t)]["long_descr"] = "";
+                $d[$j][\block_mrbs\local\booking_time::date($format, $t)]["double_booked"] = false;
             } else {
-                $d[$j][date($format, $t)]["id"] .= ','.$entry->id;
-                $d[$j][date($format, $t)]["data"] .= "\n";
-                $d[$j][date($format, $t)]["long_descr"] .= ",";
-                $d[$j][date($format, $t)]["double_booked"] = true;
+                $d[$j][\block_mrbs\local\booking_time::date($format, $t)]["id"] .= ','.$entry->id;
+                $d[$j][\block_mrbs\local\booking_time::date($format, $t)]["data"] .= "\n";
+                $d[$j][\block_mrbs\local\booking_time::date($format, $t)]["long_descr"] .= ",";
+                $d[$j][\block_mrbs\local\booking_time::date($format, $t)]["double_booked"] = true;
             }
         }
 
         // Show the name of the booker in the first segment that the booking
         // happens in, or at the start of the day if it started before today.
         if ($entry->end_time < $am7[$j]) {
-            $d[$j][date($format, $am7[$j])]["data"] .= $entry->name;
-            $d[$j][date($format, $am7[$j])]["long_descr"] .= $entry->description;
+            $d[$j][\block_mrbs\local\booking_time::date($format, $am7[$j])]["data"] .= $entry->name;
+            $d[$j][\block_mrbs\local\booking_time::date($format, $am7[$j])]["long_descr"] .= $entry->description;
         } else {
-            $d[$j][date($format, $start_t)]["data"] .= $entry->name;
-            $d[$j][date($format, $start_t)]["long_descr"] .= $entry->description;
+            $d[$j][\block_mrbs\local\booking_time::date($format, $start_t)]["data"] .= $entry->name;
+            $d[$j][\block_mrbs\local\booking_time::date($format, $start_t)]["long_descr"] .= $entry->description;
         }
     }
 }
@@ -274,14 +274,14 @@ if (empty($dateformat)) {
     $dformat = "%a<br>%d %b";
 }
 for ($j = 0; $j <= ($num_of_days - 1); $j++) {
-    $t = mktime(12, 0, 0, $month, $day + $j, $year);
+    $t = \block_mrbs\local\booking_time::mktime(12, 0, 0, $month, $day + $j, $year);
     $dayurl = new moodle_url('/blocks/mrbs/web/day.php',
                              array(
-                                 'year' => userdate($t, "%Y"), 'month' => userdate($t, "%m"),
-                                 'day' => userdate($t, "%d"), 'area' => $area
+                                 'year' => \block_mrbs\local\booking_time::userdate($t, "%Y"), 'month' => \block_mrbs\local\booking_time::userdate($t, "%m"),
+                                 'day' => \block_mrbs\local\booking_time::userdate($t, "%d"), 'area' => $area
                              ));
     echo '<th width="14%"><a href="'.$dayurl.'" title="'.get_string('viewday', 'block_mrbs').'">';
-    echo userdate($t, $dformat)."</a></th>\n";
+    echo \block_mrbs\local\booking_time::userdate($t, $dformat)."</a></th>\n";
 }
 // next line to display times on right side
 if (false != $times_right_side) {
@@ -304,14 +304,14 @@ $hiliteurl = new moodle_url($baseurl, array('area' => $area, 'room' => $room));
 ($dst_change[0] != -1) ? $j = 1 : $j = 0;
 
 $row_class = "even_row";
-$starttime = mktime($morningstarts, $morningstarts_minutes, 0, $month, $day + $j, $year);
-$endtime = mktime($eveningends, $eveningends_minutes, 0, $month, $day + $j, $year);
+$starttime = \block_mrbs\local\booking_time::mktime($morningstarts, $morningstarts_minutes, 0, $month, $day + $j, $year);
+$endtime = \block_mrbs\local\booking_time::mktime($eveningends, $eveningends_minutes, 0, $month, $day + $j, $year);
 for ($t = $starttime; $t <= $endtime; $t += $resolution) {
     $row_class = ($row_class == "even_row") ? "odd_row" : "even_row";
     if ($enable_periods && \block_mrbs\local\settings_manager::has_valid_custom_time_range()) {
         $time_t = \block_mrbs\local\settings_manager::get_period_index_from_timestamp($t);
     } else {
-        $time_t = date($format, $t);
+        $time_t = \block_mrbs\local\booking_time::date($format, $t);
     }
     $hiliteurl->param('timetohighlight', $time_t);
     // Show the time linked to the URL for highlighting that time:
@@ -322,7 +322,7 @@ for ($t = $starttime; $t <= $endtime; $t += $resolution) {
         echo (isset($periods[$time_t]) ? $periods[$time_t] : '')."</a></td>";
     } else {
         echo '<a href="'.$hiliteurl.'" title="'.get_string('highlight_line', 'block_mrbs').'">';
-        echo userdate($t, hour_min_format())."</a></td>";
+        echo \block_mrbs\local\booking_time::userdate($t, hour_min_format())."</a></td>";
     }
 
     // Color to use for empty cells: white, unless highlighting this row:
@@ -341,10 +341,10 @@ for ($t = $starttime; $t <= $endtime; $t += $resolution) {
         // set     unset used       by type   none (unlabelled slot)
         // set     set   used       by type   view entry
 
-        $wt = mktime(12, 0, 0, $month, $day + $thisday, $year);
-        $wday = date("d", $wt);
-        $wmonth = date("m", $wt);
-        $wyear = date("Y", $wt);
+        $wt = \block_mrbs\local\booking_time::mktime(12, 0, 0, $month, $day + $thisday, $year);
+        $wday = \block_mrbs\local\booking_time::date("d", $wt);
+        $wmonth = \block_mrbs\local\booking_time::date("m", $wt);
+        $wyear = \block_mrbs\local\booking_time::date("Y", $wt);
 
         if (isset($d[$thisday][$time_t]["id"])) {
             $id = $d[$thisday][$time_t]["id"];
@@ -374,8 +374,8 @@ for ($t = $starttime; $t <= $endtime; $t += $resolution) {
 
         // If the room isnt booked then don't allow it to be booked
         if (!isset($id)) {
-            $hour = date("H", $t);
-            $minute = date("i", $t);
+            $hour = \block_mrbs\local\booking_time::date("H", $t);
+            $minute = \block_mrbs\local\booking_time::date("i", $t);
 
             if ($pview != 1) {
                 if ($javascript_cursor) {
@@ -432,7 +432,7 @@ for ($t = $starttime; $t <= $endtime; $t += $resolution) {
         } else {
             tdcell("red");
             echo '<a href="'.$hiliteurl.'" title="'.get_string('highlight_line', 'block_mrbs').'">';
-            echo userdate($t, hour_min_format())."</a></td>";
+            echo \block_mrbs\local\booking_time::userdate($t, hour_min_format())."</a></td>";
         }
     }
 

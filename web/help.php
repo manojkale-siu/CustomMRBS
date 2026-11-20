@@ -33,9 +33,9 @@ $area = optional_param('area', 0, PARAM_INT);
 
 //If we dont know the right date then make it up
 if (($day == 0) or ($month == 0) or ($year == 0)) {
-    $day = date("d");
-    $month = date("m");
-    $year = date("Y");
+    $day = \block_mrbs\local\booking_time::date("d");
+    $month = \block_mrbs\local\booking_time::date("m");
+    $year = \block_mrbs\local\booking_time::date("Y");
 }
 
 $thisurl = new moodle_url('/blocks/mrbs/web/help.php', array('day' => $day, 'month' => $month, 'year' => $year));

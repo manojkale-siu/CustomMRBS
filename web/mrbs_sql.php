@@ -61,15 +61,15 @@ function mrbsCheckFree($room_id, $starttime, $endtime, $ignore, $repignore) {
     // Build a string listing all the conflicts:
     $err = "";
     foreach ($entries as $entry) {
-        $starts = getdate($entry->start_time);
+        $starts = \block_mrbs\local\booking_time::getdate($entry->start_time);
         $param_ym = array('area' => $area, 'year' => $starts['year'], 'month' => $starts['mon']);
         $param_ymd = array_merge($param_ym, array('day' => $starts['mday']));
 
         if ($enable_periods) {
             $p_num = $starts['minutes'];
-            $startstr = userdate($entry->start_time, '%A %d %B %Y, ').$periods[$p_num];
+            $startstr = \block_mrbs\local\booking_time::userdate($entry->start_time, '%A %d %B %Y, ').$periods[$p_num];
         } else {
-            $startstr = userdate($entry->start_time, '%A %d %B %Y %H:%M:%S');
+            $startstr = \block_mrbs\local\booking_time::userdate($entry->start_time, '%A %d %B %Y %H:%M:%S');
         }
 
         $viewurl = new moodle_url('/blocks/mrbs/web/view_entry.php', array('id' => $entry->id));
@@ -307,21 +307,21 @@ function mrbsCreateRepeatEntry($starttime, $endtime, $rep_type, $rep_enddate, $r
 function same_day_next_month($time) {
     global $_initial_weeknumber;
 
-    $days_in_month = date("t", $time);
-    $day = date("d", $time);
+    $days_in_month = \block_mrbs\local\booking_time::date("t", $time);
+    $day = \block_mrbs\local\booking_time::date("d", $time);
     $weeknumber = (int)(($day - 1) / 7) + 1;
     $temp1 = ($day + 7 * (5 - $weeknumber) <= $days_in_month);
 
     // keep month number > 12 for the test purpose in line beginning with "days_jump = 28 +..."
-    $next_month = date("n", mktime(11, 0, 0, date("n", $time), $day + 35, date("Y", $time))) + (date("n", mktime(11, 0, 0, date("n", $time), $day + 35, date("Y", $time))) < date("n", $time)) * 12;
+    $next_month = \block_mrbs\local\booking_time::date("n", \block_mrbs\local\booking_time::mktime(11, 0, 0, \block_mrbs\local\booking_time::date("n", $time), $day + 35, \block_mrbs\local\booking_time::date("Y", $time))) + (\block_mrbs\local\booking_time::date("n", \block_mrbs\local\booking_time::mktime(11, 0, 0, \block_mrbs\local\booking_time::date("n", $time), $day + 35, \block_mrbs\local\booking_time::date("Y", $time))) < \block_mrbs\local\booking_time::date("n", $time)) * 12;
 
     // prevent 2 months jumps if $time is in 5th week
-    $days_jump = 28 + (($temp1 && !($next_month - date("n", $time) - 1)) * 7);
+    $days_jump = 28 + (($temp1 && !($next_month - \block_mrbs\local\booking_time::date("n", $time) - 1)) * 7);
 
     /* if initial week number is 5 and the new occurence month number ($time + $days_jump)
      * is not changed if we add 7 days, then we can add 7 days to $days_jump to come
      * back to the 5th week (yuh!) */
-    $days_jump += 7 * (($_initial_weeknumber == 5) && (date("n", mktime(11, 0, 0, date("n", $time), $day + $days_jump, date("Y", $time))) == date("n", mktime(11, 0, 0, date("n", $time), $day + $days_jump + 7, date("Y", $time)))));
+    $days_jump += 7 * (($_initial_weeknumber == 5) && (\block_mrbs\local\booking_time::date("n", \block_mrbs\local\booking_time::mktime(11, 0, 0, \block_mrbs\local\booking_time::date("n", $time), $day + $days_jump, \block_mrbs\local\booking_time::date("Y", $time))) == \block_mrbs\local\booking_time::date("n", \block_mrbs\local\booking_time::mktime(11, 0, 0, \block_mrbs\local\booking_time::date("n", $time), $day + $days_jump + 7, \block_mrbs\local\booking_time::date("Y", $time)))));
 
     return $days_jump;
 }
@@ -362,21 +362,21 @@ function mrbsGetRepeatEntryList($time, $enddate, $rep_type, $rep_opt, $max_ittr,
         return $entrys;
     }
 
-    $sec = date("s", $time);
-    $min = date("i", $time);
-    $hour = date("G", $time);
-    $day = date("d", $time);
-    $month = date("m", $time);
-    $year = date("Y", $time);
+    $sec = \block_mrbs\local\booking_time::date("s", $time);
+    $min = \block_mrbs\local\booking_time::date("i", $time);
+    $hour = \block_mrbs\local\booking_time::date("G", $time);
+    $day = \block_mrbs\local\booking_time::date("d", $time);
+    $month = \block_mrbs\local\booking_time::date("m", $time);
+    $year = \block_mrbs\local\booking_time::date("Y", $time);
 
     global $_initial_weeknumber;
     $_initial_weeknumber = (int)(($day - 1) / 7) + 1;
     $week_num = 0;
-    $start_day = date('w', mktime($hour, $min, $sec, $month, $day, $year));
+    $start_day = \block_mrbs\local\booking_time::date('w', \block_mrbs\local\booking_time::mktime($hour, $min, $sec, $month, $day, $year));
     $cur_day = $start_day;
 
     for ($i = 0; $i < $max_ittr; $i++) {
-        $time = mktime($hour, $min, $sec, $month, $day, $year);
+        $time = \block_mrbs\local\booking_time::mktime($hour, $min, $sec, $month, $day, $year);
         if ($time > $enddate) {
             break;
         }
@@ -391,7 +391,7 @@ function mrbsGetRepeatEntryList($time, $enddate, $rep_type, $rep_opt, $max_ittr,
 
             // Weekly repeat
             case 2:
-                $j = $cur_day = date("w", $entrys[$i]);
+                $j = $cur_day = \block_mrbs\local\booking_time::date("w", $entrys[$i]);
                 // Skip over days of the week which are not enabled:
                 while (($j = ($j + 1) % 7) != $cur_day && !$rep_opt[$j]) {
                     $day += 1;
@@ -497,14 +497,13 @@ function mrbsValidateRepeatIntervals(array $reps, $starttime, $endtime) {
     $previousstart = null;
     $previousend = null;
     foreach ($ordered as $start) {
-        $duration = $endtime - $starttime;
-        $end = $start + $duration + cross_dst($start, $start + $duration);
+        $end = \block_mrbs\local\booking_time::occurrence_end($starttime, $endtime, $start);
         if ($previousend !== null && $start < $previousend) {
             throw new moodle_exception('repeatoverlap', 'block_mrbs', '', (object)[
-                'firststart' => userdate($previousstart),
-                'firstend' => userdate($previousend),
-                'secondstart' => userdate($start),
-                'secondend' => userdate($end),
+                'firststart' => \block_mrbs\local\booking_time::userdate($previousstart),
+                'firstend' => \block_mrbs\local\booking_time::userdate($previousend),
+                'secondstart' => \block_mrbs\local\booking_time::userdate($start),
+                'secondend' => \block_mrbs\local\booking_time::userdate($end),
             ]);
         }
         if ($previousend === null || $end > $previousend) {
@@ -587,8 +586,7 @@ function mrbsCreateRepeatingEntrys($starttime, $endtime, $rep_type, $rep_enddate
         for ($i = 0; $i < count($reps); $i++) {
             // calculate diff each time and correct where events
             // cross DST
-            $diff = $endtime - $starttime;
-            $diff += cross_dst($reps[$i], $reps[$i] + $diff);
+            $diff = \block_mrbs\local\booking_time::occurrence_end($starttime, $endtime, $reps[$i]) - $reps[$i];
 
             if (!check_max_advance_days_timestamp($reps[$i])) {
                 break; // Repeat entry is too far into the future

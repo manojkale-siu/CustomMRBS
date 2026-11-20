@@ -31,9 +31,9 @@ require_login();
 require_sesskey();
 
 if (getAuthorised(1) && ($info = mrbsGetEntryInfo($id))) {
-    $day = userdate($info->start_time, "%d");
-    $month = userdate($info->start_time, "%m");
-    $year = userdate($info->start_time, "%Y");
+    $day = \block_mrbs\local\booking_time::userdate($info->start_time, "%d");
+    $month = \block_mrbs\local\booking_time::userdate($info->start_time, "%m");
+    $year = \block_mrbs\local\booking_time::userdate($info->start_time, "%Y");
     $area = mrbsGetRoomArea($info->room_id);
 
     if (MAIL_ADMIN_ON_DELETE) { // Gather all fields values for use in emails.

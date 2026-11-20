@@ -42,7 +42,8 @@ class session_import {
         ], null, 'A2');
         $sheet->getStyle('A2:I2')->getFont()->setItalic(true);
         $sheet->getComment('A2')->getText()->createTextRun(
-            'Example data only. Replace or delete row 2 before importing. Use your configured period times.'
+            'Example data only. Replace or delete row 2 before importing. Use your configured period times. '
+                . booking_time::label()
         );
 
         $file = make_request_directory() . '/mrbs-session-template.xlsx';
@@ -240,6 +241,6 @@ class session_import {
         if (!preg_match('/^([01]\d|2[0-3]):([0-5]\d)$/D', (string)$value, $parts)) {
             throw new \moodle_exception('sessionimportdatetime', 'block_mrbs');
         }
-        return mktime((int)$parts[1], (int)$parts[2], 0, (int)$date[2], (int)$date[3], (int)$date[1]);
+        return \block_mrbs\local\booking_time::mktime((int)$parts[1], (int)$parts[2], 0, (int)$date[2], (int)$date[3], (int)$date[1]);
     }
 }

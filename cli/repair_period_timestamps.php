@@ -85,8 +85,8 @@ function block_mrbs_parse_cli_options(array $argv) {
  * @return int|null
  */
 function block_mrbs_get_legacy_period_index($timestamp) {
-    $hour = (int)date('H', $timestamp);
-    $minute = (int)date('i', $timestamp);
+    $hour = (int)\block_mrbs\local\booking_time::date('H', $timestamp);
+    $minute = (int)\block_mrbs\local\booking_time::date('i', $timestamp);
 
     if ($hour !== 12) {
         return null;
@@ -141,9 +141,9 @@ foreach ($records as $entry) {
         continue;
     }
 
-    $year = (int)date('Y', (int)$entry->start_time);
-    $month = (int)date('m', (int)$entry->start_time);
-    $day = (int)date('d', (int)$entry->start_time);
+    $year = (int)\block_mrbs\local\booking_time::date('Y', (int)$entry->start_time);
+    $month = (int)\block_mrbs\local\booking_time::date('m', (int)$entry->start_time);
+    $day = (int)\block_mrbs\local\booking_time::date('d', (int)$entry->start_time);
     $newstart = \block_mrbs\local\settings_manager::get_period_start_timestamp($year, $month, $day, $legacyperiod);
     $newend = \block_mrbs\local\settings_manager::get_period_end_timestamp($year, $month, $day, $legacyperiod, 1);
 
@@ -154,10 +154,10 @@ foreach ($records as $entry) {
     }
 
     if ($options['dryrun']) {
-        mtrace('Would update entry ' . $entry->id . ' from ' . userdate((int)$entry->start_time, '%Y-%m-%d %H:%M:%S')
-            . ' - ' . userdate((int)$entry->end_time, '%Y-%m-%d %H:%M:%S')
-            . ' to ' . userdate($newstart, '%Y-%m-%d %H:%M:%S')
-            . ' - ' . userdate($newend, '%Y-%m-%d %H:%M:%S'));
+        mtrace('Would update entry ' . $entry->id . ' from ' . \block_mrbs\local\booking_time::userdate((int)$entry->start_time, '%Y-%m-%d %H:%M:%S')
+            . ' - ' . \block_mrbs\local\booking_time::userdate((int)$entry->end_time, '%Y-%m-%d %H:%M:%S')
+            . ' to ' . \block_mrbs\local\booking_time::userdate($newstart, '%Y-%m-%d %H:%M:%S')
+            . ' - ' . \block_mrbs\local\booking_time::userdate($newend, '%Y-%m-%d %H:%M:%S'));
         continue;
     }
 
@@ -191,8 +191,8 @@ foreach ($records as $entry) {
     }
 
 
-    mtrace('Updated entry ' . $entry->id . ' to ' . userdate($newstart, '%Y-%m-%d %H:%M:%S')
-        . ' - ' . userdate($newend, '%Y-%m-%d %H:%M:%S'));
+    mtrace('Updated entry ' . $entry->id . ' to ' . \block_mrbs\local\booking_time::userdate($newstart, '%Y-%m-%d %H:%M:%S')
+        . ' - ' . \block_mrbs\local\booking_time::userdate($newend, '%Y-%m-%d %H:%M:%S'));
     $fixed++;
 }
 

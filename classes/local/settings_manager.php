@@ -221,7 +221,7 @@ class settings_manager {
     public static function get_period_start_timestamp($year, $month, $day, $periodindex) {
         $schedule = self::get_period_schedule();
         if (empty($schedule)) {
-            return mktime(12, (int)$periodindex, 0, (int)$month, (int)$day, (int)$year);
+            return \block_mrbs\local\booking_time::mktime(12, (int)$periodindex, 0, (int)$month, (int)$day, (int)$year);
         }
 
         $periodindex = max(0, min((int)$periodindex, count($schedule['periods']) - 1));
@@ -229,7 +229,7 @@ class settings_manager {
         $hour = (int)floor($minutes / 60);
         $minute = (int)($minutes % 60);
 
-        return mktime($hour, $minute, 0, (int)$month, (int)$day, (int)$year);
+        return \block_mrbs\local\booking_time::mktime($hour, $minute, 0, (int)$month, (int)$day, (int)$year);
     }
 
     /**
@@ -245,7 +245,7 @@ class settings_manager {
     public static function get_period_end_timestamp($year, $month, $day, $periodindex, $durationperiods = 1) {
         $schedule = self::get_period_schedule();
         if (empty($schedule)) {
-            return mktime(12, (int)$periodindex, 0, (int)$month, (int)$day, (int)$year) + ((int)$durationperiods * 60);
+            return \block_mrbs\local\booking_time::mktime(12, (int)$periodindex, 0, (int)$month, (int)$day, (int)$year) + ((int)$durationperiods * 60);
         }
 
         $start = self::get_period_start_timestamp($year, $month, $day, $periodindex);
@@ -264,8 +264,8 @@ class settings_manager {
         $schedule = self::get_period_schedule();
         if (empty($schedule)) {
             return [
-                mktime(12, 0, 0, (int)$month, (int)$day, (int)$year),
-                mktime(12, 1, 0, (int)$month, (int)$day, (int)$year),
+                \block_mrbs\local\booking_time::mktime(12, 0, 0, (int)$month, (int)$day, (int)$year),
+                \block_mrbs\local\booking_time::mktime(12, 1, 0, (int)$month, (int)$day, (int)$year),
             ];
         }
 
@@ -278,8 +278,8 @@ class settings_manager {
         $endminute = (int)($endminutes % 60);
 
         return [
-            mktime($starthour, $startminute, 0, (int)$month, (int)$day, (int)$year),
-            mktime($endhour, $endminute, 0, (int)$month, (int)$day, (int)$year),
+            \block_mrbs\local\booking_time::mktime($starthour, $startminute, 0, (int)$month, (int)$day, (int)$year),
+            \block_mrbs\local\booking_time::mktime($endhour, $endminute, 0, (int)$month, (int)$day, (int)$year),
         ];
     }
 
@@ -292,10 +292,10 @@ class settings_manager {
     public static function get_period_index_from_timestamp($timestamp) {
         $schedule = self::get_period_schedule();
         if (empty($schedule)) {
-            return (int)date('i', (int)$timestamp);
+            return (int)\block_mrbs\local\booking_time::date('i', (int)$timestamp);
         }
 
-        $minutes = ((int)date('G', (int)$timestamp) * 60) + (int)date('i', (int)$timestamp);
+        $minutes = ((int)\block_mrbs\local\booking_time::date('G', (int)$timestamp) * 60) + (int)\block_mrbs\local\booking_time::date('i', (int)$timestamp);
         $index = (int)floor(($minutes - $schedule['fromminutes']) / $schedule['interval']);
         if ($minutes <= $schedule['fromminutes']) {
             $index = 0;

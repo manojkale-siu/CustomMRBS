@@ -94,3 +94,14 @@ Moodle 2.x code is at: https://github.com/arborrow/moodle-block_mrbs
 * MRBS Block - Suggestions *
 
 Feel free to post comments, questions, suggestions, etc. pertaining to the use of MRBS block at http://moodle.org/mod/forum/discuss.php?d=38604 or email Anthony Borrow at arborrow@jesuits.net.
+
+MRBS booking timezone
+---------------------
+All MRBS room schedules, date filters, Excel session times and reports use the
+Moodle site timezone (Site administration > Location > Location settings).
+The timezone is displayed in MRBS and included in the Excel template comment.
+User profile timezones do not change room booking times. Attendance receives the
+same Unix timestamps; its own Moodle screens may display them in the user's
+configured timezone. No existing timestamps are automatically shifted. If old
+records were created with a different timezone assumption, review those records
+before changing the site timezone or applying any data correction.

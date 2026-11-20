@@ -22,8 +22,8 @@ include "config.inc.php";
 include "functions.php";
 require_once('mrbs_auth.php');
 
-$month = optional_param('month', date("m"), PARAM_INT);
-$year = optional_param('year', date("Y"), PARAM_INT);
+$month = optional_param('month', \block_mrbs\local\booking_time::date("m"), PARAM_INT);
+$year = optional_param('year', \block_mrbs\local\booking_time::date("Y"), PARAM_INT);
 $area = optional_param('area', 0, PARAM_INT);
 $room = optional_param('room', 0, PARAM_INT);
 $debug_flag = optional_param('debug_flag', 0, PARAM_INT);
@@ -40,8 +40,8 @@ function cmp3($a, $b) {
 }
 
 if (($month == 0) || ($year == 0) || !checkdate(intval($month), 1, intval($year))) {
-    $month = date("m");
-    $year = date("Y");
+    $month = \block_mrbs\local\booking_time::date("m");
+    $year = \block_mrbs\local\booking_time::date("Y");
 }
 $day = 1;
 
@@ -77,14 +77,14 @@ block_mrbs_show_booking_configuration_warning();
 // Month view start time. This ignores morningstarts/eveningends because it
 // doesn't make sense to not show all entries for the day, and it messes
 // things up when entries cross midnight.
-$month_start = mktime(0, 0, 0, $month, 1, $year);
+$month_start = \block_mrbs\local\booking_time::mktime(0, 0, 0, $month, 1, $year);
 
 // What column the month starts in: 0 means $weekstarts weekday.
-$weekday_start = (date("w", $month_start) - $weekstarts + 7) % 7;
+$weekday_start = (\block_mrbs\local\booking_time::date("w", $month_start) - $weekstarts + 7) % 7;
 
-$days_in_month = date("t", $month_start);
+$days_in_month = \block_mrbs\local\booking_time::date("t", $month_start);
 
-$month_end = mktime(23, 59, 59, $month, $days_in_month, $year);
+$month_end = \block_mrbs\local\booking_time::mktime(23, 59, 59, $month, $days_in_month, $year);
 
 if ($enable_periods) {
     if (\block_mrbs\local\settings_manager::has_valid_custom_time_range()) {
@@ -112,13 +112,13 @@ for ($j = 1; $j <= $days_in_month; $j++) {
     //  1 => leaving DST
     $dst_change[$j] = is_dst($month, $j, $year);
     if (empty($enable_periods)) {
-        $midnight[$j] = mktime(0, 0, 0, $month, $j, $year);
-        $midnight_tonight[$j] = mktime(23, 59, 59, $month, $j, $year);
+        $midnight[$j] = \block_mrbs\local\booking_time::mktime(0, 0, 0, $month, $j, $year);
+        $midnight_tonight[$j] = \block_mrbs\local\booking_time::mktime(23, 59, 59, $month, $j, $year);
     } else if (\block_mrbs\local\settings_manager::has_valid_custom_time_range()) {
         [$midnight[$j], $midnight_tonight[$j]] = \block_mrbs\local\settings_manager::get_period_day_bounds($year, $month, $j);
     } else {
-        $midnight[$j] = mktime(12, 0, 0, $month, $j, $year);
-        $midnight_tonight[$j] = mktime(12, count($periods), 59, $month, $j, $year);
+        $midnight[$j] = \block_mrbs\local\booking_time::mktime(12, 0, 0, $month, $j, $year);
+        $midnight_tonight[$j] = \block_mrbs\local\booking_time::mktime(12, count($periods), 59, $month, $j, $year);
     }
 }
 
@@ -198,20 +198,20 @@ if ($room <= 0) {
 }
 
 // Show Month, Year, Area, Room header:
-echo "<h2 align=center>".userdate($month_start, "%B %Y")
+echo "<h2 align=center>".\block_mrbs\local\booking_time::userdate($month_start, "%B %Y")
     ." - $this_area_name - $this_room_name</h2>\n";
 
 // Show Go to month before and after links
 //y? are year and month of the previous month.
 //t? are year and month of the next month.
 
-$i = mktime(12, 0, 0, $month - 1, 1, $year);
-$yy = date("Y", $i);
-$ym = date("n", $i);
+$i = \block_mrbs\local\booking_time::mktime(12, 0, 0, $month - 1, 1, $year);
+$yy = \block_mrbs\local\booking_time::date("Y", $i);
+$ym = \block_mrbs\local\booking_time::date("n", $i);
 
-$i = mktime(12, 0, 0, $month + 1, 1, $year);
-$ty = date("Y", $i);
-$tm = date("n", $i);
+$i = \block_mrbs\local\booking_time::mktime(12, 0, 0, $month + 1, 1, $year);
+$ty = \block_mrbs\local\booking_time::date("Y", $i);
+$tm = \block_mrbs\local\booking_time::date("n", $i);
 if ($pview != 1) {
     $thismonth = new moodle_url($baseurl, array('area' => $area, 'room' => $room));
     $thismonth->remove_params('month', 'year');
@@ -269,13 +269,13 @@ for ($day_num = 1; $day_num <= $days_in_month; $day_num++) {
             switch (cmp3($entry->start_time, $midnight[$day_num]).cmp3($entry->end_time, $midnight_tonight[$day_num] + 1)) {
                 case "> < ":         // Starts after midnight, ends before midnight
                 case "= < ":         // Starts at midnight, ends before midnight
-                    $d[$day_num]["data"][] = userdate($entry->start_time, hour_min_format())."~".userdate($entry->end_time, hour_min_format());
+                    $d[$day_num]["data"][] = \block_mrbs\local\booking_time::userdate($entry->start_time, hour_min_format())."~".\block_mrbs\local\booking_time::userdate($entry->end_time, hour_min_format());
                     break;
                 case "> = ":         // Starts after midnight, ends at midnight
-                    $d[$day_num]["data"][] = userdate($entry->start_time, hour_min_format())."~24:00";
+                    $d[$day_num]["data"][] = \block_mrbs\local\booking_time::userdate($entry->start_time, hour_min_format())."~24:00";
                     break;
                 case "> > ":         // Starts after midnight, continues tomorrow
-                    $d[$day_num]["data"][] = userdate($entry->start_time, hour_min_format())."~====>";
+                    $d[$day_num]["data"][] = \block_mrbs\local\booking_time::userdate($entry->start_time, hour_min_format())."~====>";
                     break;
                 case "= = ":         // Starts at midnight, ends at midnight
                     $d[$day_num]["data"][] = $all_day;
@@ -284,7 +284,7 @@ for ($day_num = 1; $day_num <= $days_in_month; $day_num++) {
                     $d[$day_num]["data"][] = $all_day."====>";
                     break;
                 case "< < ":         // Starts before today, ends before midnight
-                    $d[$day_num]["data"][] = "<====~".userdate($entry->end_time, hour_min_format());
+                    $d[$day_num]["data"][] = "<====~".\block_mrbs\local\booking_time::userdate($entry->end_time, hour_min_format());
                     break;
                 case "< = ":         // Starts before today, ends at midnight
                     $d[$day_num]["data"][] = "<====".$all_day;

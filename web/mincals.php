@@ -90,12 +90,12 @@ function minicals($year, $month, $day, $area, $room, $dmy, $usertt = false) {
         function getFirstDays() {
             global $weekstarts;
 
-            $basetime = mktime(12, 0, 0, 6, 11 + $weekstarts, 2000);
+            $basetime = \block_mrbs\local\booking_time::mktime(12, 0, 0, 6, 11 + $weekstarts, 2000);
             for ($i = 0, $s = ""; $i < 7; $i++) {
-                $show = $basetime + ($i * 24 * 60 * 60);
+                $show = \block_mrbs\local\booking_time::shift_days($basetime, $i);
                 // $fl = strftime('%a', $show);
                 // $fl = userdate($show, '%a');
-                $fl = date('D', $show);
+                $fl = \block_mrbs\local\booking_time::date('D', $show);
                 // $s .= "<td align=center valign=top class=\"calendarHeader\">$fl</td>\n";
                 $s .= '<td align="center" valign="top" class="calendarHeader">'.$fl.'</td>'."\n";
             }
@@ -123,13 +123,13 @@ function minicals($year, $month, $day, $area, $room, $dmy, $usertt = false) {
                 $prevYear = $this->year - 1;
             }
             $daysInPrevMonth = $this->getDaysInMonth($prevMonth, $prevYear);
-            $date = mktime(12, 0, 0, $this->month, 1, $this->year);
+            $date = \block_mrbs\local\booking_time::mktime(12, 0, 0, $this->month, 1, $this->year);
 
             // $first = (strftime('%w', $date) + 7 - $weekstarts) % 7;
             // $first = ((int) userdate($date, '%w') + 7 - $weekstarts) % 7;
-            $first = ((int) date('w', $date) + 7 - $weekstarts) % 7;
+            $first = ((int) \block_mrbs\local\booking_time::date('w', $date) + 7 - $weekstarts) % 7;
             
-            $monthName = userdate($date, "%B");
+            $monthName = \block_mrbs\local\booking_time::userdate($date, "%B");
 
             //$prevMonth = $this->getCalendarLink($this->month - 1 >   0 ? $this->month - 1 : 12, $this->month - 1 >   0 ? $this->year : $this->year - 1);
             //$nextMonth = $this->getCalendarLink($this->month + 1 <= 12 ? $this->month + 1 :  1, $this->month + 1 <= 12 ? $this->year : $this->year + 1);
@@ -200,9 +200,9 @@ function minicals($year, $month, $day, $area, $room, $dmy, $usertt = false) {
         }
     }
 
-    $lastmonth = mktime(12, 0, 0, $month - 1, 1, $year);
-    $thismonth = mktime(12, 0, 0, $month, $day, $year);
-    $nextmonth = mktime(12, 0, 0, $month + 1, 1, $year);
+    $lastmonth = \block_mrbs\local\booking_time::mktime(12, 0, 0, $month - 1, 1, $year);
+    $thismonth = \block_mrbs\local\booking_time::mktime(12, 0, 0, $month, $day, $year);
+    $nextmonth = \block_mrbs\local\booking_time::mktime(12, 0, 0, $month + 1, 1, $year);
 
     $calendars = array(
         array($lastmonth, 0),
@@ -218,7 +218,7 @@ function minicals($year, $month, $day, $area, $room, $dmy, $usertt = false) {
         echo "<td>";
         $time = $calendar[0];
         $highlight = $calendar[1];
-        $cal = new Calendar(date("d", $time), date("m", $time), date("Y", $time), $highlight, $area, $room, $dmy, $usertt);
+        $cal = new Calendar(\block_mrbs\local\booking_time::date("d", $time), \block_mrbs\local\booking_time::date("m", $time), \block_mrbs\local\booking_time::date("Y", $time), $highlight, $area, $room, $dmy, $usertt);
         echo $cal->getHTML();
         echo "</td>";
     }

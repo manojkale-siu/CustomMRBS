@@ -144,16 +144,16 @@ function mrbsFindForceTimeSlot($entry, $room, array $reserved, array $planned) {
         return null;
     }
 
-    $year = (int)date('Y', $entry->start_time);
-    $month = (int)date('n', $entry->start_time);
-    $day = (int)date('j', $entry->start_time);
+    $year = (int)\block_mrbs\local\booking_time::date('Y', $entry->start_time);
+    $month = (int)\block_mrbs\local\booking_time::date('n', $entry->start_time);
+    $day = (int)\block_mrbs\local\booking_time::date('j', $entry->start_time);
     if ($enable_periods) {
         [$opening, $closing] = \block_mrbs\local\settings_manager::get_period_day_bounds($year, $month, $day);
         $interval = \block_mrbs\local\settings_manager::get_period_interval_seconds();
     } else {
         $interval = (int)$resolution;
-        $opening = mktime($morningstarts, $morningstarts_minutes, 0, $month, $day, $year);
-        $closing = mktime($eveningends, $eveningends_minutes, 0, $month, $day, $year) + $interval;
+        $opening = \block_mrbs\local\booking_time::mktime($morningstarts, $morningstarts_minutes, 0, $month, $day, $year);
+        $closing = \block_mrbs\local\booking_time::mktime($eveningends, $eveningends_minutes, 0, $month, $day, $year) + $interval;
     }
     $duration = (int)$entry->end_time - (int)$entry->start_time;
     if ($interval <= 0 || $duration <= 0) {
@@ -278,15 +278,15 @@ function mrbsNotifyForceMoves(array $moves, $name) {
             'oldroom' => $move['original']->room_name,
             'newroom' => $room->room_name,
             'area' => $room->area_name,
-            'date' => userdate($entry->start_time, get_string('strftimedate', 'langconfig')),
-            'starttime' => userdate($entry->start_time, get_string('strftimetime', 'langconfig')),
+            'date' => \block_mrbs\local\booking_time::userdate($entry->start_time, get_string('strftimedate', 'langconfig')),
+            'starttime' => \block_mrbs\local\booking_time::userdate($entry->start_time, get_string('strftimetime', 'langconfig')),
             'newbookingname' => $name,
         ];
         $status = 'bookingmovedshort';
         $message = 'bookingmovedmessage';
         if ($move['start'] !== (int)$entry->start_time) {
-            $details->oldtime = userdate($entry->start_time);
-            $details->newtime = userdate($move['start']);
+            $details->oldtime = \block_mrbs\local\booking_time::userdate($entry->start_time);
+            $details->newtime = \block_mrbs\local\booking_time::userdate($move['start']);
             $status = 'bookingrescheduledshort';
             $message = 'bookingrescheduledmessage';
         }

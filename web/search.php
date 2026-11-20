@@ -31,9 +31,9 @@ $search_pos = optional_param('search_pos', 0, PARAM_INT);
 
 //If we dont know the right date then make it up
 if (($day == 0) or ($month == 0) or ($year == 0)) {
-    $day = date("d");
-    $month = date("m");
-    $year = date("Y");
+    $day = \block_mrbs\local\booking_time::date("d");
+    $month = \block_mrbs\local\booking_time::date("m");
+    $year = \block_mrbs\local\booking_time::date("Y");
 }
 
 $thisurl = new moodle_url('/blocks/mrbs/web/search.php', array('day' => $day, 'month' => $month, 'year' => $year));
@@ -91,7 +91,7 @@ echo html_writer::div(html_writer::link($advancedurl, get_string('advanced_searc
     'class' => 'btn btn-outline-secondary',
 ]), 'mb-3');
 
-$now = mktime(0, 0, 0, $month, $day, $year);
+$now = \block_mrbs\local\booking_time::mktime(0, 0, 0, $month, $day, $year);
 
 // This is the main part of the query predicate, used in both queries:
 $sql_pred = "( ".$DB->sql_like("create_by", '?', false)
@@ -176,7 +176,7 @@ foreach ($result as $entry) {
     echo "<TD>".s($entry->room_name)."</TD>\n";
     echo "<TD>".s($entry->description)."</TD>\n";
     // generate a link to the day.php
-    $link = getdate($entry->start_time);
+    $link = \block_mrbs\local\booking_time::getdate($entry->start_time);
     $dayurl = new moodle_url('/blocks/mrbs/web/day.php',
                              array(
                                  'day' => $link['mday'], 'month' => $link['mon'], 'year' => $link['year'],

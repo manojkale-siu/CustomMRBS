@@ -31,7 +31,7 @@ $title = get_string('mytimetable', 'block_mrbs');
 $PAGE->set_title($title);
 $PAGE->set_heading($title);
 
-$timezone = core_date::get_user_timezone_object();
+$timezone = \block_mrbs\local\booking_time::timezone();
 $today = new DateTimeImmutable('today', $timezone);
 $selected = $today;
 if (checkdate($month, $day, $year) && $year >= 1970 && $year <= 9999) {
@@ -45,14 +45,14 @@ switch ($view) {
         $end = $start->modify('+1 day');
         $previous = $start->modify('-1 day');
         $next = $end;
-        $periodlabel = userdate($start->getTimestamp(), $dateformat);
+        $periodlabel = \block_mrbs\local\booking_time::userdate($start->getTimestamp(), $dateformat);
         break;
     case 'month':
         $start = $selected->modify('first day of this month');
         $end = $start->modify('first day of next month');
         $previous = $start->modify('first day of previous month');
         $next = $end;
-        $periodlabel = userdate($start->getTimestamp(), get_string('strftimemonthyear', 'langconfig'));
+        $periodlabel = \block_mrbs\local\booking_time::userdate($start->getTimestamp(), get_string('strftimemonthyear', 'langconfig'));
         break;
     default:
         $config = get_config('block/mrbs');
@@ -62,8 +62,8 @@ switch ($view) {
         $end = $start->modify('+7 days');
         $previous = $selected->modify('-7 days');
         $next = $selected->modify('+7 days');
-        $periodlabel = userdate($start->getTimestamp(), $dateformat) . ' – '
-            . userdate($end->modify('-1 day')->getTimestamp(), $dateformat);
+        $periodlabel = \block_mrbs\local\booking_time::userdate($start->getTimestamp(), $dateformat) . ' – '
+            . \block_mrbs\local\booking_time::userdate($end->modify('-1 day')->getTimestamp(), $dateformat);
         break;
 }
 
@@ -112,6 +112,7 @@ $timetableurl = static function (DateTimeImmutable $date, string $view): moodle_
 };
 
 echo $OUTPUT->header();
+echo html_writer::div(s(\block_mrbs\local\booking_time::label()), 'small text-muted mb-3');
 echo html_writer::start_tag('nav', [
     'class' => 'border rounded p-3 mb-4 d-flex flex-wrap justify-content-between align-items-center',
     'aria-label' => get_string('timetablenavigation', 'block_mrbs'),
@@ -205,7 +206,7 @@ foreach ($filteredentries as $entry) {
         }
         $currentday = $daykey;
         if ($view !== 'day') {
-            echo $OUTPUT->heading(userdate($entryday, $dayformat), 3, 'h5 mt-4 mb-2');
+            echo $OUTPUT->heading(\block_mrbs\local\booking_time::userdate($entryday, $dayformat), 3, 'h5 mt-4 mb-2');
         }
         echo html_writer::start_tag('ul', ['class' => 'list-group mb-3']);
     }
@@ -228,13 +229,13 @@ foreach ($filteredentries as $entry) {
     }
     $group = $groups[$entry->courseid][$entry->groupid] ?? get_string('timetableallgroups', 'block_mrbs');
 
-    $from = userdate($entry->start_time, $timeformat);
-    $to = userdate($entry->end_time, $timeformat);
+    $from = \block_mrbs\local\booking_time::userdate($entry->start_time, $timeformat);
+    $to = \block_mrbs\local\booking_time::userdate($entry->end_time, $timeformat);
     $fromday = (new DateTimeImmutable('@' . $entry->start_time))->setTimezone($timezone)->format('Y-m-d');
     $endday = (new DateTimeImmutable('@' . $entry->end_time))->setTimezone($timezone)->format('Y-m-d');
     if ($fromday !== $endday) {
-        $from = userdate($entry->start_time);
-        $to = userdate($entry->end_time);
+        $from = \block_mrbs\local\booking_time::userdate($entry->start_time);
+        $to = \block_mrbs\local\booking_time::userdate($entry->end_time);
     }
 
     if ($now < (int)$entry->start_time) {

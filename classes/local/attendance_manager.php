@@ -32,10 +32,10 @@ class attendance_manager {
     private static function preserve_notice(\stdClass $session, \stdClass $entry): void {
         self::$warnings[$session->id] = get_string('attendancepreserved', 'block_mrbs', (object)[
             'id' => $session->id,
-            'oldstart' => userdate($session->sessdate),
-            'oldend' => userdate($session->sessdate + $session->duration),
-            'newstart' => userdate($entry->start_time),
-            'newend' => userdate($entry->end_time),
+            'oldstart' => \block_mrbs\local\booking_time::userdate($session->sessdate),
+            'oldend' => \block_mrbs\local\booking_time::userdate($session->sessdate + $session->duration),
+            'newstart' => \block_mrbs\local\booking_time::userdate($entry->start_time),
+            'newend' => \block_mrbs\local\booking_time::userdate($entry->end_time),
         ]);
     }
 
@@ -296,7 +296,8 @@ class attendance_manager {
         }
 
         $updated = $DB->get_record('attendance_sessions', ['id' => (int)$sessionid], '*', MUST_EXIST);
-        $info = construct_session_full_date_time($updated->sessdate, $updated->duration);
+        $info = booking_time::userdate($updated->sessdate) . ' – '
+            . booking_time::userdate($updated->sessdate + $updated->duration);
         $event = \mod_attendance\event\session_updated::create([
             'objectid' => $att->id,
             'context' => $att->context,

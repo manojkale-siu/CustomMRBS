@@ -40,9 +40,9 @@ $searchunits = optional_param('searchunits', '', PARAM_ALPHA);
 
 //If we dont know the right date then make it up
 if (($day == 0) or ($month == 0) or ($year == 0)) {
-    $day = date("d");
-    $month = date("m");
-    $year = date("Y");
+    $day = \block_mrbs\local\booking_time::date("d");
+    $month = \block_mrbs\local\booking_time::date("m");
+    $year = \block_mrbs\local\booking_time::date("Y");
 }
 
 $thisurl = new moodle_url('/blocks/mrbs/web/edit_entry.php', array('day' => $day, 'month' => $month, 'year' => $year));
@@ -102,11 +102,11 @@ if ($id > 0) {
     $create_by = $entry->create_by;
     $description = $entry->description;
     $start_time = $entry->start_time;
-    $start_day = userdate($entry->start_time, '%d');
-    $start_month = userdate($entry->start_time, '%m');
-    $start_year = userdate($entry->start_time, '%Y');
-    $start_hour = userdate($entry->start_time, '%H');
-    $start_min = userdate($entry->start_time, '%M');
+    $start_day = \block_mrbs\local\booking_time::userdate($entry->start_time, '%d');
+    $start_month = \block_mrbs\local\booking_time::userdate($entry->start_time, '%m');
+    $start_year = \block_mrbs\local\booking_time::userdate($entry->start_time, '%Y');
+    $start_hour = \block_mrbs\local\booking_time::userdate($entry->start_time, '%H');
+    $start_min = \block_mrbs\local\booking_time::userdate($entry->start_time, '%M');
     $end_time = $entry->end_time;
     $duration = $entry->end_time - $entry->start_time - cross_dst($entry->start_time, $entry->end_time);
     $type = $entry->type;
@@ -134,13 +134,13 @@ if ($id > 0) {
             }
             $groupid = empty($repeat->groupid) ? 0 : (int)$repeat->groupid;
 
-            $start_day = (int)userdate($repeat->start_time, '%d');
-            $start_month = (int)userdate($repeat->start_time, '%m');
-            $start_year = (int)userdate($repeat->start_time, '%Y');
+            $start_day = (int)\block_mrbs\local\booking_time::userdate($repeat->start_time, '%d');
+            $start_month = (int)\block_mrbs\local\booking_time::userdate($repeat->start_time, '%m');
+            $start_year = (int)\block_mrbs\local\booking_time::userdate($repeat->start_time, '%Y');
 
-            $rep_end_day = (int)userdate($repeat->end_date, '%d');
-            $rep_end_month = (int)userdate($repeat->end_date, '%m');
-            $rep_end_year = (int)userdate($repeat->end_date, '%Y');
+            $rep_end_day = (int)\block_mrbs\local\booking_time::userdate($repeat->end_date, '%d');
+            $rep_end_month = (int)\block_mrbs\local\booking_time::userdate($repeat->end_date, '%m');
+            $rep_end_year = (int)\block_mrbs\local\booking_time::userdate($repeat->end_date, '%Y');
 
             switch ($rep_type) {
                 case 2:
@@ -164,7 +164,7 @@ if ($id > 0) {
             }
         } else {
             $rep_type = $repeat->rep_type;
-            $rep_end_date = userdate($repeat->end_date, '%A %d %B %Y');
+            $rep_end_date = \block_mrbs\local\booking_time::userdate($repeat->end_date, '%A %d %B %Y');
             $rep_opt = $repeat->rep_opt;
         }
     }
@@ -555,9 +555,9 @@ print_header_mrbs($day, $month, $year, $area);
                     <?php
                     if (!$twentyfourhour_format) {
                         $checked = ($start_hour < 12) ? "checked" : "";
-                        echo "<INPUT NAME=\"ampm\" type=\"radio\" value=\"am\" $checked>".userdate(mktime(1, 0, 0, 1, 1, 2000), "%p");
+                        echo "<INPUT NAME=\"ampm\" type=\"radio\" value=\"am\" $checked>".\block_mrbs\local\booking_time::userdate(\block_mrbs\local\booking_time::mktime(1, 0, 0, 1, 1, 2000), "%p");
                         $checked = ($start_hour >= 12) ? "checked" : "";
-                        echo "<INPUT NAME=\"ampm\" type=\"radio\" value=\"pm\" $checked>".userdate(mktime(13, 0, 0, 1, 1, 2000), "%p");
+                        echo "<INPUT NAME=\"ampm\" type=\"radio\" value=\"pm\" $checked>".\block_mrbs\local\booking_time::userdate(\block_mrbs\local\booking_time::mktime(13, 0, 0, 1, 1, 2000), "%p");
                     }
                     ?>
                 </div>

@@ -31,9 +31,9 @@ $pview = optional_param('pview', 0, PARAM_INT);
 
 //If we dont know the right date then make it up
 if (($day == 0) or ($month == 0) or ($year == 0)) {
-    $day = date("d");
-    $month = date("m");
-    $year = date("Y");
+    $day = \block_mrbs\local\booking_time::date("d");
+    $month = \block_mrbs\local\booking_time::date("m");
+    $year = \block_mrbs\local\booking_time::date("Y");
 }
 
 $thisurl = new moodle_url('/blocks/mrbs/web/view_entry.php', array('day' => $day, 'month' => $month, 'year' => $year, 'id' => $id));
@@ -170,7 +170,7 @@ $rep_type = 0;
 
 if ($series == 1) {
     $rep_type = $booking->rep_type;
-    $rep_end_date = userdate($booking->end_date, '%A %d %B %Y');
+    $rep_end_date = \block_mrbs\local\booking_time::userdate($booking->end_date, '%A %d %B %Y');
     $rep_opt = $booking->rep_opt;
     $rep_num_weeks = $booking->rep_num_weeks;
     $repeat_id = false;
@@ -197,7 +197,7 @@ if ($series == 1) {
         $repeat = $DB->get_record('block_mrbs_repeat', array('id' => $repeat_id));
         if ($repeat) {
             $rep_type = $repeat->rep_type;
-            $rep_end_date = userdate($repeat->end_date, '%A %d %B %Y');
+            $rep_end_date = \block_mrbs\local\booking_time::userdate($repeat->end_date, '%A %d %B %Y');
             $rep_opt = $repeat->rep_opt;
             $rep_num_weeks = $repeat->rep_num_weeks;
         }

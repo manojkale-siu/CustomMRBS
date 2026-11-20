@@ -73,7 +73,7 @@ function date_time_string($t) {
     } else {
         $timeformat = "%I:%M:%S%p";
     }
-    return userdate($t, "%A %d %B %Y ".$timeformat);
+    return \block_mrbs\local\booking_time::userdate($t, "%A %d %B %Y ".$timeformat);
 }
 
 function hours_minutes_seconds_format() {
@@ -90,8 +90,8 @@ function hours_minutes_seconds_format() {
 // Convert a start time and end time to a plain language description.
 // This is similar but different from the way it is done in view_entry.
 function describe_span($starts, $ends) {
-    $start_date = userdate($starts, '%A %d %B %Y');
-    $start_time = userdate($starts, hours_minutes_seconds_format());
+    $start_date = \block_mrbs\local\booking_time::userdate($starts, '%A %d %B %Y');
+    $start_time = \block_mrbs\local\booking_time::userdate($starts, hours_minutes_seconds_format());
     $duration = $ends - $starts;
     if ($start_time == "00:00:00" && $duration == 60 * 60 * 24) {
         return $start_date." - ".get_string('all_day', 'block_mrbs');
@@ -112,11 +112,11 @@ function describe_period_span($starts, $ends) {
 // this is based on describe_span but it displays the start and end
 // date/time of an entry
 function start_to_end($starts, $ends) {
-    $start_date = userdate($starts, '%A %d %B %Y');
-    $start_time = userdate($starts, hours_minutes_seconds_format());
+    $start_date = \block_mrbs\local\booking_time::userdate($starts, '%A %d %B %Y');
+    $start_time = \block_mrbs\local\booking_time::userdate($starts, hours_minutes_seconds_format());
 
-    $end_date = userdate($ends, '%A %d %B %Y');
-    $end_time = userdate($ends, hours_minutes_seconds_format());
+    $end_date = \block_mrbs\local\booking_time::userdate($ends, '%A %d %B %Y');
+    $end_time = \block_mrbs\local\booking_time::userdate($ends, hours_minutes_seconds_format());
     return $start_date." ".$start_time." - ".$end_date." ".$end_time;
 }
 
@@ -136,7 +136,7 @@ function reporton(&$item, &$last_area_room, &$last_date, $sortby, $display) {
     global $enable_periods;
     // Display Area/Room, but only when it changes:
     $area_room = s($item->area_name)." - ".s($item->room_name);
-    $date = userdate($item->start_time, "%d-%b-%Y");
+    $date = \block_mrbs\local\booking_time::userdate($item->start_time, "%d-%b-%Y");
     // entries to be sorted on area/room
     if ($sortby == "r") {
         if ($area_room != $last_area_room) {
@@ -323,9 +323,9 @@ function do_summary(&$count, &$hours, &$room_hash, &$name_hash) {
 
 //If we dont know the right date then make it up
 if (($day == 0) or ($month == 0) or ($year == 0)) {
-    $day = date("d");
-    $month = date("m");
-    $year = date("Y");
+    $day = \block_mrbs\local\booking_time::date("d");
+    $month = \block_mrbs\local\booking_time::date("m");
+    $year = \block_mrbs\local\booking_time::date("Y");
 }
 
 $thisurl = new moodle_url('/blocks/mrbs/web/report.php', array('day' => $day, 'month' => $month, 'year' => $year));
@@ -419,10 +419,10 @@ if ($submitform) {
     $From_day = $day;
     $From_month = $month;
     $From_year = $year;
-    $To_time = mktime(0, 0, 0, $month, $day + $default_report_days, $year);
-    $To_day = date("d", $To_time);
-    $To_month = date("m", $To_time);
-    $To_year = date("Y", $To_time);
+    $To_time = \block_mrbs\local\booking_time::mktime(0, 0, 0, $month, $day + $default_report_days, $year);
+    $To_day = \block_mrbs\local\booking_time::date("d", $To_time);
+    $To_month = \block_mrbs\local\booking_time::date("m", $To_time);
+    $To_year = \block_mrbs\local\booking_time::date("Y", $To_time);
 }
 // $summarize: 1=report only, 2=summary only, 3=both.
 // $sumby: d=by brief description, c=by creator.
@@ -506,8 +506,8 @@ if ($pview != 1) {
 // Lower part: Results, if called with parameters:
 if ($submitform) {
     // Start and end times are also used to clip the times for summary info.
-    $report_start = mktime(0, 0, 0, $From_month + 0, $From_day + 0, $From_year + 0);
-    $report_end = mktime(0, 0, 0, $To_month + 0, $To_day + 1, $To_year + 0);
+    $report_start = \block_mrbs\local\booking_time::mktime(0, 0, 0, $From_month + 0, $From_day + 0, $From_year + 0);
+    $report_end = \block_mrbs\local\booking_time::mktime(0, 0, 0, $To_month + 0, $To_day + 1, $To_year + 0);
 
     //   SQL result will contain the following columns:
     // Col Index  Description:

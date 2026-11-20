@@ -44,13 +44,13 @@ function print_header_mrbs($day = null, $month = null, $year = null, $area = nul
 
     // If we dont know the right date then make it up
     if (!$day) {
-        $day = date("d");
+        $day = \block_mrbs\local\booking_time::date("d");
     }
     if (!$month) {
-        $month = date("m");
+        $month = \block_mrbs\local\booking_time::date("m");
     }
     if (!$year) {
-        $year = date("Y");
+        $year = \block_mrbs\local\booking_time::date("Y");
     }
     if (empty($search_str)) {
         $search_str = "";
@@ -86,6 +86,7 @@ function print_header_mrbs($day = null, $month = null, $year = null, $area = nul
     echo ');</script>';
 
     echo '<div id="mrbscontainer">';
+    echo html_writer::div(s(\block_mrbs\local\booking_time::label()), 'small text-muted mb-2');
     echo \block_mrbs\local\programme_colour::styles();
 
     if ($pview != 1) {
@@ -286,13 +287,13 @@ function toPeriodString($start_period, &$dur, &$units) {
 
 function genDateSelector($prefix, $day, $month, $year, $updatefreerooms = false, $roomsearch = false) {
     if ($day == 0) {
-        $day = date("d");
+        $day = \block_mrbs\local\booking_time::date("d");
     }
     if ($month == 0) {
-        $month = date("m");
+        $month = \block_mrbs\local\booking_time::date("m");
     }
     if ($year == 0) {
-        $year = date("Y");
+        $year = \block_mrbs\local\booking_time::date("Y");
     }
 
     echo "
@@ -323,7 +324,7 @@ function genDateSelector($prefix, $day, $month, $year, $updatefreerooms = false,
     echo ")\">";
 
     for ($i = 1; $i <= 12; $i++) {
-        $m = userdate(mktime(0, 0, 0, $i, 1, $year) + date('Z', mktime(0, 0, 0, $i, 1, $year)), '%b', '0');
+        $m = \block_mrbs\local\booking_time::userdate(\block_mrbs\local\booking_time::mktime(12, 0, 0, $i, 1, $year), '%b');
 
         print "
                     <OPTION VALUE=\"$i\"".($i == $month ? " SELECTED" : "").">$m";
@@ -340,8 +341,8 @@ function genDateSelector($prefix, $day, $month, $year, $updatefreerooms = false,
     }
     echo ")\">";
 
-    $min = min($year, date("Y")) - 5;
-    $max = max($year, date("Y")) + 5;
+    $min = min($year, \block_mrbs\local\booking_time::date("Y")) - 5;
+    $max = max($year, \block_mrbs\local\booking_time::date("Y")) + 5;
 
     for ($i = $min; $i <= $max; $i++) {
         print "
@@ -465,7 +466,7 @@ function get_default_room($area) {
 
 // Get the local day name based on language. Note 2000-01-02 is a Sunday.
 function day_name($daynumber) {
-    return userdate(mktime(0, 0, 0, 1, 2 + $daynumber, 2000), "%A");
+    return \block_mrbs\local\booking_time::userdate(\block_mrbs\local\booking_time::mktime(0, 0, 0, 1, 2 + $daynumber, 2000), "%A");
 }
 
 function hour_min_format() {
@@ -488,10 +489,10 @@ function period_date_string($t, $mod_time = 0) {
         if ($p_num >= count($periods)) {
             $p_num = count($periods) - 1;
         }
-        return array($p_num, $periods[$p_num].userdate($t, ", %A %d %B %Y"));
+        return array($p_num, $periods[$p_num].\block_mrbs\local\booking_time::userdate($t, ", %A %d %B %Y"));
     }
 
-    $time = getdate($t);
+    $time = \block_mrbs\local\booking_time::getdate($t);
     $p_num = $time["minutes"] + $mod_time;
     if ($p_num < 0) {
         $p_num = 0;
@@ -501,7 +502,7 @@ function period_date_string($t, $mod_time = 0) {
     }
     // I have made the separater a ',' as a '-' leads to an ambiguious
     // display in report.php when showing end times.
-    return array($p_num, $periods[$p_num].userdate($t, ", %A %d %B %Y"));
+    return array($p_num, $periods[$p_num].\block_mrbs\local\booking_time::userdate($t, ", %A %d %B %Y"));
 }
 
 function period_time_string($t, $mod_time = 0) {
@@ -518,7 +519,7 @@ function period_time_string($t, $mod_time = 0) {
         return $periods[$p_num];
     }
 
-    $time = getdate($t);
+    $time = \block_mrbs\local\booking_time::getdate($t);
     $p_num = $time["minutes"] + $mod_time;
     if ($p_num < 0) {
         $p_num = 0;
@@ -533,9 +534,9 @@ function time_date_string($t) {
     global $twentyfourhour_format;
 
     if ($twentyfourhour_format) {
-        return userdate($t, "%H:%M:%S - %A %d %B %Y");
+        return \block_mrbs\local\booking_time::userdate($t, "%H:%M:%S - %A %d %B %Y");
     } else {
-        return userdate($t, "%I:%M:%S%p - %A %d %B %Y");
+        return \block_mrbs\local\booking_time::userdate($t, "%I:%M:%S%p - %A %d %B %Y");
     }
 }
 
@@ -659,13 +660,13 @@ function is_dst($month, $day, $year, $hour = "-1") {
     }
 
     // entering DST
-    if (!date("I", mktime(12, 0, 0, $month, $day - 1, $year)) &&
-        date("I", mktime(12, 0, 0, $month, $day, $year))
+    if (!\block_mrbs\local\booking_time::date("I", \block_mrbs\local\booking_time::mktime(12, 0, 0, $month, $day - 1, $year)) &&
+        \block_mrbs\local\booking_time::date("I", \block_mrbs\local\booking_time::mktime(12, 0, 0, $month, $day, $year))
     ) {
         return (0);
     } // leaving DST
-    elseif (date("I", mktime(12, 0, 0, $month, $day - 1, $year)) &&
-        !date("I", mktime(12, 0, 0, $month, $day, $year))
+    elseif (\block_mrbs\local\booking_time::date("I", \block_mrbs\local\booking_time::mktime(12, 0, 0, $month, $day - 1, $year)) &&
+        !\block_mrbs\local\booking_time::date("I", \block_mrbs\local\booking_time::mktime(12, 0, 0, $month, $day, $year))
     ) {
         return (1);
     } else {
@@ -676,18 +677,7 @@ function is_dst($month, $day, $year, $hour = "-1") {
 // if crossing dst determine if you need to make a modification
 // of 3600 seconds (1 hour) in either direction
 function cross_dst($start, $end) {
-
-    // entering DST
-    if (!date("I", $start) && date("I", $end)) {
-        $modification = -3600;
-    } // leaving DST
-    elseif (date("I", $start) && !date("I", $end)) {
-        $modification = 3600;
-    } else {
-        $modification = 0;
-    }
-
-    return $modification;
+    return \block_mrbs\local\booking_time::offset_change((int)$start, (int)$end);
 }
 
 /**
@@ -727,16 +717,16 @@ function getMailPeriodDateString($t, $mod_time = 0) {
         ($p_num >= count($periods)) ? $p_num = count($periods) - 1 : '';
         // I have made the separater a ',' as a '-' leads to an ambiguious
         // display in report.php when showing end times.
-        return array($p_num, $periods[$p_num].userdate($t, ", %A %d %B %Y"));
+        return array($p_num, $periods[$p_num].\block_mrbs\local\booking_time::userdate($t, ", %A %d %B %Y"));
     }
 
-    $time = getdate($t);
+    $time = \block_mrbs\local\booking_time::getdate($t);
     $p_num = $time['minutes'] + $mod_time;
     ($p_num < 0) ? $p_num = 0 : '';
     ($p_num >= count($periods) - 1) ? $p_num = count($periods) - 1 : '';
     // I have made the separater a ',' as a '-' leads to an ambiguious
     // display in report.php when showing end times.
-    return array($p_num, $periods[$p_num].userdate($t, ", %A %d %B %Y"));
+    return array($p_num, $periods[$p_num].\block_mrbs\local\booking_time::userdate($t, ", %A %d %B %Y"));
 }
 
 // }}}
@@ -753,15 +743,15 @@ function getMailTimeDateString($t, $inc_time = true) {
     global $twentyfourhour_format;
     // This bit's necessary, because it seems %p in userdate format
     // strings doesn't work
-    $ampm = date("a", $t);
+    $ampm = \block_mrbs\local\booking_time::date("a", $t);
     if ($inc_time) {
         if ($twentyfourhour_format) {
-            return userdate($t, "%H:%M:%S - %A %d %B %Y");
+            return \block_mrbs\local\booking_time::userdate($t, "%H:%M:%S - %A %d %B %Y");
         } else {
-            return userdate($t, "%I:%M:%S$ampm - %A %d %B %Y");
+            return \block_mrbs\local\booking_time::userdate($t, "%I:%M:%S$ampm - %A %d %B %Y");
         }
     } else {
-        return userdate($t, "%A %d %B %Y");
+        return \block_mrbs\local\booking_time::userdate($t, "%A %d %B %Y");
     }
 }
 
@@ -1006,15 +996,15 @@ function notifyAdminOnBooking($new_entry, $new_id, $modified_enddate = null) {
             $body .= "\n".get_string('rep_end_date', 'block_mrbs');
             if ($new_entry) {
                 if ($modified_enddate != null) {
-                    $body .= ": ".userdate($modified_enddate, '%A %d %B %Y');
+                    $body .= ": ".\block_mrbs\local\booking_time::userdate($modified_enddate, '%A %d %B %Y');
                 } else {
-                    $body .= ": ".userdate($rep_enddate, '%A %d %B %Y');
+                    $body .= ": ".\block_mrbs\local\booking_time::userdate($rep_enddate, '%A %d %B %Y');
                 }
             } else {
                 if ($modified_enddate != null) {
-                    $temp = userdate($modified_enddate, '%A %d %B %Y');
+                    $temp = \block_mrbs\local\booking_time::userdate($modified_enddate, '%A %d %B %Y');
                 } else {
-                    $temp = userdate($rep_enddate, '%A %d %B %Y');
+                    $temp = \block_mrbs\local\booking_time::userdate($rep_enddate, '%A %d %B %Y');
                 }
                 $body .= ": ".
                     compareEntries($temp, $mail_previous['rep_end_date'], $new_entry)."\n";
@@ -1416,10 +1406,10 @@ function to_hr_time($time) {
     $cfg_mrbs = get_config('block/mrbs');
     if (!empty($cfg_mrbs->enable_periods)) {
         $periods = explode("\n", isset($cfg_mrbs->periods) ? $cfg_mrbs->periods : '');
-        $period = intval(date('i', $time));
+        $period = intval(\block_mrbs\local\booking_time::date('i', $time));
         return isset($periods[$period]) ? trim($periods[$period]) : '';
     } else {
-        return date('G:i', $time);
+        return \block_mrbs\local\booking_time::date('G:i', $time);
     }
 }
 
@@ -1434,12 +1424,13 @@ function check_max_advance_days_internal(DateTime $checkdate) {
         return true;
     }
 
-    $now = new DateTime();
+    $now = new DateTime('now', \block_mrbs\local\booking_time::timezone());
     if ($checkdate < $now) {
         return true;
     }
-    $interval = intval($checkdate->format('U')) - intval($now->format('U'));
-    $interval = intval($interval / (24 * 60 * 60));
+    $now->setTime(0, 0);
+    $target = (clone $checkdate)->setTimezone(\block_mrbs\local\booking_time::timezone())->setTime(0, 0);
+    $interval = (int)$now->diff($target)->days;
     if ($interval > $max_advance_days) {
         return false;
     }
@@ -1448,15 +1439,15 @@ function check_max_advance_days_internal(DateTime $checkdate) {
 }
 
 function check_max_advance_days_timestamp($ts) {
-    $tsdate = new DateTime();
+    $tsdate = new DateTime('now', \block_mrbs\local\booking_time::timezone());
     $tsdate->setTimestamp($ts);
-    $checkdate = new DateTime();
+    $checkdate = new DateTime('now', \block_mrbs\local\booking_time::timezone());
     $checkdate->setDate($tsdate->format('Y'), $tsdate->format('m'), $tsdate->format('d'));
     return check_max_advance_days_internal($checkdate);
 }
 
 function check_max_advance_days($day, $month, $year) {
-    $checkdate = new DateTime();
+    $checkdate = new DateTime('now', \block_mrbs\local\booking_time::timezone());
     $checkdate->setDate($year, $month, $day);
     return check_max_advance_days_internal($checkdate);
 }

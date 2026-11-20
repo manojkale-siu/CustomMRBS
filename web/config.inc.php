@@ -139,8 +139,8 @@ if (!isset($cfg_mrbs->periods) or empty($cfg_mrbs->periods)) {
         if ($from && $to && $interval > 0) {
     
             // Generate dynamic slots
-            $start  = strtotime($from);
-            $end    = strtotime($to);
+            $start  = \block_mrbs\local\booking_time::strtotime($from);
+            $end    = \block_mrbs\local\booking_time::strtotime($to);
     
             while ($start < $end) {
                 $next = $start + ($interval * 60);
@@ -148,7 +148,7 @@ if (!isset($cfg_mrbs->periods) or empty($cfg_mrbs->periods)) {
                 if ($next > $end) break;
     
                 $periods[] =
-                    date('H:i', $start) . "&nbsp;-&nbsp;" . date('H:i', $next);
+                    \block_mrbs\local\booking_time::date('H:i', $start) . "&nbsp;-&nbsp;" . \block_mrbs\local\booking_time::date('H:i', $next);
     
                 $start = $next;
             }

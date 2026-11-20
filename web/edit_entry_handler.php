@@ -120,9 +120,9 @@ define('MRBS_ERR_TOOMANY', 2);
 
 //If we dont know the right date then make it up
 if (($day == 0) or ($month == 0) or ($year == 0)) {
-    $day = date("d");
-    $month = date("m");
-    $year = date("Y");
+    $day = \block_mrbs\local\booking_time::date("d");
+    $month = \block_mrbs\local\booking_time::date("m");
+    $year = \block_mrbs\local\booking_time::date("Y");
 }
 
 if (!$area && !empty($rooms)) {
@@ -308,14 +308,14 @@ if ($all_day) {
         if ($schedulevalid) {
             [$starttime, $endtime] = \block_mrbs\local\settings_manager::get_period_day_bounds($year, $month, $day);
         } else {
-            $starttime = mktime(12, 0, 0, $month, $day, $year);
-            $endtime = mktime(12, $max_periods, 0, $month, $day, $year);
+            $starttime = \block_mrbs\local\booking_time::mktime(12, 0, 0, $month, $day, $year);
+            $endtime = \block_mrbs\local\booking_time::mktime(12, $max_periods, 0, $month, $day, $year);
         }
     } else {
-        $starttime = mktime($morningstarts, 0, 0, $month, $day, $year);
+        $starttime = \block_mrbs\local\booking_time::mktime($morningstarts, 0, 0, $month, $day, $year);
         $end_minutes = $eveningends_minutes + $morningstarts_minutes;
         ($eveningends_minutes > 59) ? $end_minutes += 60 : '';
-        $endtime = mktime($eveningends, $end_minutes, 0, $month, $day, $year);
+        $endtime = \block_mrbs\local\booking_time::mktime($eveningends, $end_minutes, 0, $month, $day, $year);
     }
 } else {
     if ($enable_periods && $schedulevalid) {
@@ -350,8 +350,8 @@ if ($all_day) {
         }
     }
 
-    $starttime = mktime($hour, $minute, 0, $month, $day, $year);
-    $endtime = mktime($hour, $minute, 0, $month, $day, $year) + ($units * $duration);
+    $starttime = \block_mrbs\local\booking_time::mktime($hour, $minute, 0, $month, $day, $year);
+    $endtime = \block_mrbs\local\booking_time::mktime($hour, $minute, 0, $month, $day, $year) + ($units * $duration);
 
     // Round up the duration to the next whole resolution unit.
     // If they asked for 0 minutes, push that up to 1 resolution unit.
@@ -369,14 +369,14 @@ if ($rep_type !== 6) {
     $rep_num_weeks = 0;
 }
 if ($rep_type === 2) {
-    $rep_day[(int)date('w', $starttime)] = 1;
+    $rep_day[(int)\block_mrbs\local\booking_time::date('w', $starttime)] = 1;
 }
 if ($rep_type !== 0) {
     if (!checkdate($rep_end_month, $rep_end_day, $rep_end_year)) {
         block_mrbs_print_user_error($day, $month, $year, $area, get_string('invalidrepeatenddate', 'block_mrbs'));
         exit;
     }
-    $rep_enddate = mktime(23, 59, 59, $rep_end_month, $rep_end_day, $rep_end_year);
+    $rep_enddate = \block_mrbs\local\booking_time::mktime(23, 59, 59, $rep_end_month, $rep_end_day, $rep_end_year);
 } else {
     $rep_enddate = $starttime;
 }
@@ -457,8 +457,7 @@ if ($rep_type != 0) {
 try {
     \block_mrbs\local\booking_validator::validate_time_range($starttime, $endtime, (bool)$enable_periods);
     foreach ($reps as $occurrence) {
-        $durationseconds = $endtime - $starttime;
-        $occurrenceend = $occurrence + $durationseconds + cross_dst($occurrence, $occurrence + $durationseconds);
+        $occurrenceend = \block_mrbs\local\booking_time::occurrence_end($starttime, $endtime, $occurrence);
         \block_mrbs\local\booking_validator::validate_time_range($occurrence, $occurrenceend, (bool)$enable_periods);
     }
     mrbsValidateRepeatIntervals($reps, $starttime, $endtime);
@@ -491,7 +490,7 @@ register_shutdown_function([$bookinglock, 'release']);
 
 $studenttimes = $rep_type != 0 && !empty($reps) ? $reps : [$starttime];
 foreach ($studenttimes as $studentstart) {
-    $studentend = $studentstart + ($endtime - $starttime) + cross_dst($studentstart, $studentstart + ($endtime - $starttime));
+    $studentend = \block_mrbs\local\booking_time::occurrence_end($starttime, $endtime, $studentstart);
     if (\block_mrbs\local\booking_validator::find_participant_conflicts(
             $courseid, $groupid, $facultyid, $studentstart, $studentend, $ignore_id, $seriesignore)) {
         block_mrbs_print_user_error($day, $month, $year, $area, get_string('participantbookingconflict', 'block_mrbs'));
@@ -503,8 +502,7 @@ if ($facultyid) {
     $facultyconflicts = array();
     if ($rep_type != 0 && !empty($reps)) {
         foreach ($reps as $reptime) {
-            $diff = $endtime - $starttime;
-            $diff += cross_dst($reptime, $reptime + $diff);
+            $diff = \block_mrbs\local\booking_time::occurrence_end($starttime, $endtime, $reptime) - $reptime;
             $facultyconflicts += \block_mrbs\local\booking_validator::find_faculty_conflicts(
                 $facultyid,
                 $reptime,
@@ -565,8 +563,7 @@ if ($forcebook && !$err) {
             if (!check_max_advance_days_timestamp($reptime)) {
                 break;
             }
-            $duration = $endtime - $starttime;
-            $slots[] = [$reptime, $reptime + $duration + cross_dst($reptime, $reptime + $duration)];
+            $slots[] = [$reptime, \block_mrbs\local\booking_time::occurrence_end($starttime, $endtime, $reptime)];
         }
     }
     require_once(__DIR__ . '/force_book.php');
@@ -583,7 +580,7 @@ if ($forcebook && !$err) {
             $entryname = \block_mrbs\local\reservation::get_display_name($entry);
             $label = get_string('forcebookrescheduleentry', 'block_mrbs', (object)[
                 'name' => $entryname,
-                'time' => userdate($entry->start_time),
+                'time' => \block_mrbs\local\booking_time::userdate($entry->start_time),
             ]);
             $editurl = new moodle_url('/blocks/mrbs/web/edit_entry.php', ['id' => $entry->id]);
             $actions[] = html_writer::link($editurl, s($label));
@@ -609,8 +606,7 @@ foreach ($rooms as $room_id) {
         foreach ($reps as $reptime) {
             // calculate diff each time and correct where events
             // cross DST
-            $diff = $endtime - $starttime;
-            $diff += cross_dst($reptime, $reptime + $diff);
+            $diff = \block_mrbs\local\booking_time::occurrence_end($starttime, $endtime, $reptime) - $reptime;
             $tmp = mrbsCheckFree($room_id, $reptime, $reptime + $diff, $ignore_id, $seriesignore);
             if (!empty($tmp)) {
                 $err = $err.$tmp;
@@ -786,7 +782,7 @@ if (empty($err)) {
     // Now its all done go back to the day view
     $dayurl = new moodle_url('/blocks/mrbs/web/day.php', array('year' => $year, 'month' => $month, 'day' => $day, 'area' => $area));
     $notificationtext = get_string('bookingsavednotification', 'block_mrbs', (object)[
-        'name' => strip_tags($name), 'date' => userdate($starttime),
+        'name' => strip_tags($name), 'date' => \block_mrbs\local\booking_time::userdate($starttime),
     ]);
     if ($forcemoveoutput !== '') {
         $notificationtext .= ' ' . html_to_text($forcemoveoutput);

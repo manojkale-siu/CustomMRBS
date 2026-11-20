@@ -100,14 +100,14 @@ if ($all_day == "yes") {
         if ($schedulevalid) {
             [$starttime, $endtime] = \block_mrbs\local\settings_manager::get_period_day_bounds($year, $month, $day);
         } else {
-            $starttime = mktime(12, 0, 0, $month, $day, $year);
-            $endtime = mktime(12, $max_periods, 0, $month, $day, $year);
+            $starttime = \block_mrbs\local\booking_time::mktime(12, 0, 0, $month, $day, $year);
+            $endtime = \block_mrbs\local\booking_time::mktime(12, $max_periods, 0, $month, $day, $year);
         }
     } else {
-        $starttime = mktime($morningstarts, 0, 0, $month, $day, $year);
+        $starttime = \block_mrbs\local\booking_time::mktime($morningstarts, 0, 0, $month, $day, $year);
         $end_minutes = $eveningends_minutes + $morningstarts_minutes;
         ($eveningends_minutes > 59) ? $end_minutes += 60 : '';
-        $endtime = mktime($eveningends, $end_minutes, 0, $month, $day, $year);
+        $endtime = \block_mrbs\local\booking_time::mktime($eveningends, $end_minutes, 0, $month, $day, $year);
     }
 } else {
     if ($enable_periods && $schedulevalid) {
@@ -141,8 +141,8 @@ if ($all_day == "yes") {
         }
     }
 
-    $starttime = mktime($hour, $minute, 0, $month, $day, $year);
-    $endtime = mktime($hour, $minute, 0, $month, $day, $year) + ($units * $duration);
+    $starttime = \block_mrbs\local\booking_time::mktime($hour, $minute, 0, $month, $day, $year);
+    $endtime = \block_mrbs\local\booking_time::mktime($hour, $minute, 0, $month, $day, $year) + ($units * $duration);
     // Round up the duration to the next whole resolution unit.
     // If they asked for 0 minutes, push that up to 1 resolution unit.
     $diff = $endtime - $starttime;

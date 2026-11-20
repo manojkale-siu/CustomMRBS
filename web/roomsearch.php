@@ -32,7 +32,7 @@ $all_day = optional_param('all_day', false, PARAM_BOOL);
 $dur_units = optional_param('dur_units', $enable_periods ? 'periods' : 'hours', PARAM_ALPHA);
 
 if ($year < 1970 || $year > 9999 || !checkdate($month, $day, $year)) {
-    [$year, $month, $day] = explode('-', date('Y-n-j'));
+    [$year, $month, $day] = explode('-', \block_mrbs\local\booking_time::date('Y-n-j'));
 }
 
 $PAGE->set_url(new moodle_url('/blocks/mrbs/web/roomsearch.php', compact('day', 'month', 'year', 'area')));

@@ -517,3 +517,5 @@ $string['participantbookingconflict'] = 'Invalid booking: a faculty member or en
 $string['capacitycomparison'] = 'Active enrolled users in course: {$a->coursecount}. Active users in the selected course/group: {$a->selectedcount}. {$a->rooms}. Counts include all active enrolled roles and exclude suspended accounts.';
 $string['roomcapacitycomparison'] = '{$a->room}: capacity {$a->capacity}, users above capacity {$a->excess} (capacity 0 means unspecified)';
 $string['sessionimportcapacitydetails'] = 'Room capacity is exceeded. {$a} Choose a larger room or allow over-capacity bookings before importing.';
+
+$string['bookingtimezone'] = 'All MRBS dates and times use the Moodle site timezone: {$a}.';
