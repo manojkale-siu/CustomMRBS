@@ -268,6 +268,3 @@ $settings->settings->mail_recipients->plugin = 'block/mrbs';
 
 $settings->add(new admin_setting_configtext('mail_cc', get_string('config_mail_cc', 'block_mrbs'), get_string('config_mail_cc2', 'block_mrbs'), null, PARAM_TEXT));
 $settings->settings->mail_cc->plugin = 'block/mrbs';
-
-$settings->add(new admin_setting_configtext('cronfile', get_string('cronfile', 'block_mrbs'), get_string('cronfiledesc', 'block_mrbs'), null, PARAM_TEXT));
-$settings->settings->cronfile->plugin = 'block/mrbs';

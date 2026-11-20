@@ -164,6 +164,7 @@ function mrbsCreateSingleEntry($starttime, $endtime, $entry_type, $repeat_id, $r
                                $owner, $name, $type, $description, $oldid = 0, $roomchange = false,
                                $courseid = 0, $facultyid = 0, $groupid = 0) {
     global $DB;
+    \block_mrbs\local\booking_lock::require_held();
 
     if ($oldid) {
         $stored = $DB->get_record('block_mrbs_entry', ['id' => $oldid], '*', MUST_EXIST);
@@ -229,6 +230,7 @@ function mrbsCreateRepeatEntry($starttime, $endtime, $rep_type, $rep_enddate, $r
                                $room_id, $owner, $name, $type, $description, $rep_num_weeks, $oldrepeatid = 0,
                                $courseid = 0, $facultyid = 0, $groupid = 0) {
     global $DB;
+    \block_mrbs\local\booking_lock::require_held();
 
     if ($oldrepeatid) {
         $stored = $DB->get_record('block_mrbs_repeat', ['id' => $oldrepeatid], '*', MUST_EXIST);
@@ -512,6 +514,7 @@ function mrbsCreateRepeatingEntrys($starttime, $endtime, $rep_type, $rep_enddate
                                    $room_id, $owner, $name, $type, $description, $rep_num_weeks, $roomchange = false,
                                    $oldid = 0, $courseid = 0, $facultyid = 0, $groupid = 0) {
     global $max_rep_entrys, $DB;
+    \block_mrbs\local\booking_lock::require_held();
 
     $ret = new stdClass;
     $ret->id = 0;

@@ -481,9 +481,10 @@ if ($id > 0) {
 
 $forcebook = $forcebook && mrbsHasAdminCapability('block/mrbs:forcebook') && !mrbsCanOnlyEditUnconfirmed();
 $seriesignore = $edit_type === 'series' && $rep_type != 0 ? $repeat_id : 0;
-$bookinglock = \core\lock\lock_config::get_lock_factory('block_mrbs')->get_lock('save_booking', 10);
-if (!$bookinglock) {
-    block_mrbs_print_user_error($day, $month, $year, $area, get_string('failed_to_acquire', 'block_mrbs'));
+try {
+    $bookinglock = \block_mrbs\local\booking_lock::acquire();
+} catch (moodle_exception $error) {
+    block_mrbs_print_user_error($day, $month, $year, $area, $error->getMessage());
     exit;
 }
 register_shutdown_function([$bookinglock, 'release']);

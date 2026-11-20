@@ -61,8 +61,7 @@ class block_mrbs extends block_base {
     }
 
     function cron() {
-        global $CFG;
-        include($CFG->dirroot.'/blocks/mrbs/import.php');
+        // Legacy CSV import is retired. Use the validated Import sessions workflow.
 
         return true;
     }

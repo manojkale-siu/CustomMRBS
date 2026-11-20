@@ -508,3 +508,6 @@ $string['attendancepreserved'] = 'Attendance session #{$a->id} was left unchange
 $string['invalidseriesdelete'] = 'This booking does not belong to a valid recurring series. No bookings were deleted. Return to the booking and delete only this session.';
 
 $string['cancellationnotfuture'] = 'Deletion stopped. A selected booking or linked Attendance session has already started, has finished, or contains recorded attendance. Only future, unrecorded sessions can be deleted. No bookings, Attendance sessions or rooms were deleted.';
+
+$string['bookinglockrequired'] = 'The booking operation was stopped because the shared MRBS lock was not acquired. No changes were made by this operation.';
+$string['legacycsvdisabled'] = 'Legacy CSV import and relocation are disabled because they bypass booking safety checks. Use Import sessions (Excel) or the current booking form.';

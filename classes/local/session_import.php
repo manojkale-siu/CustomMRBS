@@ -120,10 +120,7 @@ class session_import {
         if (!settings_manager::has_valid_custom_time_range()) {
             throw new \moodle_exception('mrbscustomtimerangerequired', 'block_mrbs');
         }
-        $lock = \core\lock\lock_config::get_lock_factory('block_mrbs')->get_lock('save_booking', 10);
-        if (!$lock) {
-            throw new \moodle_exception('failed_to_acquire', 'block_mrbs');
-        }
+        $lock = booking_lock::acquire();
         $counts = [];
         try {
             $transaction = $DB->start_delegated_transaction();

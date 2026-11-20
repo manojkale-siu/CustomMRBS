@@ -7,10 +7,7 @@ defined('MOODLE_INTERNAL') || die();
 class booking_cancellation {
     public static function run(callable $operation) {
         global $DB;
-        $lock = \core\lock\lock_config::get_lock_factory('block_mrbs')->get_lock('save_booking', 10);
-        if (!$lock) {
-            throw new \moodle_exception('failed_to_acquire', 'block_mrbs');
-        }
+        $lock = booking_lock::acquire();
         try {
             $transaction = $DB->start_delegated_transaction();
             try {
@@ -28,6 +25,7 @@ class booking_cancellation {
     /** Validate the complete target set before deleting anything. */
     public static function delete_entries(array $entries): int {
         global $DB;
+        booking_lock::require_held();
         foreach ($entries as $entry) {
             self::require_future($entry);
         }

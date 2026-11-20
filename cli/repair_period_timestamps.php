@@ -118,6 +118,10 @@ if (!empty($options['entryid'])) {
     $params[] = (int)$options['entryid'];
 }
 
+// Acquire before reading candidates so no booking writer can race the repair.
+$bookinglock = \block_mrbs\local\booking_lock::acquire();
+register_shutdown_function([$bookinglock, 'release']);
+
 $sql = 'SELECT * FROM {block_mrbs_entry} WHERE ' . implode(' AND ', $conditions) . ' ORDER BY id ASC';
 $records = $DB->get_records_sql($sql, $params, 0, $options['limit'] > 0 ? $options['limit'] : 0);
 
@@ -157,21 +161,26 @@ foreach ($records as $entry) {
         continue;
     }
 
-    $DB->set_field('block_mrbs_entry', 'start_time', $newstart, ['id' => (int)$entry->id]);
-    $DB->set_field('block_mrbs_entry', 'end_time', $newend, ['id' => (int)$entry->id]);
-
+    $transaction = $DB->start_delegated_transaction();
     try {
+        \block_mrbs\local\booking_lock::require_held();
+        \block_mrbs\local\booking_validator::validate_time_range($newstart, $newend, true);
+        $DB->set_field('block_mrbs_entry', 'start_time', $newstart, ['id' => (int)$entry->id]);
+        $DB->set_field('block_mrbs_entry', 'end_time', $newend, ['id' => (int)$entry->id]);
         \block_mrbs\local\attendance_manager::sync_for_entry(
-            (int)$entry->id,
-            (int)$entry->courseid,
-            (int)$entry->facultyid,
-            (int)$entry->groupid
+            (int)$entry->id, (int)$entry->courseid, (int)$entry->facultyid, (int)$entry->groupid
         );
-    } catch (\Throwable $e) {
-        mtrace('Updated entry ' . $entry->id . ' but failed to resync Attendance: ' . $e->getMessage());
-        $fixed++;
-        continue;
+        $transaction->allow_commit();
+    } catch (\Throwable $error) {
+        try {
+            $transaction->rollback($error);
+        } catch (\Throwable $rolledback) {
+            mtrace('Entry ' . $entry->id . ' was not repaired: ' . $rolledback->getMessage());
+            $skipped++;
+            continue;
+        }
     }
+
 
     mtrace('Updated entry ' . $entry->id . ' to ' . userdate($newstart, '%Y-%m-%d %H:%M:%S')
         . ' - ' . userdate($newend, '%Y-%m-%d %H:%M:%S'));

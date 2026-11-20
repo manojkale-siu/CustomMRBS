@@ -50,6 +50,7 @@ class attendance_manager {
      */
     public static function sync_for_entry($entryid, $courseid, $facultyid = 0, $groupid = 0) {
         global $DB;
+        booking_lock::require_held();
 
         $entryid = (int)$entryid;
         $courseid = (int)$courseid;
@@ -150,6 +151,7 @@ class attendance_manager {
      */
     public static function delete_for_entry($entryid) {
         global $DB;
+        booking_lock::require_held();
 
         $sessionid = $DB->get_field('block_mrbs_entry', 'attendancesessionid', ['id' => (int)$entryid]);
         if ($sessionid) {
@@ -317,6 +319,7 @@ class attendance_manager {
      */
     private static function delete_session($sessionid) {
         global $DB;
+        booking_lock::require_held();
 
         self::require_deletable_session((int)$sessionid);
         self::require_attendance_api();
