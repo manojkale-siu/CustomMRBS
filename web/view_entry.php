@@ -361,7 +361,7 @@ if ($canedit || $roomadmin) {
 
 <?php
 
-if (strtolower($USER->username) != strtolower($create_by)) {
+if (!empty($booking->userid) && (int)$booking->userid !== (int)$USER->id) {
     include "request_vacate.php";
 }
 
