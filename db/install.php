@@ -66,6 +66,9 @@ function xmldb_block_mrbs_install()
         assign_capability('block/mrbs:doublebook', CAP_ALLOW, $mrbsadminid, $context->id, true);
     }
 
+    require_once(__DIR__ . '/../classes/local/navigation_setup.php');
+    \block_mrbs\local\navigation_setup::ensure_menu_link();
+
     // Clear any capability caches
     $context->mark_dirty();
 }

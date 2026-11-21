@@ -3,7 +3,7 @@ MRBS - Meeting Room Booking System
 Moodle block component: block_mrbs
 Repository: https://github.com/manojkale-siu/CustomMRBS
 Issues: https://github.com/manojkale-siu/CustomMRBS/issues
-Documentation updated: 20 November 2026
+Documentation updated: 21 November 2026
 
 This customized MRBS block schedules rooms and course sessions, provides personal
 timetables, and synchronizes linked sessions with Moodle Attendance. All block
@@ -41,6 +41,17 @@ ZIP installation:
 Alternatively, install the Git checkout in the correct Moodle directory:
     cd /path/to/moodle/blocks
     git clone https://github.com/manojkale-siu/CustomMRBS.git mrbs
+
+Installation automatically adds an MRBS link to the site's Custom menu items,
+using this Moodle site's URL and the role-aware /blocks/mrbs/web/index.php entry.
+Existing menu entries are preserved, and an existing equivalent MRBS entry link
+is not duplicated. The 2026112100 upgrade step also adds it for installed sites.
+Complete the Moodle upgrade after pulling this version; pulling files alone does
+not run that step. Administrators can later edit/remove the entry under Appearance
+-> Advanced theme settings -> Custom menu items, including after uninstalling.
+The link is a normal theme-supported custom menu entry, not a permission grant.
+Themes must display Moodle custom menu items. A custommenuitems value forced in
+config.php is left untouched and must be managed there.
 
 Then complete Moodle's plugin installation. Do not clone over an existing plugin
 folder containing unreviewed local changes.

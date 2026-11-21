@@ -528,3 +528,5 @@ $string['bookingbusy'] = 'Another booking operation is still being processed. No
 $string['attendancecalendarmismatch'] = 'The linked calendar event does not belong to this course Attendance activity. Ask an administrator to check the session link. No changes were saved.';
 $string['attendancecalendarfailed'] = 'The Attendance calendar event could not be synchronized. No changes were saved.';
 $string['bookingsaveerrorreference'] = 'Error reference: {$a}. Your administrator can use this reference to find the underlying error in the server log.';
+
+$string['navigationregistrationfailed'] = 'The MRBS navigation link could not be saved in the site custom menu settings. Please retry the installation or upgrade.';

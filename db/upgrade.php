@@ -281,5 +281,11 @@ function xmldb_block_mrbs_upgrade($oldversion=0) {
         upgrade_block_savepoint(true, 2026111900, 'mrbs');
     }
 
+    if ($oldversion < 2026112100) {
+        require_once(__DIR__ . '/../classes/local/navigation_setup.php');
+        \block_mrbs\local\navigation_setup::ensure_menu_link();
+        upgrade_block_savepoint(true, 2026112100, 'mrbs');
+    }
+
     return true;
 }
