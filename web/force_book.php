@@ -261,7 +261,7 @@ function mrbsApplyForceMoves(array $moves) {
         $DB->update_record('block_mrbs_entry', $update);
         if (($move['start'] !== (int)$entry->start_time || $move['end'] !== (int)$entry->end_time)
                 && !empty($entry->attendancesessionid)) {
-            \block_mrbs\local\attendance_manager::sync_for_entry($entry->id, $entry->courseid, $entry->facultyid, $entry->groupid);
+            \block_mrbs\local\attendance_manager::sync_for_entry($entry->id, $entry->courseid, $entry->facultyid, $entry->groupid, true);
         }
     }
 }

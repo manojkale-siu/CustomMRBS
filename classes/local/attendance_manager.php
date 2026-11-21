@@ -46,9 +46,10 @@ class attendance_manager {
      * @param int $courseid
      * @param int $facultyid
      * @param int $groupid
+     * @param bool $relocation Authorized forced-relocation workflow, never a submitted form permission.
      * @return int Attendance session id, or 0 when no session is required.
      */
-    public static function sync_for_entry($entryid, $courseid, $facultyid = 0, $groupid = 0) {
+    public static function sync_for_entry($entryid, $courseid, $facultyid = 0, $groupid = 0, bool $relocation = false) {
         global $DB;
         booking_lock::require_held();
 
@@ -62,6 +63,12 @@ class attendance_manager {
         }
 
         $entry = $DB->get_record('block_mrbs_entry', ['id' => $entryid], '*', MUST_EXIST);
+        // MRBS authority delegates this activity update; it must not grant general calendar rights.
+        $canrelocate = $relocation && timetable_access::can_edit()
+            && has_capability('block/mrbs:forcebook', \context_system::instance());
+        if (!(defined('CLI_SCRIPT') && CLI_SCRIPT) && !booking_permissions::can_write($entry) && !$canrelocate) {
+            throw new \moodle_exception('bookingeditdenied', 'block_mrbs');
+        }
         $existingid = empty($entry->attendancesessionid) ? 0 : (int)$entry->attendancesessionid;
         $existing = $existingid ? $DB->get_record('attendance_sessions', ['id' => $existingid]) : false;
         // Guard before deleting/replacing a link or changing faculty, group or calendar metadata.
@@ -101,8 +108,8 @@ class attendance_manager {
             $sessionid = $att->add_session($session);
             self::normalise_session_record($sessionid, $facultyid);
             $updated = $DB->get_record('attendance_sessions', ['id' => $sessionid], '*', IGNORE_MISSING);
-            if ($updated && !empty($updated->caleventid) && function_exists('attendance_update_calendar_event')) {
-                attendance_update_calendar_event($updated);
+            if ($updated) {
+                self::sync_calendar_event($att, $updated);
             }
         }
 
@@ -274,26 +281,7 @@ class attendance_manager {
         $session->timemodified = time();
         $DB->update_record('attendance_sessions', $session);
 
-        if (empty($session->caleventid)) {
-            if (function_exists('attendance_create_calendar_event')) {
-                attendance_create_calendar_event($session);
-            }
-        } else {
-            if ($groupchanged) {
-                if (function_exists('attendance_delete_calendar_events')) {
-                    attendance_delete_calendar_events([(int)$sessionid]);
-                }
-                $session->caleventid = 0;
-                $DB->set_field('attendance_sessions', 'caleventid', 0, ['id' => $sessionid]);
-                if (function_exists('attendance_create_calendar_event')) {
-                    attendance_create_calendar_event($session);
-                }
-            } else {
-                if (function_exists('attendance_update_calendar_event')) {
-                    attendance_update_calendar_event($session);
-                }
-            }
-        }
+        self::sync_calendar_event($att, $session);
 
         $updated = $DB->get_record('attendance_sessions', ['id' => (int)$sessionid], '*', MUST_EXIST);
         $info = booking_time::userdate($updated->sessdate) . ' – '
@@ -310,6 +298,48 @@ class attendance_manager {
         $event->add_record_snapshot('course_modules', $att->cm);
         $event->add_record_snapshot('attendance_sessions', $updated);
         $event->trigger();
+    }
+
+    /** Update only the calendar event owned by this authorized Attendance session. */
+    private static function sync_calendar_event(\mod_attendance_structure $att, \stdClass $session): void {
+        global $DB;
+        booking_lock::require_held();
+        if ((int)$session->attendanceid !== (int)$att->id) {
+            throw new \moodle_exception('attendancecalendarmismatch', 'block_mrbs');
+        }
+        if (empty(get_config('attendance', 'enablecalendar'))) {
+            return;
+        }
+        if (empty($session->caleventid)) {
+            if (!empty($session->calendarevent) && !attendance_create_calendar_event($session)) {
+                throw new \moodle_exception('attendancecalendarfailed', 'block_mrbs');
+            }
+            return;
+        }
+        $event = \calendar_event::load((int)$session->caleventid);
+        if ($event->modulename !== 'attendance' || (int)$event->instance !== (int)$att->id
+                || (int)$event->courseid !== (int)$att->course->id) {
+            throw new \moodle_exception('attendancecalendarmismatch', 'block_mrbs');
+        }
+        if (empty($session->calendarevent)) {
+            $event->delete();
+            $DB->set_field('attendance_sessions', 'caleventid', 0, ['id' => $session->id]);
+            return;
+        }
+        $name = $att->name;
+        if (!empty($session->groupid)) {
+            $name .= ' (' . get_string('group', 'group') . ' ' . groups_get_group_name($session->groupid) . ')';
+        }
+        $data = (object)[
+            'name' => $name, 'groupid' => (int)$session->groupid,
+            'timestart' => (int)$session->sessdate, 'timeduration' => (int)$session->duration,
+            'description' => $session->description, 'format' => $session->descriptionformat,
+        ];
+        // Moodle supports activity-owned updates after checking the activity's own permission.
+        // The booking was authorized above; a separate course-calendar permission is not needed.
+        if (!$event->update($data, false)) {
+            throw new \moodle_exception('attendancecalendarfailed', 'block_mrbs');
+        }
     }
 
     /**

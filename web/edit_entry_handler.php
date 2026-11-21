@@ -753,8 +753,19 @@ if (empty($err)) {
         try {
             $transaction->rollback($error);
         } catch (Throwable $rolledback) {
-            debugging('MRBS booking save rolled back: ' . $rolledback->getMessage(), DEBUG_DEVELOPER);
-            block_mrbs_print_user_error($day, $month, $year, $area, get_string('bookingsaverolledback', 'block_mrbs'));
+            $reference = bin2hex(random_bytes(6));
+            error_log('MRBS booking save rollback [' . $reference . ']: ' . get_class($rolledback)
+                . ': ' . $rolledback->getMessage());
+            debugging('MRBS booking save rolled back [' . $reference . ']: ' . $rolledback->getMessage(), DEBUG_DEVELOPER);
+            $message = get_string('bookingsaverolledback', 'block_mrbs');
+            if ($rolledback instanceof moodle_exception && $rolledback->module === 'block_mrbs'
+                    && in_array($rolledback->errorcode, ['roomalreadyclaimed', 'participantbookingconflict',
+                        'bookingeditdenied', 'attendancecalendarfailed', 'attendancecalendarmismatch',
+                        'courseattendancemissing', 'attendanceapinotavailable'], true)) {
+                $message .= ' ' . $rolledback->getMessage();
+            }
+            $message .= ' ' . get_string('bookingsaveerrorreference', 'block_mrbs', $reference);
+            block_mrbs_print_user_error($day, $month, $year, $area, $message);
             exit;
         }
     }

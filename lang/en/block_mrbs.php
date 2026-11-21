@@ -524,3 +524,7 @@ $string['bookingdeletedenied'] = 'Deletion stopped. You do not have permission t
 
 $string['roomalreadyclaimed'] = 'This room is already booked for the requested time. The first successfully saved booking keeps the slot. No new booking was created and the existing booking was not replaced. Choose another time or room.';
 $string['bookingbusy'] = 'Another booking operation is still being processed. Nothing was saved by this request. Please try again; room availability will be checked again before saving.';
+
+$string['attendancecalendarmismatch'] = 'The linked calendar event does not belong to this course Attendance activity. Ask an administrator to check the session link. No changes were saved.';
+$string['attendancecalendarfailed'] = 'The Attendance calendar event could not be synchronized. No changes were saved.';
+$string['bookingsaveerrorreference'] = 'Error reference: {$a}. Your administrator can use this reference to find the underlying error in the server log.';

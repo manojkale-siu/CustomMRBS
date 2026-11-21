@@ -152,6 +152,9 @@ not possible, nothing is changed and the user is directed to resolve the conflic
 ------------------------------------------
 Each class booking stores its linked Attendance session ID. Manual and Excel
 bookings synchronize through attendance_manager using Attendance integration APIs.
+Calendar synchronization verifies the linked Attendance activity/course and uses
+authorized MRBS booking permission; users are not granted general calendar-edit
+rights. Unexpected save errors include a reference for the server log.
 
 Existing Attendance can be updated only when its original start and the new
 booking start are both strictly in the future, with no recorded attendance.
