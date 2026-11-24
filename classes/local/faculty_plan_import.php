@@ -36,7 +36,7 @@ class faculty_plan_import {
             $sheet->getColumnDimension($column)->setWidth($width);
         }
         $sheet->fromArray(['2030-01-15', '09:00', '10:00', 'Example topics - replace or delete this row'], null, 'A2');
-        $sheet->getComment('A2')->getText()->createTextRun('Example only. Replace/delete this row. ' . booking_time::label());
+        $sheet->getComment('A2')->getText()->createTextRun('Example only. Replace/delete this row.');
         $file = make_request_directory() . '/mrbs-faculty-planning-template.xlsx';
         (new XlsxWriter($workbook))->save($file);
         $workbook->disconnectWorksheets();

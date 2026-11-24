@@ -86,7 +86,6 @@ function print_header_mrbs($day = null, $month = null, $year = null, $area = nul
     echo ');</script>';
 
     echo '<div id="mrbscontainer">';
-    echo html_writer::div(s(\block_mrbs\local\booking_time::label()), 'small text-muted mb-2');
     echo \block_mrbs\local\programme_colour::styles();
 
     if ($pview != 1) {

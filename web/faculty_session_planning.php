@@ -82,7 +82,6 @@ $PAGE->requires->js_call_amd('block_mrbs/faculty_planning', 'init');
 echo $OUTPUT->header();
 echo html_writer::link(new moodle_url('/blocks/mrbs/web/timetable.php'), get_string('mytimetable', 'block_mrbs'), ['class' => 'btn btn-secondary mb-3']);
 echo html_writer::div(s(get_string('planningintro', 'block_mrbs')), 'alert alert-info');
-echo html_writer::div(s(booking_time::label()), 'small text-muted mb-3');
 if ($error !== '') {
     echo $OUTPUT->notification($error, 'error');
 }

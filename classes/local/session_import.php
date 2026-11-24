@@ -52,8 +52,7 @@ class session_import {
         ], null, 'A2');
         $sheet->getStyle('A2:I2')->getFont()->setItalic(true);
         $sheet->getComment('A2')->getText()->createTextRun(
-            'Example data only. Replace or delete row 2 before importing. Use your configured period times. '
-                . booking_time::label()
+            'Example data only. Replace or delete row 2 before importing. Use your configured period times.'
         );
 
         $file = make_request_directory() . '/mrbs-session-template.xlsx';

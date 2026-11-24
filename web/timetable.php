@@ -120,7 +120,6 @@ if (\block_mrbs\local\faculty_planning::courses()) {
     echo html_writer::link(new moodle_url('/blocks/mrbs/web/faculty_session_planning.php'),
         get_string('plansession', 'block_mrbs'), ['class' => 'btn btn-primary mb-3']);
 }
-echo html_writer::div(s(\block_mrbs\local\booking_time::label()), 'small text-muted mb-3');
 echo html_writer::start_tag('nav', [
     'class' => 'border rounded p-3 mb-4 d-flex flex-wrap justify-content-between align-items-center',
     'aria-label' => get_string('timetablenavigation', 'block_mrbs'),
