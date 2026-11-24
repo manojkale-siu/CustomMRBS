@@ -900,7 +900,7 @@ function notifyAdminOnBooking($new_entry, $new_id, $modified_enddate = null) {
                                 removeMailUnicode($mail_previous['namebooker']), $new_entry)."\n";
 
         // Description:
-        $body .= get_string('description').": ";
+        $body .= get_string('fulldescription', 'block_mrbs').": ";
         $body .= compareEntries(removeMailUnicode($description),
                                 removeMailUnicode($mail_previous['description']), $new_entry)."\n";
 
@@ -1095,7 +1095,7 @@ function notifyAdminOnDelete($mail_previous) {
     // Displays deleted entry details
     $body .= "\n".get_string('namebooker', 'block_mrbs').': ';
     $body .= removeMailUnicode($mail_previous['namebooker'])."\n";
-    $body .= get_string('description').": ";
+    $body .= get_string('fulldescription', 'block_mrbs').": ";
     $body .= removeMailUnicode($mail_previous['description'])."\n";
     $body .= get_string('room', 'block_mrbs').": ";
     $body .= removeMailUnicode($mail_previous['area_name']);

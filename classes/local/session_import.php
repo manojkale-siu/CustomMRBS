@@ -16,10 +16,17 @@ defined('MOODLE_INTERNAL') || die();
  */
 class session_import {
     private const HEADERS = [
-        'Date', 'Start Time', 'End Time', 'Area', 'Room', 'Course Short Name', 'Faculty Username', 'Group', 'Description',
+        'Date', 'Start Time', 'End Time', 'Area', 'Room', 'Course Short Name', 'Faculty Username', 'Group', 'Description/Topics',
     ];
     private const MAX_ROWS = 500;
     public const MAX_BYTES = 2 * 1024 * 1024;
+
+    /** Accept previously downloaded templates while exporting the current label. */
+    private static function headers_match(array $headers): bool {
+        $legacy = self::HEADERS;
+        $legacy[8] = 'Description';
+        return $headers === self::HEADERS || $headers === $legacy;
+    }
 
     public static function download_template(): void {
         $workbook = new Spreadsheet();
@@ -27,6 +34,9 @@ class session_import {
         $sheet->setTitle('Sessions');
         $sheet->fromArray(self::HEADERS, null, 'A1');
         $sheet->getStyle('A1:I1')->getFont()->setBold(true);
+        $sheet->getComment('I1')->getText()->createTextRun(
+            'Description/Topics: enter the session topics or a short description. This field is required.'
+        );
         $sheet->freezePane('A2');
         foreach (array_combine(range('A', 'I'), [15, 14, 14, 25, 25, 25, 25, 25, 48]) as $column => $width) {
             $sheet->getColumnDimension($column)->setWidth($width);
@@ -38,7 +48,7 @@ class session_import {
         // Demonstrate each column using sample values that the user replaces.
         $sheet->fromArray([
             '2030-01-15', '09:00', '09:30', 'Example Area', 'Example Room',
-            'COURSE101', 'faculty.username', 'Group A', 'Example session - replace or delete this row',
+            'COURSE101', 'faculty.username', 'Group A', 'Example session topics - replace or delete this row',
         ], null, 'A2');
         $sheet->getStyle('A2:I2')->getFont()->setItalic(true);
         $sheet->getComment('A2')->getText()->createTextRun(
@@ -81,7 +91,7 @@ class session_import {
         }
         try {
             $sheet = $workbook->getSheetByName('Sessions');
-            if (!$sheet || $sheet->rangeToArray('A1:I1', null, false, false)[0] !== self::HEADERS) {
+            if (!$sheet || !self::headers_match($sheet->rangeToArray('A1:I1', null, false, false)[0])) {
                 throw new \moodle_exception('sessionimportheaders', 'block_mrbs');
             }
             $lastrow = $sheet->getHighestDataRow();

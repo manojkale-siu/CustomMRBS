@@ -257,7 +257,7 @@ print_header_mrbs($day, $month, $year, $area);
         }
         // null strings and spaces only strings not allowed
         if (/(^$)|(^\s+$)/.test(document.forms["main"].description.value)) {
-            alert("<?php echo get_string('you_have_not_entered', 'block_mrbs').'\n'.get_string('description') ?>");
+            alert("<?php echo get_string('you_have_not_entered', 'block_mrbs').'\n'.get_string('fulldescription', 'block_mrbs') ?>");
             return false;
         }
         <?php if( !$enable_periods ) { ?>

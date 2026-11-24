@@ -245,7 +245,7 @@ print_header_mrbs($day, $month, $year, $area);
 
     <table border=0>
         <tr>
-            <td><b><?php echo get_string('description') ?></b></td>
+            <td><b><?php echo get_string('fulldescription', 'block_mrbs') ?></b></td>
             <td><?php echo nl2br($description) ?></td>
         </tr>
         <tr>

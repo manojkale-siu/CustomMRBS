@@ -161,7 +161,7 @@ if ($has_prev || $has_next) {
         <TH><?php echo get_string('createdby', 'block_mrbs') ?></TH>
         <TH><?php echo get_string('namebooker', 'block_mrbs') ?></TH>
         <TH><?php echo get_string('room', 'block_mrbs') ?></TH>
-        <TH><?php echo get_string('description', 'block_mrbs') ?></TH>
+        <TH><?php echo get_string('fulldescription', 'block_mrbs') ?></TH>
         <TH><?php echo get_string('start_date', 'block_mrbs') ?></TH>
     </TR>
     </thead>

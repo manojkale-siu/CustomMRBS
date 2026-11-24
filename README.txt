@@ -3,7 +3,7 @@ MRBS - Meeting Room Booking System
 Moodle block component: block_mrbs
 Repository: https://github.com/manojkale-siu/CustomMRBS
 Issues: https://github.com/manojkale-siu/CustomMRBS/issues
-Documentation updated: 21 November 2026
+Documentation updated: 24 November 2026
 
 This customized MRBS block schedules rooms and course sessions, provides personal
 timetables, and synchronizes linked sessions with Moodle Attendance. All block
@@ -94,6 +94,9 @@ Room capacity 0 means unspecified; it does not mean that the room has zero seats
 - A late-enrolled student can see existing sessions; session creation date does
   not exclude the student. Current membership is checked when viewing.
 - A person holding both Teacher and Student roles retains both visibility paths.
+  The personal timetable heading identifies Student view, Faculty view, or both.
+  Each displayed session has an Open course button that opens its course in a
+  new tab; the course page still enforces Moodle access permissions.
 - Installation creates the system-context roles mrbsviewer, mrbseditor and
   mrbsadmin if they do not already exist. Explicit MRBS role assignments can
   provide broader calendar viewing or editing according to the configured
@@ -111,7 +114,7 @@ accounts on the actual Moodle site.
 --------------------------------------------
 Use the Day, Week or Month staff calendar to open an available slot. Select the
 programme, batch, semester, course, faculty, optional group, room, time, duration
-and description. Recurring bookings are supported through the repeat controls.
+and Description/Topics. Recurring bookings are supported through the repeat controls.
 
 Faculty must have an applicable teaching role and active enrolment in the
 selected course. Unavailable faculty remain visible as disabled choices with
@@ -197,11 +200,13 @@ do not assume every notification path in the plugin is email-free.
 2) Download the Excel template. Replace or delete its example row.
 3) Keep the worksheet name Sessions and these headers unchanged:
       Date | Start Time | End Time | Area | Room | Course Short Name |
-      Faculty Username | Group | Description
+      Faculty Username | Group | Description/Topics
 4) Use YYYY-MM-DD dates and 24-hour HH:MM times in the Moodle site timezone.
    Use existing area/room names, course short names and faculty usernames.
    Group must match a course group name, or be blank for All groups.
-5) Enter one session per row and upload the completed .xlsx workbook.
+5) Fill Description/Topics for each session and upload the completed .xlsx workbook.
+   New templates use Description/Topics; older templates with Description are
+   still accepted. The database field remains description.
 
 Limits: 500 data rows and a 2 MiB upload; expanded archive size is also bounded.
 Formula cells are rejected. Import validates configured hours, room access,

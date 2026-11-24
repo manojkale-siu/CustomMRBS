@@ -193,7 +193,7 @@ function reporton(&$item, &$last_area_room, &$last_date, $sortby, $display) {
     }
 
     // Description:
-    echo "<tr><td class=\"BL\" colspan=2><b>".get_string('description')."</b> ".
+    echo "<tr><td class=\"BL\" colspan=2><b>".get_string('fulldescription', 'block_mrbs')."</b> ".
         nl2br(s($item->description))."</td></tr>\n";
 
     // Entry Type:
