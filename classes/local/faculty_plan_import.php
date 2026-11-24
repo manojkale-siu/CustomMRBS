@@ -26,6 +26,7 @@ class faculty_plan_import {
     }
 
     public static function download_template(): void {
+        excel_library::load();
         $workbook = new Spreadsheet();
         $sheet = $workbook->getActiveSheet();
         $sheet->setTitle('Faculty Plans');
@@ -44,6 +45,7 @@ class faculty_plan_import {
     }
 
     public static function read(string $file): array {
+        excel_library::load();
         if (filesize($file) > self::MAX_BYTES) {
             throw new \moodle_exception('sessionimportfileerror', 'block_mrbs');
         }

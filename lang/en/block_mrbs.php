@@ -566,3 +566,5 @@ $string['planningselect'] = 'Faculty session topics';
 $string['planningtruncated'] = 'The server did not receive every session field. No sessions were saved. Submit fewer sessions at once or use Excel import.';
 
 $string['helpdocumentation'] = 'For more information, view the MRBS documentation on Google Drive (opens in a new tab).';
+
+$string['spreadsheetunavailable'] = 'The Moodle Excel library could not be loaded. Ask your administrator to verify the Moodle core files under lib/phpspreadsheet and purge caches, then retry.';

@@ -64,6 +64,7 @@ final class faculty_planning {
     public static function validate_row(array $values): \stdClass {
         [$date, $from, $to, $topics] = array_pad($values, 4, '');
         if (is_int($date) || is_float($date)) {
+            excel_library::load();
             $date = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($date)->format('Y-m-d');
         }
         if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/D', (string)$date, $d)

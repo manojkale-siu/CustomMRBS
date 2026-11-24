@@ -29,6 +29,7 @@ class session_import {
     }
 
     public static function download_template(): void {
+        excel_library::load();
         $workbook = new Spreadsheet();
         $sheet = $workbook->getActiveSheet();
         $sheet->setTitle('Sessions');
@@ -62,6 +63,7 @@ class session_import {
     }
 
     public static function read(string $file): array {
+        excel_library::load();
         // Bound the expanded archive before the spreadsheet reader loads it.
         $archive = new \ZipArchive();
         if ($archive->open($file) !== true) {
@@ -175,6 +177,7 @@ class session_import {
 
         [$date, $from, $to, $areaname, $roomname, $shortname, $username, $groupname, $description] = $values;
         if (is_int($date) || is_float($date)) {
+            excel_library::load();
             $date = Date::excelToDateTimeObject($date)->format('Y-m-d');
         }
         $date = (string)$date;
