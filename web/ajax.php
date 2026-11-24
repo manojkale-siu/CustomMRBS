@@ -43,6 +43,7 @@ $params = [
     'batchid' => optional_param('batchid', 0, PARAM_INT),
     'semesterid' => optional_param('semesterid', 0, PARAM_INT),
     'courseid' => optional_param('courseid', 0, PARAM_INT),
+    'facultyid' => optional_param('facultyid', 0, PARAM_INT),
     'groupid' => optional_param('groupid', 0, PARAM_INT),
     'rooms' => optional_param_array('rooms', [], PARAM_INT),
 ];

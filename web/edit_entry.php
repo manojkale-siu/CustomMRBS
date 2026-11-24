@@ -300,6 +300,7 @@ $PAGE->requires->js_call_amd('block_mrbs/booking_selectors', 'init', [[
     'batchPlaceholder' => get_string('selectbatch', 'block_mrbs'),
     'semesterPlaceholder' => get_string('selectsemester', 'block_mrbs'),
     'coursePlaceholder' => get_string('selectcourse', 'block_mrbs'),
+    'planPlaceholder' => get_string('planningnotdisclosed', 'block_mrbs'),
     'facultyPlaceholder' => get_string('selectfaculty', 'block_mrbs'),
     'groupPlaceholder' => get_string('selectgroup', 'block_mrbs'),
     'allGroupsLabel' => get_string('allgroups', 'block_mrbs'),
@@ -529,6 +530,10 @@ print_header_mrbs($day, $month, $year, $area);
         </div>
 
         <div class="form-group">
+            <label class="font-weight-bold" for="mrbs-facultyplanid"><?php echo get_string('planningselect', 'block_mrbs'); ?></label>
+            <select class="custom-select w-100 mb-3" id="mrbs-facultyplanid" name="facultyplanid">
+                <option value="0"><?php echo get_string('planningnotdisclosed', 'block_mrbs'); ?></option>
+            </select>
             <label class="font-weight-bold" for="mrbs-description"><?php echo get_string('fulldescription', 'block_mrbs'); ?></label>
             <div><textarea class="form-control" id="mrbs-description" name="description" rows="4" required><?php echo
                     htmlspecialchars($description); ?></textarea></div>

@@ -191,11 +191,18 @@ if (authGetUserLevel(getUserName()) < 2 && $editunconfirmed) {
 require_sesskey();
 
 $description = trim($description);
-if ($description == '') {
-    print_header_mrbs($day, $month, $year, $area);
-    echo('<h1>'.get_string('invalid_booking', 'block_mrbs').'<h1>');
-    echo get_string('must_set_description', 'block_mrbs');
-    echo $OUTPUT->footer();
+$facultyplanid = optional_param('facultyplanid', 0, PARAM_INT);
+try {
+    if ($facultyplanid) {
+        $plantopics = \block_mrbs\local\faculty_planning::booking_topics($facultyplanid, $courseid, $facultyid);
+        if ($description === '') {
+            $description = $plantopics;
+        }
+    } else if ($description === '') {
+        $description = get_string('planningnotdisclosed', 'block_mrbs');
+    }
+} catch (moodle_exception $error) {
+    block_mrbs_print_user_error($day, $month, $year, $area, $error->getMessage());
     exit;
 }
 

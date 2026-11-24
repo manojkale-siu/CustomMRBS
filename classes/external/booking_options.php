@@ -39,6 +39,10 @@ class booking_options {
             case 'groups':
                 return ['results' => \block_mrbs\local\booking_options::get_groups($params['courseid'] ?? 0)];
 
+            case 'facultyplans':
+                return ['results' => \block_mrbs\local\faculty_planning::booking_plans(
+                    $params['courseid'] ?? 0, $params['facultyid'] ?? 0)];
+
             case 'capacity':
                 return [
                     'results' => \block_mrbs\local\booking_validator::check_room_capacity(
