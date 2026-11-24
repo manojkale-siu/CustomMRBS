@@ -530,3 +530,6 @@ $string['attendancecalendarfailed'] = 'The Attendance calendar event could not b
 $string['bookingsaveerrorreference'] = 'Error reference: {$a}. Your administrator can use this reference to find the underlying error in the server log.';
 
 $string['navigationregistrationfailed'] = 'The MRBS navigation link could not be saved in the site custom menu settings. Please retry the installation or upgrade.';
+
+$string['opencourse'] = 'Open course';
+$string['opencoursenewtab'] = 'Open course: {$a} (opens in a new tab)';

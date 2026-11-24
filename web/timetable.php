@@ -271,6 +271,11 @@ foreach ($filteredentries as $entry) {
             . ' · ' . get_string('group') . ': ' . $group,
         'small mt-2'
     );
+    $courseurl = new moodle_url('/course/view.php', ['id' => (int)$entry->courseid]);
+    echo html_writer::div(html_writer::link($courseurl, get_string('opencourse', 'block_mrbs'), [
+        'class' => 'btn btn-sm btn-primary', 'target' => '_blank', 'rel' => 'noopener noreferrer',
+        'aria-label' => get_string('opencoursenewtab', 'block_mrbs', strip_tags($course['name'])),
+    ]), 'mt-3');
     echo html_writer::end_div();
     echo html_writer::end_div();
     echo html_writer::end_tag('li');
