@@ -287,5 +287,26 @@ function xmldb_block_mrbs_upgrade($oldversion=0) {
         upgrade_block_savepoint(true, 2026112100, 'mrbs');
     }
 
+    if ($oldversion < 2026112400) {
+        $table = new xmldb_table('block_mrbs_faculty_plan');
+        if (!$dbman->table_exists($table)) {
+            $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE);
+            $table->add_field('courseid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+            $table->add_field('facultyid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+            $table->add_field('start_time', XMLDB_TYPE_INTEGER, '11', null, XMLDB_NOTNULL);
+            $table->add_field('end_time', XMLDB_TYPE_INTEGER, '11', null, XMLDB_NOTNULL);
+            $table->add_field('topics', XMLDB_TYPE_TEXT, null, null, XMLDB_NOTNULL);
+            $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+            $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+            $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+            $table->add_key('course_fk', XMLDB_KEY_FOREIGN, ['courseid'], 'course', ['id']);
+            $table->add_key('faculty_fk', XMLDB_KEY_FOREIGN, ['facultyid'], 'user', ['id']);
+            $table->add_index('facultytime_ix', XMLDB_INDEX_NOTUNIQUE, ['facultyid', 'start_time']);
+            $table->add_index('coursefaculty_ix', XMLDB_INDEX_NOTUNIQUE, ['courseid', 'facultyid']);
+            $dbman->create_table($table);
+        }
+        upgrade_block_savepoint(true, 2026112400, 'mrbs');
+    }
+
     return true;
 }
