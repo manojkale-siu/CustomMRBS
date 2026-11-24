@@ -56,6 +56,10 @@ $contact = html_writer::link('mailto:' . $mrbs_admin_email, s($mrbs_admin));
 echo html_writer::tag('p', get_string('please_contact', 'block_mrbs') . $contact
     . ' ' . get_string('for_any_questions', 'block_mrbs'));
 
+echo html_writer::tag('p', html_writer::link(
+    'https://drive.google.com/drive/folders/1uiyhfpDLSsOAYU9H7n3jEqtbaPN_hLd1?usp=drive_link',
+    get_string('helpdocumentation', 'block_mrbs'), ['target' => '_blank', 'rel' => 'noopener noreferrer']));
+
 $lang = current_language();
 if (file_exists($CFG->dirroot.'/blocks/mrbs/lang/'.$lang.'/help/site_faq.html')) {
     include $CFG->dirroot.'/blocks/mrbs/lang/'.$lang.'/help/site_faq.html';
