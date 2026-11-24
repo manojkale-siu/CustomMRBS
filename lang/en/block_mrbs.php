@@ -533,3 +533,6 @@ $string['navigationregistrationfailed'] = 'The MRBS navigation link could not be
 
 $string['opencourse'] = 'Open course';
 $string['opencoursenewtab'] = 'Open course: {$a} (opens in a new tab)';
+
+$string['timetablestudentview'] = 'Student view';
+$string['timetablefacultyview'] = 'Faculty view';

@@ -28,6 +28,10 @@ if (!timetable_access::can_view_personal()) {
 }
 
 $title = get_string('mytimetable', 'block_mrbs');
+$viewlabel = timetable_access::personal_view_label();
+if ($viewlabel !== '') {
+    $title .= ' - ' . $viewlabel;
+}
 $PAGE->set_title($title);
 $PAGE->set_heading($title);
 

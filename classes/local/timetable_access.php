@@ -116,6 +116,23 @@ class timetable_access {
         return isloggedin() && !isguestuser() && (self::profile()['learner'] || self::can_view_calendar());
     }
 
+    /** Describe the current user's learner roles without changing access or entries. */
+    public static function personal_view_label(): string {
+        $profile = self::profile();
+        $roles = $profile['system'];
+        foreach ($profile['bycourse'] as $courseroles) {
+            $roles += $courseroles;
+        }
+        $labels = [];
+        if (isset($roles['student'])) {
+            $labels[] = get_string('timetablestudentview', 'block_mrbs');
+        }
+        if (self::is_teacher($roles)) {
+            $labels[] = get_string('timetablefacultyview', 'block_mrbs');
+        }
+        return implode(' / ', $labels);
+    }
+
     public static function entries($start, $end) {
         global $DB, $USER;
 
