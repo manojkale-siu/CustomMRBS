@@ -18,7 +18,6 @@
 require_once(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php');
 include "config.inc.php";
 include "functions.php";
-include "version.php";
 
 global $USER, $CFG, $PAGE;
 
@@ -64,14 +63,6 @@ if (file_exists($CFG->dirroot.'/blocks/mrbs/lang/'.$lang.'/help/site_faq.html'))
     include $CFG->dirroot.'/blocks/mrbs/lang/en/help/site_faq.html';
 }
 
-echo html_writer::end_div();
-echo html_writer::end_div();
-
-echo html_writer::start_div('card my-3');
-echo html_writer::start_div('card-body');
-echo $OUTPUT->heading(get_string('about_mrbs', 'block_mrbs'), 3, 'h5');
-echo html_writer::tag('p', html_writer::link('https://mrbs.sourceforge.net', get_string('mrbs', 'block_mrbs'))
-    . ' – ' . s(get_mrbs_version()), ['class' => 'mb-0']);
 echo html_writer::end_div();
 echo html_writer::end_div();
 
