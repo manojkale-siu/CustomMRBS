@@ -369,3 +369,7 @@ semantic equivalence. Historical Attendance without confirmed plan evidence is
 counted separately. The mandatory selection patch must be deployed to capture new
 evidence. Unknown institutional data (credits, curriculum weeks, academic-year
 labels) is not invented from the reference spreadsheet examples.
+
+The Attendance patch preserves native marking form/pagination URLs. Its local
+bridge fails closed if MRBS cannot load. Reverse this integration patch before
+uninstalling MRBS.

@@ -102,10 +102,11 @@ final class faculty_planning {
             return get_string('planningnoresource', 'block_mrbs');
         }
         $info = get_fast_modinfo($plan->courseid);
-        if (!isset($info->cms[$plan->resourcecmid])) {
+        $cms = $info->get_cms();
+        if (!isset($cms[$plan->resourcecmid])) {
             return get_string('planningresourceunavailable', 'block_mrbs');
         }
-        $cm = $info->get_cm($plan->resourcecmid);
+        $cm = $cms[$plan->resourcecmid];
         if (!$cm->uservisible || !$cm->url || $cm->deletioninprogress) {
             return get_string('planningresourceunavailable', 'block_mrbs');
         }

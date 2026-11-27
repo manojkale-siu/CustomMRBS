@@ -37,6 +37,7 @@ class faculty_plan_import {
             $sheet->getColumnDimension($column)->setWidth($width);
         }
         $sheet->fromArray(['2030-01-15', 'Example topics - replace or delete this row', 'Lecture', 0, 'Quiz', 'Example only'], null, 'A2');
+        $sheet->setCellValue('D2', 0);
         $sheet->getComment('A2')->getText()->createTextRun('Example only. Replace/delete this row.');
         foreach (['C' => faculty_planning::METHODOLOGIES, 'E' => faculty_planning::ASSESSMENTS] as $column => $options) {
             $validation = $sheet->getCell($column . '2')->getDataValidation();
@@ -49,6 +50,7 @@ class faculty_plan_import {
         $reference->setTitle('Course Resources');
         $reference->fromArray(['Teaching Resource ID', 'Course activity'], null, 'A1');
         $reference->fromArray([0, 'No linked activity'], null, 'A2');
+        $reference->setCellValue('A2', 0);
         $row = 3;
         foreach (faculty_planning::resources($courseid) as $id => $name) {
             $reference->setCellValue('A' . $row, $id);
