@@ -116,6 +116,11 @@ $timetableurl = static function (DateTimeImmutable $date, string $view): moodle_
 };
 
 echo $OUTPUT->header();
+if (\block_mrbs\local\faculty_planning::viewable_courses()) {
+    echo html_writer::link(new moodle_url('/blocks/mrbs/web/session_planning.php'),
+        get_string('planningstudentview', 'block_mrbs'), ['class' => 'btn btn-secondary mb-3 mr-2']);
+}
+
 if (\block_mrbs\local\faculty_planning::courses()) {
     echo html_writer::link(new moodle_url('/blocks/mrbs/web/faculty_session_planning.php'),
         get_string('plansession', 'block_mrbs'), ['class' => 'btn btn-primary mb-3']);

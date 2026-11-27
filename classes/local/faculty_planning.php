@@ -53,6 +53,25 @@ final class faculty_planning {
         return implode(' / ', $names);
     }
 
+    public static function viewable_courses(): array {
+        global $USER, $DB;
+        $user = $DB->get_record('user', ['id' => $USER->id, 'deleted' => 0, 'suspended' => 0]);
+        if (!$user) {
+            return [];
+        }
+        return array_filter(enrol_get_users_courses($USER->id, true), static function ($course) use ($user) {
+            return is_enrolled(\context_course::instance($course->id), $user, '', true);
+        });
+    }
+
+    public static function visible_plans(int $courseid): array {
+        global $DB;
+        if (!isset(self::viewable_courses()[$courseid])) {
+            throw new \moodle_exception('planningviewdenied', 'block_mrbs');
+        }
+        return $DB->get_records('block_mrbs_faculty_plan', ['courseid' => $courseid], 'proposeddate, facultyid, id');
+    }
+
     public static function require_course(int $courseid): void {
         global $USER;
         if (!self::teaches_course((int)$USER->id, $courseid)) {

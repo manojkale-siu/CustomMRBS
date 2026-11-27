@@ -579,3 +579,8 @@ $string['planningresourceunavailable'] = 'Activity unavailable';
 $string['planninginvalidresource'] = 'Choose an available activity from the selected course, or use 0 for no linked activity.';
 $string['planninginvalidmethod'] = 'Select a valid Teaching Methodology and Assessment Method from the dropdown lists.';
 $string['planningremarklimit'] = 'Remarks cannot exceed 10,000 characters.';
+
+$string['planningstudentview'] = 'Course session plans';
+$string['planningviewdenied'] = 'Session plans are available only for courses in which you are actively enrolled.';
+$string['planningviewintro'] = 'These are faculty proposals, not confirmed room bookings. Linked materials open only when Moodle makes the activity available to you.';
+$string['planningnone'] = 'No faculty session plans are available for this course yet.';

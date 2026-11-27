@@ -39,6 +39,19 @@ final class faculty_planning_test extends \advanced_testcase {
         local\faculty_planning::delete((int)array_key_first($plans), $course->id);
     }
 
+    public function test_student_reads_only_enrolled_course_plans(): void {
+        $this->resetAfterTest();
+        [$course] = $this->setup_faculty();
+        local\faculty_planning::save($course->id, [2 => ['2030-01-15', 'Topic', 'Lecture', 0, 'Quiz', '']]);
+        $student = $this->getDataGenerator()->create_user();
+        $this->getDataGenerator()->enrol_user($student->id, $course->id, 'student');
+        $othercourse = $this->getDataGenerator()->create_course();
+        $this->setUser($student);
+        $this->assertCount(1, local\faculty_planning::visible_plans($course->id));
+        $this->expectException(\moodle_exception::class);
+        local\faculty_planning::visible_plans($othercourse->id);
+    }
+
     public function test_invalid_proposed_date_is_rejected(): void {
         $this->resetAfterTest();
         $this->expectException(\moodle_exception::class);
