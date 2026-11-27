@@ -24,7 +24,8 @@ final class planning {
                 $delete = '<form method="post" action="' . $editurl->out() . '"><input type="hidden" name="sesskey" value="' . sesskey()
                     . '"><input type="hidden" name="action" value="delete"><input type="hidden" name="planid" value="' . $plan->id
                     . '"><button class="btn btn-outline-danger btn-sm" type="submit">' . get_string('delete') . '</button></form>';
-                $row[] = $edit . $delete;
+                $row[] = \block_mrbs\local\attendance_planning::is_locked($plan->id)
+                    ? \html_writer::span(get_string('planningtakenlocked', 'block_mrbs'), 'text-muted') : $edit . $delete;
             }
             $table->data[] = $row;
         }

@@ -332,5 +332,29 @@ function xmldb_block_mrbs_upgrade($oldversion=0) {
         upgrade_block_savepoint(true, 2026112700, 'mrbs');
     }
 
+    if ($oldversion < 2026112701) {
+        $table = new xmldb_table('block_mrbs_plan_use');
+        if (!$dbman->table_exists($table)) {
+            $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE);
+            $table->add_field('sessionid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('planid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('courseid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('facultyid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('proposeddate', XMLDB_TYPE_INTEGER, '11', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('plannedtopics', XMLDB_TYPE_TEXT, null, null, XMLDB_NOTNULL, null);
+            $table->add_field('taughttopics', XMLDB_TYPE_TEXT, null, null, XMLDB_NOTNULL, null);
+            $table->add_field('selectedby', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('conducteddate', XMLDB_TYPE_INTEGER, '11', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('confirmedat', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+            $table->add_key('session_uix', XMLDB_KEY_UNIQUE, ['sessionid']);
+            $table->add_index('plan_ix', XMLDB_INDEX_NOTUNIQUE, ['planid']);
+            $table->add_index('coursefaculty_ix', XMLDB_INDEX_NOTUNIQUE, ['courseid', 'facultyid']);
+            $dbman->create_table($table);
+        }
+        upgrade_block_savepoint(true, 2026112701, 'mrbs');
+    }
+
     return true;
 }

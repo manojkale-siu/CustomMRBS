@@ -52,6 +52,30 @@ final class faculty_planning_test extends \advanced_testcase {
         local\faculty_planning::visible_plans($othercourse->id);
     }
 
+    public function test_confirmed_attendance_prevents_plan_edit_and_delete(): void {
+        global $DB, $USER;
+        $this->resetAfterTest();
+        [$course] = $this->setup_faculty();
+        $row = ['2030-01-15', 'Topic', 'Lecture', 0, 'Quiz', ''];
+        local\faculty_planning::save($course->id, [2 => $row]);
+        $id = (int)array_key_first(local\faculty_planning::plans($course->id));
+        $DB->insert_record('block_mrbs_plan_use', (object)[
+            'sessionid' => 123, 'planid' => $id, 'courseid' => $course->id,
+            'facultyid' => $USER->id, 'proposeddate' => 0, 'plannedtopics' => 'Topic',
+            'taughttopics' => 'Topic', 'selectedby' => $USER->id, 'timecreated' => time(),
+            'confirmedat' => time(), 'conducteddate' => time(),
+        ]);
+        $this->assertTrue(local\attendance_planning::is_locked($id));
+        try {
+            local\faculty_planning::save($course->id, [2 => $row], $id);
+            $this->fail('A confirmed plan must not be editable.');
+        } catch (\moodle_exception $e) {
+            $this->assertSame('planningtakenlocked', $e->errorcode);
+        }
+        $this->expectException(\moodle_exception::class);
+        local\faculty_planning::delete($id, $course->id);
+    }
+
     public function test_invalid_proposed_date_is_rejected(): void {
         $this->resetAfterTest();
         $this->expectException(\moodle_exception::class);

@@ -327,3 +327,24 @@ Planning remains separate from room booking and Attendance. Booking no longer
 fetches planned topics; enter Description/Topics manually. Empty descriptions keep
 the Not planned/disclosed by faculty fallback. Run the Moodle upgrade, then purge
 caches after deploying this update.
+
+Attendance plan selection (2026112701)
+------------------------------------
+A separate local mod/attendance patch requires staff to select a faculty plan
+and confirm topics actually taught before marking Attendance. MRBS bookings use
+their assigned faculty; standalone Attendance sessions offer course faculty plans.
+Attendance saves and immutable planned/taught snapshots use one transaction and
+shared session/faculty locks. Once taken, the linked plan cannot be edited/deleted.
+Student self-marking, web services and automarking need prior staff selection;
+user-report bulk marking must use individual session marking instead.
+
+The default_attendance_patch/ folder is intentionally ignored and not pushed.
+Its patch targets upstream Attendance build 2024082405 at commit
+b1568f7cd538b699969fd02870552d1f22a2f208. Moodle core 4.5.5 is not the Attendance
+plugin version. Check the installed plugin build and local changes before staging
+and applying the patch. Upgrade MRBS first, run git apply --check from the target
+mod/attendance checkout, apply the patch, then purge caches. No production module
+files are changed by deploying this MRBS repository alone. Without the patch,
+Attendance cannot enforce mandatory selection; report evidence remains incomplete.
+Old taken sessions without a selection remain unmapped rather than inventing
+retrospective planned/taught evidence.

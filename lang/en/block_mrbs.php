@@ -584,3 +584,15 @@ $string['planningstudentview'] = 'Course session plans';
 $string['planningviewdenied'] = 'Session plans are available only for courses in which you are actively enrolled.';
 $string['planningviewintro'] = 'These are faculty proposals, not confirmed room bookings. Linked materials open only when Moodle makes the activity available to you.';
 $string['planningnone'] = 'No faculty session plans are available for this course yet.';
+
+$string['planningtakenlocked'] = 'Attendance has been taken for this plan. Editing and deletion are disabled.';
+$string['planningtaughtrequired'] = 'Enter what was actually taught (maximum 10,000 characters).';
+$string['planningselectbeforeattendance'] = 'Select a faculty session plan and record what was taught before taking Attendance. Open the session using its Take Attendance button.';
+$string['planninglegacytaken'] = 'Attendance was already recorded without a plan selection. Historical evidence cannot be added retrospectively.';
+$string['planningattendance'] = 'Select plan before taking Attendance';
+$string['planningattendanceintro'] = 'Select the faculty plan for this session and record what was actually taught. Saving Attendance will lock the linked plan and preserve this planned/taught comparison.';
+$string['planningattendanceempty'] = 'No eligible faculty plan exists. Ask the assigned faculty to create the plan before taking Attendance.';
+$string['planningreview'] = 'Review selected plan';
+$string['planningtaught'] = 'Topics actually taught';
+$string['planningcontinuetake'] = 'Confirm plan and continue to Attendance';
+$string['planningbulktake'] = 'Use each session Take Attendance button to select a faculty plan. Bulk marking from the user report is disabled for this integration.';

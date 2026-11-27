@@ -27,6 +27,9 @@ $editid = optional_param('editid', 0, PARAM_INT);
 $values = [['', '', '', 0, '', '']];
 if ($editid) {
     $plan = faculty_planning::owned_plan($editid, $courseid);
+    if (\block_mrbs\local\attendance_planning::is_locked($editid)) {
+        throw new moodle_exception('planningtakenlocked', 'block_mrbs');
+    }
     $values = [[booking_time::date('Y-m-d', $plan->proposeddate), $plan->topics, $plan->methodology,
         $plan->resourcecmid, $plan->assessment, $plan->remarks ?? '']];
 }

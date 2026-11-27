@@ -121,5 +121,27 @@
         <INDEX NAME="coursefaculty_ix" UNIQUE="false" FIELDS="courseid,facultyid"/>
       </INDEXES>
     </TABLE>
+    <TABLE NAME="block_mrbs_plan_use" COMMENT="Attendance selection and immutable planned versus taught snapshot">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="sessionid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
+        <FIELD NAME="planid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
+        <FIELD NAME="courseid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
+        <FIELD NAME="facultyid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
+        <FIELD NAME="proposeddate" TYPE="int" LENGTH="11" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
+        <FIELD NAME="plannedtopics" TYPE="text" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="taughttopics" TYPE="text" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="selectedby" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
+        <FIELD NAME="conducteddate" TYPE="int" LENGTH="11" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="confirmedat" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
+      </FIELDS>
+      <KEYS><KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="session_uix" TYPE="unique" FIELDS="sessionid"/>
+      </KEYS>
+      <INDEXES><INDEX NAME="plan_ix" UNIQUE="false" FIELDS="planid"/>
+        <INDEX NAME="coursefaculty_ix" UNIQUE="false" FIELDS="courseid,facultyid"/>
+      </INDEXES>
+    </TABLE>
   </TABLES>
 </XMLDB>

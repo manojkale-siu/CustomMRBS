@@ -191,6 +191,9 @@ final class faculty_planning {
         return self::write(static function () use ($courseid, $rows, $editid, $DB, $USER) {
             self::require_course($courseid);
             $existing = $editid ? self::owned_plan($editid, $courseid) : null;
+            if ($existing && attendance_planning::is_locked($editid)) {
+                throw new \moodle_exception('planningtakenlocked', 'block_mrbs');
+            }
             $count = 0;
             foreach ($rows as $number => $values) {
                 if (!array_filter($values, static function ($value) { return $value !== '' && $value !== null; })) {
@@ -228,6 +231,10 @@ final class faculty_planning {
         global $DB;
         self::write(static function () use ($id, $courseid, $DB) {
             self::owned_plan($id, $courseid);
+            if (attendance_planning::is_locked($id)) {
+                throw new \moodle_exception('planningtakenlocked', 'block_mrbs');
+            }
+            $DB->delete_records('block_mrbs_plan_use', ['planid' => $id]);
             $DB->delete_records('block_mrbs_faculty_plan', ['id' => $id]);
         });
     }
