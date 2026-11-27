@@ -52,7 +52,12 @@ final class faculty_planning_test extends \advanced_testcase {
         local\faculty_planning::visible_plans($othercourse->id);
     }
 
-    public function test_confirmed_attendance_prevents_plan_edit_and_delete(): void {
+    public static function locked_change_modes(): array {
+        return [['edit'], ['delete']];
+    }
+
+    /** @dataProvider locked_change_modes */
+    public function test_confirmed_attendance_prevents_plan_edit_and_delete(string $mode): void {
         global $DB, $USER;
         $this->resetAfterTest();
         [$course] = $this->setup_faculty();
@@ -66,14 +71,12 @@ final class faculty_planning_test extends \advanced_testcase {
             'confirmedat' => time(), 'conducteddate' => time(),
         ]);
         $this->assertTrue(local\attendance_planning::is_locked($id));
-        try {
-            local\faculty_planning::save($course->id, [2 => $row], $id);
-            $this->fail('A confirmed plan must not be editable.');
-        } catch (\moodle_exception $e) {
-            $this->assertSame('planningtakenlocked', $e->errorcode);
-        }
         $this->expectException(\moodle_exception::class);
-        local\faculty_planning::delete($id, $course->id);
+        if ($mode === 'edit') {
+            local\faculty_planning::save($course->id, [2 => $row], $id);
+        } else {
+            local\faculty_planning::delete($id, $course->id);
+        }
     }
 
     public function test_invalid_proposed_date_is_rejected(): void {

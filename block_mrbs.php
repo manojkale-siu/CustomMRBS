@@ -39,7 +39,8 @@ class block_mrbs extends block_base {
 
         $cfg_mrbs = get_config('block/mrbs');
 
-        if (\block_mrbs\local\timetable_access::can_view_personal()) {
+        if (\block_mrbs\local\director_access::is_director()
+                || \block_mrbs\local\timetable_access::can_view_personal()) {
             if (isset($CFG->block_mrbs_serverpath)) {
                 $serverpath = $CFG->block_mrbs_serverpath;
             } else {

@@ -348,3 +348,24 @@ files are changed by deploying this MRBS repository alone. Without the patch,
 Attendance cannot enforce mandatory selection; report evidence remains incomplete.
 Old taken sessions without a selection remain unmapped rather than inventing
 retrospective planned/taught evidence.
+
+Director Deviation Report
+-------------------------
+The default MRBS entry link redirects eligible directors to web/deviation_report.php.
+Access requires Moodle profile user_category=Staff, user_status=Active and a
+designation containing Director, plus a nondeleted, unsuspended Moodle account.
+These profile short names match the institution's Course Archival access setup.
+There is no implicit site-admin or MRBS-admin bypass for this report.
+
+Filter by course and faculty. Summary shows faculty, employee code, course short
+name and category path, planned sessions, conducted Attendance sessions, distinct
+plans completed, completion percent, past proposed dates still incomplete and
+sessions with date or topic-text differences. Details preserve planned/taught
+text and proposed/conducted dates as captured when Attendance was taken.
+Completion uses distinct completed plan IDs divided by planned records; reusing a
+plan in several Attendance sessions does not inflate completion. Pending future
+plans are not overdue. Topic comparison normalizes whitespace but does not infer
+semantic equivalence. Historical Attendance without confirmed plan evidence is
+counted separately. The mandatory selection patch must be deployed to capture new
+evidence. Unknown institutional data (credits, curriculum weeks, academic-year
+labels) is not invented from the reference spreadsheet examples.

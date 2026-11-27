@@ -27,6 +27,9 @@ require_once(__DIR__ . '/auth_moodle.php');
 global $DB, $PAGE;
 $PAGE->set_url(new moodle_url('/blocks/mrbs/web/index.php'));
 require_login();
+if (\block_mrbs\local\director_access::is_director()) {
+    redirect(new moodle_url('/blocks/mrbs/web/deviation_report.php'));
+}
 mrbsRequireCalendar();
 
 $day = \block_mrbs\local\booking_time::date("d");
