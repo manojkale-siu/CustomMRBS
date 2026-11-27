@@ -403,3 +403,17 @@ php ../../admin/cli/purge_caches.php
 
 Continue with the PHP commands only after git pull succeeds. The separate
 Attendance patch is Git-ignored and is not downloaded or applied by git pull.
+
+Attendance final-save lock
+--------------------------
+After the first successful Attendance save, further marking or manual corrections
+are blocked, including direct writer calls. The check runs again inside the shared
+session lock; attendance logs or a confirmed snapshot also keep the session locked
+if lasttaken is cleared. Plan review rejects already-taken sessions.
+Use the updated version-specific local Attendance patch: it blocks entry to the
+marking form for taken sessions and displays the full roster on the first marking
+page, so later pages are not left unmarked by the final-save lock. This also means
+self-marking and incremental web-service marking cannot continue after the first
+successful write. Review all attendance before saving. Report viewing is unchanged.
+If an older integration patch is installed, reverse that exact old patch before
+applying the replacement patch; keep a copy of the installed patch for rollback.

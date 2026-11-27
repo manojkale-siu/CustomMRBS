@@ -99,8 +99,17 @@ final class attendance_planning {
     }
 
     /** Called around the actual Attendance writer, not just around its play-button UI. */
+    public static function require_untaken(int $sessionid): void {
+        $use = self::selection($sessionid);
+        if (self::taken(self::session($sessionid)) || ($use && $use->confirmedat)) {
+            throw new \moodle_exception('planningattendancelocked', 'block_mrbs');
+        }
+    }
+
+    /** First successful marking is final; recheck under the shared session lock. */
     public static function record(int $sessionid, callable $writer) {
         global $DB;
+        self::require_untaken($sessionid);
         self::require_selection($sessionid);
         $selected = self::selection($sessionid);
         return self::run($sessionid, (int)$selected->facultyid, static function () use ($sessionid, $writer, $DB, $selected) {
@@ -111,6 +120,7 @@ final class attendance_planning {
                 throw new \moodle_exception('bookingbusy', 'block_mrbs');
             }
             $session = self::session($sessionid);
+            self::require_untaken($sessionid);
             if (!$use->confirmedat && !self::taken($session)) {
                 $plans = self::eligible_plans($session);
                 if (!isset($plans[$use->planid])) { throw new \moodle_exception('planningnotfound', 'block_mrbs'); }

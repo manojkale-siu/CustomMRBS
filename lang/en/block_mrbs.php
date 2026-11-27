@@ -586,6 +586,7 @@ $string['planningviewintro'] = 'These are faculty proposals, not confirmed room 
 $string['planningnone'] = 'No faculty session plans are available for this course yet.';
 
 $string['planningtakenlocked'] = 'Attendance has been taken for this plan. Editing and deletion are disabled.';
+$string['planningattendancelocked'] = 'Attendance has already been taken for this session. Further marking and changes to recorded attendance are not allowed.';
 $string['planningtaughtrequired'] = 'Enter what was actually taught (maximum 10,000 characters).';
 $string['planningselectbeforeattendance'] = 'Select a faculty session plan and record what was taught before taking Attendance. Open the session using its Take Attendance button.';
 $string['planninglegacytaken'] = 'Attendance was already recorded without a plan selection. Historical evidence cannot be added retrospectively.';

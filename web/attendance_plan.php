@@ -17,8 +17,7 @@ $grouptype = optional_param('grouptype', 0, PARAM_INT);
 $takeurl = new moodle_url('/mod/attendance/take.php', ['id' => $cm->id, 'sessionid' => $sessionid, 'grouptype' => $grouptype]);
 $selected = attendance_planning::selection($sessionid);
 if (attendance_planning::taken($session)) {
-    if ($selected) { redirect($takeurl); }
-    throw new moodle_exception('planninglegacytaken', 'block_mrbs');
+    throw new moodle_exception('planningattendancelocked', 'block_mrbs');
 }
 $url = new moodle_url('/blocks/mrbs/web/attendance_plan.php', ['sessionid' => $sessionid, 'grouptype' => $grouptype]);
 $PAGE->set_context($context);
