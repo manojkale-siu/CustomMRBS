@@ -373,3 +373,33 @@ labels) is not invented from the reference spreadsheet examples.
 The Attendance patch preserves native marking form/pagination URLs. Its local
 bridge fails closed if MRBS cannot load. Reverse this integration patch before
 uninstalling MRBS.
+
+Connect an installed plugin to Git (server)
+------------------------------------------
+Replace /path/to/moodle with the actual Moodle directory. The backup preserves
+the installed files before git reset --hard replaces tracked files with the
+GitHub version. Run this initial setup once, using the Moodle deployment account.
+
+cd /path/to/moodle/blocks/mrbs
+
+cp -a . "../mrbs_backup_$(date +%Y%m%d_%H%M%S)"
+
+git init -b main
+git remote add origin https://github.com/manojkale-siu/CustomMRBS.git
+git fetch origin
+git reset --hard origin/main
+git branch --set-upstream-to=origin/main main
+git config pull.ff only
+
+git status
+
+Future server updates
+---------------------
+cd /path/to/moodle/blocks/mrbs
+git pull --ff-only
+
+php ../../admin/cli/upgrade.php --non-interactive
+php ../../admin/cli/purge_caches.php
+
+Continue with the PHP commands only after git pull succeeds. The separate
+Attendance patch is Git-ignored and is not downloaded or applied by git pull.
