@@ -21,14 +21,14 @@ final class faculty_planning_test extends \advanced_testcase {
         $this->assertFalse(local\faculty_planning::teaches_course($student->id, $course->id));
         $this->setUser($student);
         $this->expectException(\moodle_exception::class);
-        local\faculty_planning::save($course->id, [2 => ['2030-01-15', '09:00', '10:00', 'Topic']]);
+        local\faculty_planning::save($course->id, [2 => ['2030-01-15', 'Topic', 'Lecture', 0, 'Quiz', '']]);
     }
 
     public function test_proposal_does_not_create_bookings_and_other_faculty_cannot_edit(): void {
         global $DB;
         $this->resetAfterTest();
         [$course] = $this->setup_faculty();
-        local\faculty_planning::save($course->id, [2 => ['2030-01-15', '09:00', '10:00', "Topic one\nTopic two"]]);
+        local\faculty_planning::save($course->id, [2 => ['2030-01-15', "Topic one\nTopic two", 'Lecture', 0, 'Quiz', '']]);
         $plans = local\faculty_planning::plans($course->id);
         $this->assertCount(1, $plans);
         $this->assertEquals(0, $DB->count_records('block_mrbs_entry'));
@@ -39,9 +39,9 @@ final class faculty_planning_test extends \advanced_testcase {
         local\faculty_planning::delete((int)array_key_first($plans), $course->id);
     }
 
-    public function test_invalid_date_and_backwards_time_are_rejected(): void {
+    public function test_invalid_proposed_date_is_rejected(): void {
         $this->resetAfterTest();
         $this->expectException(\moodle_exception::class);
-        local\faculty_planning::validate_row(['2030-02-30', '10:00', '09:00', 'Topic']);
+        local\faculty_planning::validate_row(['2030-02-30', 'Topic', 'Lecture', 0, 'Quiz', '']);
     }
 }

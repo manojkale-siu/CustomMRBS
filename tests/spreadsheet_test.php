@@ -9,8 +9,8 @@ final class spreadsheet_test extends \advanced_testcase {
         local\excel_library::load();
         $this->assertTrue(class_exists(\PhpOffice\PhpSpreadsheet\Spreadsheet::class));
         foreach ([
-            ['Faculty Plans', ['Date', 'Start Time', 'End Time', 'Topics'],
-                ['2030-01-15', '09:00', '10:00', "Topic one\nTopic two"], local\faculty_plan_import::class],
+            ['Faculty Plans', ['Proposed Date', 'Topics', 'Teaching Methodology', 'Teaching Resource ID', 'Assessment Method', 'Remarks'],
+                ['2030-01-15', "Topic one\nTopic two", 'Lecture', 0, 'Quiz', 'Remark'], local\faculty_plan_import::class],
             ['Sessions', ['Date', 'Start Time', 'End Time', 'Area', 'Room', 'Course Short Name',
                 'Faculty Username', 'Group', 'Description/Topics'],
                 ['2030-01-15', '09:00', '10:00', 'Area A', 'Room A', 'COURSE1', 'teacher1', '', 'Topic one'],

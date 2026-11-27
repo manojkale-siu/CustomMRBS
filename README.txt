@@ -309,24 +309,21 @@ Original MRBS project: https://mrbs.sourceforge.net/
 See COPYING.txt for the GNU General Public License version 3 text. Preserve
 existing source-file copyright and license notices when modifying this fork.
 
-Faculty session planning (2026112400)
+Faculty session planning (2026112700)
 -----------------------------------
-Active enrolled teachers can open Plan session from My timetable. Select an enrolled
-teaching course (shown with its full category path), then enter a date, start/end
-site-local times and topics. Add several sessions or import the Faculty Plans XLSX
-template. Replace/delete the template example first; up to 500 rows / 2 MB. Imports
-are atomic, reject formulas and conflicting faculty proposal times, and identify
-invalid rows. Teachers can edit/delete only their own proposals. Multiple topics
-for one lecture belong on separate lines in its Topics field.
+Active enrolled teachers can propose a lecture using Proposed date, Topics,
+Teaching Methodology, Teaching Resource, Assessment Method and optional Remarks.
+A proposal has no start/end time. Old timing values remain for upgrade compatibility;
+their site-local dates migrate into Proposed date. Multiple plans per day are valid.
 
-Proposals do not reserve rooms or create Attendance. Booking editors select the
-course and faculty, then optionally choose planned topics to copy into
-Description/Topics. The description remains editable and existing bookings keep
-their saved topics even if a proposal changes. Without a plan, booking is allowed
-with "Not planned/disclosed by faculty". No institute/year/outcome metadata is
-requested again. The older administrative reference workbook lacks start/end time
-columns; use the simplified template downloaded from the planning page.
+The current Faculty Plans template uses Proposed Date, Topics, Teaching Methodology,
+Teaching Resource ID, Assessment Method, Remarks. The Course Resources sheet lists
+available course activity IDs; use 0 for no linked activity. Links obey Moodle
+visibility and availability. Replace/delete the example. Maximum 500 rows / 2 MB.
+Formulas and invalid rows are rejected; any failed row rolls back the whole import.
+Replace old time-based faculty templates with the current downloadable template.
 
-After deploying this version, run Moodle's plugin upgrade (Site administration >
-Notifications, or admin/cli/upgrade.php) to create block_mrbs_faculty_plan, then
-purge caches. PHP lint and focused checks do not replace Moodle integration tests.
+Planning remains separate from room booking and Attendance. Booking no longer
+fetches planned topics; enter Description/Topics manually. Empty descriptions keep
+the Not planned/disclosed by faculty fallback. Run the Moodle upgrade, then purge
+caches after deploying this update.

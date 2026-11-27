@@ -60,47 +60,75 @@ final class faculty_planning {
         }
     }
 
-    /** Convert one simplified template/form row into a proposed session. */
-    public static function validate_row(array $values): \stdClass {
-        [$date, $from, $to, $topics] = array_pad($values, 4, '');
+    public const METHODOLOGIES = ['Lecture', 'Discussion', 'Case Study', 'Group Activity',
+        'Problem-Based Learning', 'Project-Based Learning', 'Flipped Classroom', 'Seminar',
+        'Workshop', 'Demonstration', 'Lab / Practical', 'Simulation', 'Other'];
+    public const ASSESSMENTS = ['Quiz', 'Assignment', 'Class Discussion', 'Presentation',
+        'Case Analysis', 'Reflective Activity', 'Practical', 'Poll', 'Exit Ticket', 'Other'];
+
+    /** Use Moodle visibility rules; a material link never grants access to a hidden activity. */
+    public static function resources(int $courseid): array {
+        global $USER;
+        $result = [];
+        foreach (get_fast_modinfo($courseid, $USER->id)->get_cms() as $cm) {
+            if ($cm->uservisible && $cm->url && !$cm->deletioninprogress) {
+                $result[$cm->id] = html_to_text(format_string($cm->name), 0, false);
+            }
+        }
+        return $result;
+    }
+
+    public static function resource_link(\stdClass $plan): string {
+        if (empty($plan->resourcecmid)) {
+            return get_string('planningnoresource', 'block_mrbs');
+        }
+        $info = get_fast_modinfo($plan->courseid);
+        if (!isset($info->cms[$plan->resourcecmid])) {
+            return get_string('planningresourceunavailable', 'block_mrbs');
+        }
+        $cm = $info->get_cm($plan->resourcecmid);
+        if (!$cm->uservisible || !$cm->url || $cm->deletioninprogress) {
+            return get_string('planningresourceunavailable', 'block_mrbs');
+        }
+        return \html_writer::link($cm->url, format_string($cm->name),
+            ['target' => '_blank', 'rel' => 'noopener noreferrer']);
+    }
+
+    /** A proposal has a date, not a reserved room or time interval. */
+    public static function validate_row(array $values, int $courseid = 0): \stdClass {
+        [$date, $topics, $methodology, $resource, $assessment, $remarks] = array_pad($values, 6, '');
         if (is_int($date) || is_float($date)) {
             excel_library::load();
             $date = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($date)->format('Y-m-d');
         }
         if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/D', (string)$date, $d)
                 || (int)$d[1] < 1970 || !checkdate((int)$d[2], (int)$d[3], (int)$d[1])) {
-            throw new \moodle_exception('planninginvalidtime', 'block_mrbs');
-        }
-        $times = [];
-        foreach ([$from, $to] as $value) {
-            if (is_int($value) || is_float($value)) {
-                if ($value >= 0 && $value < 1) {
-                    $minutes = (int)round($value * 1440);
-                    $value = sprintf('%02d:%02d', intdiv($minutes, 60), $minutes % 60);
-                }
-            }
-            if (!preg_match('/^([01]\d|2[0-3]):([0-5]\d)$/D', (string)$value, $t)) {
-                throw new \moodle_exception('planninginvalidtime', 'block_mrbs');
-            }
-            $timestamp = booking_time::mktime((int)$t[1], (int)$t[2], 0, (int)$d[2], (int)$d[3], (int)$d[1]);
-            if (booking_time::date('Y-m-d H:i', $timestamp) !== $date . ' ' . $value) {
-                throw new \moodle_exception('planninginvalidtime', 'block_mrbs');
-            }
-            $times[] = $timestamp;
+            throw new \moodle_exception('planninginvaliddate', 'block_mrbs');
         }
         $topics = trim(clean_param((string)$topics, PARAM_TEXT));
         if ($topics === '' || \core_text::strlen($topics) > 10000) {
             throw new \moodle_exception('planningtopicsrequired', 'block_mrbs');
         }
-        booking_validator::validate_time_range($times[0], $times[1],
-            (bool)get_config('block/mrbs', 'enable_periods'));
-        return (object)['start_time' => $times[0], 'end_time' => $times[1], 'topics' => $topics];
+        if (!in_array($methodology, self::METHODOLOGIES, true) || !in_array($assessment, self::ASSESSMENTS, true)) {
+            throw new \moodle_exception('planninginvalidmethod', 'block_mrbs');
+        }
+        if (!preg_match('/^\d*$/D', (string)$resource)
+                || ((int)$resource && !isset(self::resources($courseid)[(int)$resource]))) {
+            throw new \moodle_exception('planninginvalidresource', 'block_mrbs');
+        }
+        $remarks = trim(clean_param((string)$remarks, PARAM_TEXT));
+        if (\core_text::strlen($remarks) > 10000) {
+            throw new \moodle_exception('planningremarklimit', 'block_mrbs');
+        }
+        return (object)['proposeddate' => booking_time::mktime(0, 0, 0, $d[2], $d[3], $d[1]),
+            'topics' => $topics, 'methodology' => $methodology, 'resourcecmid' => (int)$resource,
+            'assessment' => $assessment, 'remarks' => $remarks];
     }
 
     public static function plans(int $courseid): array {
         global $DB, $USER;
         self::require_course($courseid);
-        return $DB->get_records('block_mrbs_faculty_plan', ['courseid' => $courseid, 'facultyid' => $USER->id], 'start_time, id');
+        return $DB->get_records('block_mrbs_faculty_plan', ['courseid' => $courseid, 'facultyid' => $USER->id], 'proposeddate, id');
     }
 
     /** Reject a forged plan ID or an edit to another faculty member's plan. */
@@ -150,12 +178,7 @@ final class faculty_planning {
                     continue;
                 }
                 try {
-                    $plan = self::validate_row($values);
-                    if ($DB->record_exists_select('block_mrbs_faculty_plan',
-                            'facultyid = ? AND start_time < ? AND end_time > ? AND id <> ?',
-                            [$USER->id, $plan->end_time, $plan->start_time, $editid])) {
-                        throw new \moodle_exception('planningoverlap', 'block_mrbs');
-                    }
+                    $plan = self::validate_row($values, $courseid);
                     $plan->courseid = $courseid;
                     $plan->facultyid = $USER->id;
                     $plan->timemodified = time();
@@ -163,6 +186,9 @@ final class faculty_planning {
                         $plan->id = $existing->id;
                         $DB->update_record('block_mrbs_faculty_plan', $plan);
                     } else {
+                        // Retain old timing columns for upgrade compatibility only.
+                        $plan->start_time = 0;
+                        $plan->end_time = 0;
                         $plan->timecreated = time();
                         $DB->insert_record('block_mrbs_faculty_plan', $plan);
                     }

@@ -18,17 +18,17 @@ $PAGE->set_url($url);
 $PAGE->set_title(get_string('facultyplanning', 'block_mrbs'));
 $PAGE->set_heading(get_string('facultyplanning', 'block_mrbs'));
 if (optional_param('template', false, PARAM_BOOL)) {
-    faculty_plan_import::download_template();
+    faculty_plan_import::download_template($courseid);
     exit;
 }
 $error = '';
 $success = '';
 $editid = optional_param('editid', 0, PARAM_INT);
-$values = [['', '', '', '']];
+$values = [['', '', '', 0, '', '']];
 if ($editid) {
     $plan = faculty_planning::owned_plan($editid, $courseid);
-    $values = [[booking_time::date('Y-m-d', $plan->start_time), booking_time::date('H:i', $plan->start_time),
-        booking_time::date('H:i', $plan->end_time), $plan->topics]];
+    $values = [[booking_time::date('Y-m-d', $plan->proposeddate), $plan->topics, $plan->methodology,
+        $plan->resourcecmid, $plan->assessment, $plan->remarks ?? '']];
 }
 if (data_submitted()) {
     require_sesskey();
@@ -48,20 +48,23 @@ if (data_submitted()) {
                 $rows = faculty_plan_import::read($file['tmp_name']);
                 $editid = 0;
             } else if ($action === 'save') {
-                $dates = optional_param_array('dates', [], PARAM_RAW_TRIMMED);
-                $starts = optional_param_array('starts', [], PARAM_RAW_TRIMMED);
-                $ends = optional_param_array('ends', [], PARAM_RAW_TRIMMED);
-                $topics = optional_param_array('topics', [], PARAM_TEXT);
-                $rows = [];
-                foreach (array_unique(array_merge(array_keys($dates), array_keys($starts), array_keys($ends), array_keys($topics))) as $i) {
-                    $rows[$i + 1] = [$dates[$i] ?? '', $starts[$i] ?? '', $ends[$i] ?? '', $topics[$i] ?? ''];
-                }
+                $fields = ['dates', 'topics', 'methodologies', 'resources', 'assessments', 'remarks'];
+                $columns = [];
                 $expected = required_param('rowcount', PARAM_INT);
-                if ($expected !== count($rows) || count($dates) !== $expected || count($starts) !== $expected
-                        || count($ends) !== $expected || count($topics) !== $expected) {
-                    throw new moodle_exception('planningtruncated', 'block_mrbs');
+                if ($expected < 1 || $expected > faculty_planning::MAX_ROWS) {
+                    throw new moodle_exception('planningrowlimit', 'block_mrbs');
                 }
-                $values = array_slice(array_values($rows), 0, faculty_planning::MAX_ROWS);
+                foreach ($fields as $field) {
+                    $columns[] = optional_param_array($field, [], PARAM_RAW_TRIMMED);
+                    if (count(end($columns)) !== $expected || array_keys(end($columns)) !== range(0, $expected - 1)) {
+                        throw new moodle_exception('planningtruncated', 'block_mrbs');
+                    }
+                }
+                $rows = [];
+                for ($i = 0; $i < $expected; $i++) {
+                    $rows[$i + 1] = array_map(static function ($column) use ($i) { return $column[$i]; }, $columns);
+                }
+                $values = array_values($rows);
             } else {
                 throw new moodle_exception('invalidrequest', 'error');
             }
@@ -100,14 +103,27 @@ if ($error !== '') {
 </div></div>
 <?php
 function block_mrbs_plan_row(array $row): void {
+    global $courseid;
     echo '<div class="planning-row border rounded p-3 mb-3"><div class="row">';
-    foreach (['dates' => ['date', 'planningdate'], 'starts' => ['time', 'planningstart'], 'ends' => ['time', 'planningend']] as $name => $field) {
-        $index = ['dates' => 0, 'starts' => 1, 'ends' => 2][$name];
-        echo '<div class="col-md-4"><label class="w-100">' . get_string($field[1], 'block_mrbs')
-            . '<input class="form-control" required type="' . $field[0] . '" name="' . $name . '[]" value="' . s($row[$index]) . '"></label></div>';
+    echo '<div class="col-md-4"><label class="w-100">' . get_string('planningdate', 'block_mrbs')
+        . '<input class="form-control" required type="date" name="dates[]" value="' . s($row[0]) . '"></label></div>';
+    foreach (['methodologies' => [2, faculty_planning::METHODOLOGIES, 'planningmethodology'],
+            'assessments' => [4, faculty_planning::ASSESSMENTS, 'planningassessment']] as $name => [$index, $choices, $label]) {
+        echo '<div class="col-md-4"><label class="w-100">' . get_string($label, 'block_mrbs')
+            . '<select class="custom-select" required name="' . $name . '[]"><option value="">' . get_string('select') . '</option>';
+        foreach ($choices as $choice) {
+            echo html_writer::tag('option', s($choice), ['value' => $choice] + ($row[$index] === $choice ? ['selected' => 'selected'] : []));
+        }
+        echo '</select></label></div>';
     }
     echo '</div><label class="w-100">' . get_string('planningtopics', 'block_mrbs')
-        . '<textarea class="form-control" required maxlength="10000" rows="3" name="topics[]">' . s($row[3]) . '</textarea></label>';
+        . '<textarea class="form-control" required maxlength="10000" rows="3" name="topics[]">' . s($row[1]) . '</textarea></label>';
+    echo '<label class="w-100">' . get_string('planningresource', 'block_mrbs') . '<select class="custom-select" name="resources[]">';
+    foreach ([0 => get_string('planningnoresource', 'block_mrbs')] + faculty_planning::resources($courseid) as $id => $label) {
+        echo html_writer::tag('option', s($label), ['value' => $id] + ((int)$row[3] === (int)$id ? ['selected' => 'selected'] : []));
+    }
+    echo '</select></label><label class="w-100">' . get_string('planningremarks', 'block_mrbs')
+        . '<textarea class="form-control" maxlength="10000" rows="2" name="remarks[]">' . s($row[5]) . '</textarea></label>';
     echo '<button type="button" class="btn btn-outline-secondary planning-remove">' . get_string('remove') . '</button></div>';
 }
 ?>
@@ -121,7 +137,7 @@ function block_mrbs_plan_row(array $row): void {
 <?php if (!$editid) { ?><button class="btn btn-secondary mr-2" type="button" id="planning-add"><?php echo get_string('planningadd', 'block_mrbs'); ?></button><?php } ?>
 <button class="btn btn-primary" type="submit"><?php echo get_string('savechanges'); ?></button>
 </form>
-<template id="planning-row-template"><?php block_mrbs_plan_row(['', '', '', '']); ?></template>
+<template id="planning-row-template"><?php block_mrbs_plan_row(['', '', '', 0, '', '']); ?></template>
 </div></div>
 <div class="card mb-4"><div class="card-body">
 <h3><?php echo get_string('planningexcel', 'block_mrbs'); ?></h3>
@@ -133,16 +149,6 @@ function block_mrbs_plan_row(array $row): void {
 <button class="btn btn-primary" type="submit"><?php echo get_string('import'); ?></button></form>
 </div></div>
 <h3><?php echo get_string('planninglist', 'block_mrbs'); ?></h3>
-<div class="table-responsive"><table class="table table-striped"><thead><tr>
-<?php foreach (['planningdate', 'planningstart', 'planningend', 'planningtopics', 'planningactions'] as $key) { echo '<th scope="col">' . get_string($key, 'block_mrbs') . '</th>'; } ?>
-</tr></thead><tbody>
-<?php foreach (faculty_planning::plans($courseid) as $plan) {
-    echo '<tr><td>' . s(booking_time::date('Y-m-d', $plan->start_time)) . '</td><td>' . s(booking_time::date('H:i', $plan->start_time))
-        . '</td><td>' . s(booking_time::date('H:i', $plan->end_time)) . '</td><td>' . nl2br(s($plan->topics)) . '</td><td>';
-    echo html_writer::link(new moodle_url($url, ['editid' => $plan->id]), get_string('edit'), ['class' => 'btn btn-secondary btn-sm mb-2']);
-    echo '<form method="post" action="' . $url->out() . '"><input type="hidden" name="sesskey" value="' . sesskey()
-        . '"><input type="hidden" name="action" value="delete"><input type="hidden" name="planid" value="' . $plan->id
-        . '"><button class="btn btn-outline-danger btn-sm" type="submit">' . get_string('delete') . '</button></form></td></tr>';
-} ?>
-</tbody></table></div>
-<?php echo $OUTPUT->footer();
+<?php
+ echo \block_mrbs\output\planning::table(faculty_planning::plans($courseid), $url);
+ echo $OUTPUT->footer();

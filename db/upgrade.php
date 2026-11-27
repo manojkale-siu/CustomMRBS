@@ -308,5 +308,29 @@ function xmldb_block_mrbs_upgrade($oldversion=0) {
         upgrade_block_savepoint(true, 2026112400, 'mrbs');
     }
 
+    if ($oldversion < 2026112700) {
+        $table = new xmldb_table('block_mrbs_faculty_plan');
+        $fields = [
+            new xmldb_field('proposeddate', XMLDB_TYPE_INTEGER, '11', null, XMLDB_NOTNULL, null, '0'),
+            new xmldb_field('methodology', XMLDB_TYPE_CHAR, '80', null, XMLDB_NOTNULL, null, ''),
+            new xmldb_field('resourcecmid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0'),
+            new xmldb_field('assessment', XMLDB_TYPE_CHAR, '80', null, XMLDB_NOTNULL, null, ''),
+            new xmldb_field('remarks', XMLDB_TYPE_TEXT),
+        ];
+        foreach ($fields as $field) {
+            if (!$dbman->field_exists($table, $field)) {
+                $dbman->add_field($table, $field);
+            }
+        }
+        $records = $DB->get_recordset_select('block_mrbs_faculty_plan', 'proposeddate = 0 AND start_time > 0', [], '', 'id,start_time');
+        foreach ($records as $record) {
+            $date = \block_mrbs\local\booking_time::getdate($record->start_time);
+            $DB->set_field('block_mrbs_faculty_plan', 'proposeddate',
+                \block_mrbs\local\booking_time::mktime(0, 0, 0, $date['mon'], $date['mday'], $date['year']), ['id' => $record->id]);
+        }
+        $records->close();
+        upgrade_block_savepoint(true, 2026112700, 'mrbs');
+    }
+
     return true;
 }
