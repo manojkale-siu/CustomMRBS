@@ -186,35 +186,4 @@ final class faculty_planning {
             $DB->delete_records('block_mrbs_faculty_plan', ['id' => $id]);
         });
     }
-    /** Read proposals only within the selected booking course and faculty. */
-    public static function booking_plans(int $courseid, int $facultyid): array {
-        global $DB;
-        if (!timetable_access::can_edit()) {
-            throw new \moodle_exception('accessdenied', 'block_mrbs');
-        }
-        if (!self::teaches_course($facultyid, $courseid)) {
-            return [];
-        }
-        $result = [];
-        foreach ($DB->get_records('block_mrbs_faculty_plan', compact('courseid', 'facultyid'), 'start_time, id', '*', 0, 500) as $plan) {
-            $result[] = ['id' => $plan->id, 'topics' => $plan->topics,
-                'label' => booking_time::userdate($plan->start_time) . ' - ' . \core_text::substr($plan->topics, 0, 100)];
-        }
-        return $result;
-    }
-
-    public static function booking_topics(int $id, int $courseid, int $facultyid): string {
-        global $DB;
-        if (!timetable_access::can_edit()) {
-            throw new \moodle_exception('accessdenied', 'block_mrbs');
-        }
-        if (self::teaches_course($facultyid, $courseid)) {
-            $plan = $DB->get_record('block_mrbs_faculty_plan', ['id' => $id, 'courseid' => $courseid, 'facultyid' => $facultyid]);
-            if ($plan) {
-                return $plan->topics;
-            }
-        }
-        throw new \moodle_exception('planningnotfound', 'block_mrbs');
-    }
-
 }

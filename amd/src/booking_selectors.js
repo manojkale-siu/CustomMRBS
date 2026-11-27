@@ -102,41 +102,6 @@ define([], function() {
         }
     }
 
-    var planRequest = 0;
-    var planTopics = {};
-    function resetPlans() {
-        planRequest++;
-        if (elements.description && Object.keys(planTopics).some(function(id) {
-            return elements.description.value === planTopics[id];
-        })) {
-            elements.description.value = config.planPlaceholder;
-        }
-        planTopics = {};
-        if (elements.plan) {
-            fillSelect(elements.plan, [], config.planPlaceholder, 0);
-        }
-    }
-
-    function loadPlans() {
-        resetPlans();
-        var serial = planRequest;
-        var course = elements.course.value;
-        var faculty = elements.faculty.value;
-        if (!elements.plan || !course || !faculty) {
-            return Promise.resolve();
-        }
-        return request('facultyplans', {courseid: course, facultyid: faculty}).then(function(items) {
-            if (serial !== planRequest || course !== elements.course.value || faculty !== elements.faculty.value) {
-                return;
-            }
-            fillSelect(elements.plan, items, config.planPlaceholder, 0);
-            items.forEach(function(item) { planTopics[String(item.id)] = item.topics; });
-            if (!elements.description.value.trim()) {
-                elements.description.value = config.planPlaceholder;
-            }
-        }).catch(function() { showError(config.failureMessage); });
-    }
-
     function loadProgrammes(selected) {
         clearSelect(elements.programme, config.programmePlaceholder);
         return request('programmes').then(function(items) {
@@ -145,7 +110,6 @@ define([], function() {
     }
 
     function loadBatches(selected) {
-        resetPlans();
         clearSelect(elements.batch, config.batchPlaceholder);
         clearSelect(elements.semester, config.semesterPlaceholder);
         clearSelect(elements.course, config.coursePlaceholder);
@@ -163,7 +127,6 @@ define([], function() {
     }
 
     function loadSemesters(selected) {
-        resetPlans();
         clearSelect(elements.semester, config.semesterPlaceholder);
         clearSelect(elements.course, config.coursePlaceholder);
         clearSelect(elements.faculty, config.facultyPlaceholder);
@@ -180,7 +143,6 @@ define([], function() {
     }
 
     function loadCourses(selected) {
-        resetPlans();
         clearSelect(elements.course, config.coursePlaceholder);
         clearSelect(elements.faculty, config.facultyPlaceholder);
         fillSelect(elements.group, [], config.groupPlaceholder, 0, config.allGroupsLabel);
@@ -196,7 +158,6 @@ define([], function() {
     }
 
     function loadFaculties(selected) {
-        resetPlans();
         clearSelect(elements.faculty, config.facultyPlaceholder);
         updateReservationName();
 
@@ -209,7 +170,6 @@ define([], function() {
             if (course !== elements.course.value) { return; }
             fillSelect(elements.faculty, items, config.facultyPlaceholder, selected);
             updateReservationName();
-            return loadPlans();
         });
     }
 
@@ -253,10 +213,6 @@ define([], function() {
         });
         elements.faculty.addEventListener('change', function() {
             updateReservationName();
-            loadPlans();
-        });
-        elements.plan.addEventListener('change', function() {
-            elements.description.value = planTopics[elements.plan.value] || config.planPlaceholder;
         });
         elements.group.addEventListener('change', updateReservationName);
     }
@@ -274,9 +230,7 @@ define([], function() {
         elements.course = elements.form.elements.courseid;
         elements.faculty = elements.form.elements.facultyid;
         elements.group = elements.form.elements.groupid;
-        elements.plan = elements.form.elements.facultyplanid;
         elements.description = elements.form.elements.description;
-        if (!elements.description.value.trim()) { elements.description.value = config.planPlaceholder; }
         elements.name = elements.form.elements.name;
         elements.preview = document.getElementById(config.previewId);
         elements.message = document.getElementById(config.messageId);
